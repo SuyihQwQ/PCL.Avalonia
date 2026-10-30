@@ -1,0 +1,31 @@
+<Grid xmlns="https://github.com/avaloniaui"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      x:Class="PCL.MyListItem"
+      RenderTransformOrigin="0.5,0.5"
+      Background="{DynamicResource ColorBrushSemiTransparent}"
+      Height="42">
+    <Grid.RenderTransform>
+        <ScaleTransform ScaleX="1" ScaleY="1" />
+    </Grid.RenderTransform>
+    <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="2" />
+        <ColumnDefinition Width="0" />
+        <ColumnDefinition Width="4" />
+        <ColumnDefinition Width="1*" />
+        <ColumnDefinition Width="4" />
+    </Grid.ColumnDefinitions>
+    <Grid.RowDefinitions>
+        <RowDefinition Height="1*" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="1*" />
+    </Grid.RowDefinitions>
+    <TextBlock x:Name="LabTitle"
+               Grid.Row="1"
+               Grid.Column="3"
+               HorizontalAlignment="Left"
+               IsHitTestVisible="False"
+               TextTrimming="CharacterEllipsis"
+               FontSize="14"
+               Margin="4,0,0,0" />
+</Grid>

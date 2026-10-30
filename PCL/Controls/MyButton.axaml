@@ -1,0 +1,19 @@
+<Border xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PCL.MyButton"
+        Focusable="True"
+        Background="{DynamicResource ColorBrushSemiTransparent}">
+    <Border x:Name="PanFore"
+            CornerRadius="3"
+            BorderThickness="1"
+            BorderBrush="{DynamicResource ColorBrush1}"
+            RenderTransformOrigin="50%,50%"
+            Background="{DynamicResource ColorBrushHalfWhite}">
+        <TextBlock x:Name="LabText"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   Foreground="{Binding $parent[Border].BorderBrush}"
+                   FontSize="13"
+                   IsHitTestVisible="False" />
+    </Border>
+</Border>

@@ -1,0 +1,74 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>PCL</RootNamespace>
+    <AssemblyName>PCL</AssemblyName>
+    <StartupObject>PCL.Program</StartupObject>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionCompare>Binary</OptionCompare>
+    <OptionStrict>Off</OptionStrict>
+    <OptionInfer>On</OptionInfer>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <AvaloniaNameGeneratorIsEnabled>false</AvaloniaNameGeneratorIsEnabled>
+    <DefineConstants>$(DefineConstants),SNAPSHOT</DefineConstants>
+    <NoWarn>$(NoWarn);BC40000;BC40056;BC42016;BC42017;BC42018;BC42019;BC42020;BC42021;BC42022;BC42024;BC42025;BC42029;BC42030;BC42032;BC42036;BC42104;BC42314;BC42353;BC42356;BC42358</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="PCL.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="Avalonia.Desktop" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="Avalonia.Markup.Xaml.Loader" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="SkiaSharp" Version="3.119.4" />
+    <PackageReference Include="SoundFlow" Version="1.4.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MeloongCore.Shared\MeloongCore.Shared.csproj" />
+    <ProjectReference Include="..\PCL.Compat\PCL.Compat.csproj" />
+    <ProjectReference Include="..\PCLCS\PCLCS.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Import Include="Avalonia" />
+    <Import Include="Avalonia.Controls" />
+    <Import Include="Avalonia.Controls.Documents" />
+    <Import Include="Avalonia.Input" />
+    <Import Include="Avalonia.Interactivity" />
+    <Import Include="Avalonia.Layout" />
+    <Import Include="Avalonia.Media" />
+    <Import Include="Avalonia.Threading" />
+    <Import Include="MeloongCore" />
+    <Import Include="MeloongCore.Compat" />
+    <Import Include="MeloongCore.Extensions" />
+    <Import Include="Microsoft.VisualBasic" />
+    <Import Include="Newtonsoft.Json" />
+    <Import Include="Newtonsoft.Json.Linq" />
+    <Import Include="PCLCS" />
+    <Import Include="System" />
+    <Import Include="System.Collections" />
+    <Import Include="System.Collections.Concurrent" />
+    <Import Include="System.Collections.Generic" />
+    <Import Include="System.Diagnostics" />
+    <Import Include="System.IO" />
+    <Import Include="System.IO.Compression" />
+    <Import Include="System.Linq" />
+    <Import Include="System.Net" />
+    <Import Include="System.Net.Http" />
+    <Import Include="System.Text" />
+    <Import Include="System.Threading" />
+    <Import Include="System.Threading.Tasks" />
+    <Import Include="System.Xml.Linq" />
+    <Import Include="ThrottleDebounce" />
+  </ItemGroup>
+
+</Project>

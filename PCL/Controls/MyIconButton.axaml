@@ -1,0 +1,24 @@
+<Border xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PCL.MyIconButton"
+        CornerRadius="1000"
+        Background="{DynamicResource ColorBrushSemiTransparent}"
+        BorderThickness="0.001">
+    <Border x:Name="PanBack"
+            CornerRadius="1000"
+            RenderTransformOrigin="50%,50%"
+            BorderThickness="0.001"
+            IsHitTestVisible="False">
+        <Border.RenderTransform>
+            <ScaleTransform />
+        </Border.RenderTransform>
+        <Path x:Name="Path"
+              Stretch="Uniform"
+              Margin="5"
+              RenderTransformOrigin="50%,50%">
+            <Path.RenderTransform>
+                <ScaleTransform />
+            </Path.RenderTransform>
+        </Path>
+    </Border>
+</Border>

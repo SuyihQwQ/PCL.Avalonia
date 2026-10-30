@@ -1,0 +1,41 @@
+<Grid xmlns="https://github.com/avaloniaui"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      x:Class="PCL.MyExtraButton"
+      Width="40" Height="0"
+      RenderTransformOrigin="50%,50%">
+    <Grid.RenderTransform>
+        <ScaleTransform ScaleX="0" ScaleY="0" />
+    </Grid.RenderTransform>
+    <Border x:Name="PanClick"
+            CornerRadius="1000"
+            BorderThickness="0.001"
+            Background="{DynamicResource ColorBrushSemiTransparent}" />
+    <Grid x:Name="PanScale"
+          IsHitTestVisible="False"
+          RenderTransformOrigin="50%,50%"
+          Margin="0,10,0,0">
+        <Grid.RenderTransform>
+            <ScaleTransform />
+        </Grid.RenderTransform>
+        <Border x:Name="PanColor"
+                CornerRadius="1000"
+                BorderThickness="0.001"
+                Background="{DynamicResource ColorBrush3}"
+                BoxShadow="0 0 10 0 #33000000" />
+        <Border x:Name="PanProgress"
+                CornerRadius="1000"
+                BorderThickness="0.001"
+                Background="#2FFFFFFF"
+                ClipToBounds="True"
+                IsVisible="False" />
+        <Path x:Name="Path"
+              Stretch="Uniform"
+              Margin="12"
+              Fill="{DynamicResource ColorBrush8}"
+              RenderTransformOrigin="50%,50%">
+            <Path.RenderTransform>
+                <ScaleTransform />
+            </Path.RenderTransform>
+        </Path>
+    </Grid>
+</Grid>

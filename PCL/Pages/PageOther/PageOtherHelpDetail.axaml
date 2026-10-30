@@ -1,0 +1,20 @@
+<local:MyPageRight xmlns="https://github.com/avaloniaui"
+                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                   xmlns:local="using:PCL"
+                   x:Class="PCL.PageOtherHelpDetail"
+                   PanScroll="PanBack">
+    <local:MyPageRight.Styles>
+        <Style Selector="StackPanel#PanCustom TextBlock">
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="StackPanel#PanCustom local|MyCard">
+            <Setter Property="Margin" Value="0,0,0,15" />
+        </Style>
+        <Style Selector="StackPanel#PanCustom Image">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+    </local:MyPageRight.Styles>
+    <local:MyScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" x:Name="PanBack">
+        <StackPanel x:Name="PanCustom" Margin="25,25,25,10" />
+    </local:MyScrollViewer>
+</local:MyPageRight>

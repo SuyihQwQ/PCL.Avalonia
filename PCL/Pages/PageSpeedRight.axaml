@@ -1,0 +1,9 @@
+<local:MyPageRight xmlns="https://github.com/avaloniaui"
+                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                   xmlns:local="using:PCL"
+                   x:Class="PCL.PageSpeedRight"
+                   PanScroll="PanBack">
+    <local:MyScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" x:Name="PanBack">
+        <StackPanel x:Name="PanMain" Margin="25,25,25,10" />
+    </local:MyScrollViewer>
+</local:MyPageRight>

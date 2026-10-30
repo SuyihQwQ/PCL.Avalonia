@@ -1,0 +1,17 @@
+<local:MyPageLeft xmlns="https://github.com/avaloniaui"
+                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                  xmlns:local="using:PCL"
+                  x:Class="PCL.PageSelectLeft"
+                  AnimatedControl="PanList">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="1*" />
+            <RowDefinition Height="5" />
+        </Grid.RowDefinitions>
+        <local:MyScrollViewer DeltaMult="0.7" Grid.Row="1" MaxWidth="300" MinWidth="250"
+                              VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel x:Name="PanList" />
+        </local:MyScrollViewer>
+    </Grid>
+</local:MyPageLeft>

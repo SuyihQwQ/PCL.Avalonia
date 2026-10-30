@@ -1,0 +1,22 @@
+<local:MyPageRight xmlns="https://github.com/avaloniaui"
+                   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                   xmlns:local="using:PCL"
+                   x:Class="PCL.PageOtherHelp"
+                   PanScroll="PanBack">
+    <Grid>
+        <local:MyScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" x:Name="PanBack" IsVisible="False">
+            <StackPanel x:Name="PanMain" Margin="25,25,25,10">
+                <local:MySearchBox Margin="0,0,0,15" HintText="搜索帮助" x:Name="SearchBox" />
+                <Grid>
+                    <local:MyCard x:Name="PanSearch" IsVisible="False" VerticalAlignment="Top" Opacity="0" Margin="0,0,0,15" Title=" " MinHeight="40">
+                        <StackPanel Margin="20,40,18,18" x:Name="PanSearchList" VerticalAlignment="Top" />
+                    </local:MyCard>
+                    <StackPanel x:Name="PanList" />
+                </Grid>
+            </StackPanel>
+        </local:MyScrollViewer>
+        <local:MyCard IsVisible="False" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="40,0" x:Name="PanLoad" UseAnimation="False">
+            <local:MyLoading Text="正在加载帮助列表" Margin="20,20,20,17" x:Name="Load" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </local:MyCard>
+    </Grid>
+</local:MyPageRight>

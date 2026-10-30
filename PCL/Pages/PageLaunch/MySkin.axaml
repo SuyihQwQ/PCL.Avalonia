@@ -1,0 +1,29 @@
+<Border xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PCL.MySkin"
+        Height="64" Width="64"
+        RenderTransformOrigin="0.5,0.5"
+        Background="{DynamicResource ColorBrushSemiTransparent}"
+        BoxShadow="0 0 10 0 #33000000">
+    <Border.ContextMenu>
+        <ContextMenu>
+            <MenuItem x:Name="BtnSkinSave" Header="另存为" />
+            <MenuItem x:Name="BtnSkinRefresh" Header="刷新" />
+            <MenuItem x:Name="BtnSkinCape" Header="更换披风" />
+        </ContextMenu>
+    </Border.ContextMenu>
+    <Grid>
+        <Image x:Name="ImgBack"
+               Width="48" Height="48"
+               Stretch="Fill"
+               RenderOptions.BitmapInterpolationMode="None"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center" />
+        <Image x:Name="ImgFore"
+               Width="56" Height="56"
+               Stretch="Fill"
+               RenderOptions.BitmapInterpolationMode="None"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center" />
+    </Grid>
+</Border>
