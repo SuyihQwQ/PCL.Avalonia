@@ -65,11 +65,14 @@ Public Class MyButton
         End Set
     End Property
 
+    Public ReadOnly Property RealScaleTransform As New ScaleTransform(1, 1)
+
     Private IsControlLoaded As Boolean = False
     Private IsMouseDown As Boolean = False
 
     Public Sub New()
         InitControls()
+        PanFore.RenderTransform = RealScaleTransform
         PanFore.Padding = Padding
         LabText.Text = If(Text, "")
     End Sub
@@ -77,6 +80,10 @@ Public Class MyButton
     Protected Overrides Sub OnAttachedToVisualTree(e As VisualTreeAttachmentEventArgs)
         MyBase.OnAttachedToVisualTree(e)
         IsControlLoaded = True
+        '重新挂载时恢复同一个缩放对象，外部绑定（如启动页实例名）才能继续跟随按钮动画
+        RealScaleTransform.ScaleX = 1
+        RealScaleTransform.ScaleY = 1
+        PanFore.RenderTransform = RealScaleTransform
         RefreshColor()
     End Sub
 

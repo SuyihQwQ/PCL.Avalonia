@@ -2,7 +2,6 @@ Imports SoundFlow.Abstracts.Devices
 Imports SoundFlow.Backends.MiniAudio
 Imports SoundFlow.Components
 Imports SoundFlow.Enums
-Imports SoundFlow.Metadata.Models
 Imports SoundFlow.Providers
 Imports SoundFlow.Structs
 
@@ -309,7 +308,9 @@ Public Module ModMusic
                 '更新进度条
                 Dim Total = CurrentWave.TotalTime.TotalMilliseconds
                 Dim Percent = If(Total <= 0, 0, CurrentWave.CurrentTime.TotalMilliseconds / Total)
-                RunInUi(Sub() FrmMain.BtnExtraMusic.Progress = Percent)
+                RunInUi(Sub()
+                            If FrmMain IsNot Nothing AndAlso FrmMain.BtnExtraMusic IsNot Nothing Then FrmMain.BtnExtraMusic.Progress = Percent
+                        End Sub)
                 Thread.Sleep(100)
             End While
             '当前音乐已播放结束，继续下一曲
@@ -356,7 +357,11 @@ Public Module ModMusic
         Public Sub New(FilePath As String)
             AudioEngineInstance = New MiniAudioEngine()
             Dim Format = AudioFormat.DvdHq
-            DataProvider = New AssetDataProvider(AudioEngineInstance, FilePath, New ReadOptions())
+            '必须按播放格式解码：SoundPlayer 与设备都使用 DvdHq，若按源文件采样率/声道解码，
+            '非 48kHz 或单声道音频会以错误速度播放（采样率不匹配、单声道被当成双声道）
+            Using Stream As New FileStream(FilePath, FileMode.Open, FileAccess.Read, FileShare.Read)
+                DataProvider = New AssetDataProvider(AudioEngineInstance, Format, Stream)
+            End Using
             Player = New SoundPlayer(AudioEngineInstance, Format, DataProvider)
             PlaybackDevice = AudioEngineInstance.InitializePlaybackDevice(Nothing, Format, Nothing)
             PlaybackDevice.MasterMixer.AddComponent(Player)

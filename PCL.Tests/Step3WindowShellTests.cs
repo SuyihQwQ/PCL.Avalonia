@@ -100,7 +100,7 @@ public class WindowShellTests {
     }
 
     [AvaloniaFact]
-    public void EndProgram_runs_close_animation_and_closes() {
+    public void EndProgram_runs_close_animation_and_hides_window() {
         var window = CreateShownWindow();
         global::PCL.ModAnimation.AniTimer(700);
         window.EndProgram(false);
@@ -110,6 +110,7 @@ public class WindowShellTests {
         global::PCL.ModAnimation.AniTimer(60);
         Assert.False(window.IsVisible);
         global::PCL.ModBase.IsProgramEnding = false;
+        window.Close();
     }
 
     [AvaloniaFact]

@@ -15,7 +15,22 @@ Public Class MyComboBox
     Private ArrowPath As Avalonia.Controls.Shapes.Path
     Private _contentPresenter As ContentPresenter
     Private IsTextChanging As Boolean = False
-    Public Property HintText As String = ""
+    Public Shared ReadOnly HintTextProperty As StyledProperty(Of String) =
+        AvaloniaProperty.Register(Of MyComboBox, String)(NameOf(HintText), "")
+    Public Property HintText As String
+        Get
+            Return GetValue(HintTextProperty)
+        End Get
+        Set(value As String)
+            SetValue(HintTextProperty, value)
+        End Set
+    End Property
+
+    Protected Overrides Sub PrepareContainerForItemOverride(container As Control, item As Object, index As Integer)
+        MyBase.PrepareContainerForItemOverride(container, item, index)
+        'ItemContainerTheme 是给自动生成的包装容器用的，会覆盖 MyComboBoxItem 自身的 Padding 与模板
+        If TypeOf container Is MyComboBoxItem Then container.ClearValue(Avalonia.StyledElement.ThemeProperty)
+    End Sub
 
     Protected Overrides Sub OnApplyTemplate(e As TemplateAppliedEventArgs)
         MyBase.OnApplyTemplate(e)
@@ -92,6 +107,7 @@ Public Class MyComboBox
     Protected Overrides Sub OnPropertyChanged(change As AvaloniaPropertyChangedEventArgs)
         MyBase.OnPropertyChanged(change)
         If change.Property Is IsEnabledProperty OrElse change.Property Is IsDropDownOpenProperty Then RefreshColor()
+        If change.Property Is HintTextProperty AndAlso TextBox IsNot Nothing Then TextBox.HintText = HintText
     End Sub
 
     Protected Overrides Sub OnGotFocus(e As FocusChangedEventArgs)

@@ -184,17 +184,14 @@ Public Class MyListItem
     End Property
 
     '信息
-    Private _Info As String = ""
+    Public Shared ReadOnly InfoProperty As StyledProperty(Of String) =
+        AvaloniaProperty.Register(Of MyListItem, String)(NameOf(Info), "")
     Public Property Info As String
         Get
-            Return _Info
+            Return GetValue(InfoProperty)
         End Get
         Set(value As String)
-            If _Info = value Then Return
-            value = If(value, "").ReplaceLineEndings("")
-            _Info = value
-            LabInfo.Text = value
-            LabInfo.IsVisible = value <> ""
+            SetValue(InfoProperty, If(value, "").ReplaceLineEndings(""))
         End Set
     End Property
 
@@ -509,6 +506,11 @@ Public Class MyListItem
             If TypeOf PathLogo Is Path Then
                 DirectCast(PathLogo, Path).Fill = Foreground
             End If
+        ElseIf change.Property Is InfoProperty AndAlso LabInfo IsNot Nothing Then
+            Dim InfoText As String = If(Info, "").ReplaceLineEndings("")
+            If InfoText <> Info Then SetCurrentValue(InfoProperty, InfoText)
+            LabInfo.Text = InfoText
+            LabInfo.IsVisible = InfoText <> ""
         End If
     End Sub
 

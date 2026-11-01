@@ -46,7 +46,7 @@
                     BorderThickness="1.5"
                     CornerRadius="3"
                     MaxWidth="500"
-                    Background="White"
+                    Background="{DynamicResource ColorBrush8}"
                     Margin="0,0,4,4"
                     BoxShadow="0 2 4 0 #66000000">
                 <TextBlock x:Name="TextHint"

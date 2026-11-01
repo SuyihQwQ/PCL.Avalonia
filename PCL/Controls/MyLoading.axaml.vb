@@ -68,14 +68,14 @@ Public Class MyLoading
         End Set
     End Property
 
-    Private _Text As String = "加载中"
+    Public Shared ReadOnly TextProperty As StyledProperty(Of String) =
+        AvaloniaProperty.Register(Of MyLoading, String)(NameOf(Text), "加载中")
     Public Property Text As String
         Get
-            Return _Text
+            Return GetValue(TextProperty)
         End Get
         Set(value As String)
-            _Text = value
-            RefreshText()
+            SetValue(TextProperty, value)
         End Set
     End Property
 
@@ -200,6 +200,7 @@ Public Class MyLoading
     Protected Overrides Sub OnPropertyChanged(change As AvaloniaPropertyChangedEventArgs)
         MyBase.OnPropertyChanged(change)
         If change.Property Is ForegroundProperty Then ApplyForeground()
+        If change.Property Is TextProperty Then RefreshText()
     End Sub
 
     Private Sub RefreshState()
@@ -235,7 +236,8 @@ Public Class MyLoading
             If _InnerState = value Then Return
             Dim OldValue = _InnerState
             _InnerState = value
-            AniLoop()
+            '停止时中止挥镐循环并回正，而不是等当前这一轮挥完
+            If value = MyLoadingState.Stop Then StopLoop() Else AniLoop()
             If (OldValue = MyLoadingState.Error) <> (value = MyLoadingState.Error) Then ErrorAnimation(Me, value = MyLoadingState.Error)
             RefreshText()
         End Set
@@ -255,28 +257,55 @@ Public Class MyLoading
     ''' </summary>
     Private IsLooping As Boolean = False
 
+    ''' <summary>
+    ''' 镐子静止时的旋转角度。
+    ''' </summary>
+    Public Property PickaxeRestAngle As Double = 55
+    ''' <summary>
+    ''' 镐子下挥到的角度。
+    ''' </summary>
+    Public Property PickaxeSwingAngle As Double = -20
+    ''' <summary>
+    ''' 镐子回弹到的角度。
+    ''' </summary>
+    Public Property PickaxeReboundAngle As Double = 30
+    ''' <summary>
+    ''' 左碎屑的出现位置与飞出偏移。
+    ''' </summary>
+    Public Property LeftSpawnX As Double = 7
+    Public Property LeftSpawnY As Double = 41
+    Public Property LeftFlyX As Double = -5
+    Public Property LeftFlyY As Double = -6
+    ''' <summary>
+    ''' 右碎屑的出现位置与飞出偏移。
+    ''' </summary>
+    Public Property RightSpawnX As Double = 14
+    Public Property RightSpawnY As Double = 41
+    Public Property RightFlyX As Double = 5
+    Public Property RightFlyY As Double = -6
+
     Private Sub AniLoop()
         If Not HasAnimation OrElse IsLooping OrElse Not InnerState = MyLoadingState.Run OrElse AniSpeed > 10 OrElse Not IsControlLoaded Then Return
         IsLooping = True
         ErrorAnimationWaiting = True
         AniStart({
-            AaRotateTransform(PathPickaxe, -20 - AniAngle(PathPickaxe), 350, 250, New AniEaseInBack(AniEasePower.Weak)),
-            AaRotateTransform(PathPickaxe, 50, 900, , New AniEaseOutFluent, True),
-            AaRotateTransform(PathPickaxe, 25, 900, , New AniEaseOutElastic(AniEasePower.Weak)),
+            AaRotateTransform(PathPickaxe, PickaxeSwingAngle - AniAngle(PathPickaxe), 350, 250, New AniEaseInBack(AniEasePower.Weak)),
+            AaRotateTransform(PathPickaxe, PickaxeReboundAngle - PickaxeSwingAngle, 900, , New AniEaseOutFluent, True),
+            AaRotateTransform(PathPickaxe, PickaxeRestAngle - PickaxeReboundAngle, 900, , New AniEaseOutElastic(AniEasePower.Weak)),
             AaCode(
             Sub()
                 PathLeft.Opacity = 1
-                PathLeft.Margin = New Thickness(7, 41, 0, 0)
+                PathLeft.Margin = New Thickness(LeftSpawnX, LeftSpawnY, 0, 0)
                 PathRight.Opacity = 1
-                PathRight.Margin = New Thickness(14, 41, 0, 0)
+                PathRight.Margin = New Thickness(RightSpawnX, RightSpawnY, 0, 0)
                 ErrorAnimationWaiting = False
             End Sub),
             AaOpacity(PathLeft, -1, 100, 50),
-            AaX(PathLeft, -5, 180, , New AniEaseOutFluent),
-            AaY(PathLeft, -6, 180, , New AniEaseOutFluent),
+            AaX(PathLeft, LeftFlyX, 180, , New AniEaseOutFluent),
+            AaY(PathLeft, LeftFlyY, 180, , New AniEaseOutFluent),
             AaOpacity(PathRight, -1, 100, 50),
-            AaX(PathRight, 5, 180, , New AniEaseOutFluent),
-            AaY(PathRight, -6, 180, , New AniEaseOutFluent),
+            AaX(PathRight, RightFlyX, 180, , New AniEaseOutFluent),
+            AaY(PathRight, RightFlyY, 180, , New AniEaseOutFluent),
             AaCode(
             Sub()
                 IsLooping = False
@@ -299,8 +328,8 @@ Public Class MyLoading
         ErrorAnimationWaiting = False
         PathLeft.Opacity = 0
         PathRight.Opacity = 0
-        If Math.Abs(AniAngle(PathPickaxe) - 55) > 0.5 Then
-            AniStart(AaRotateTransform(PathPickaxe, 55 - AniAngle(PathPickaxe), 150, , New AniEaseOutFluent), "MyLoader Loop " & Uuid)
+        If Math.Abs(AniAngle(PathPickaxe) - PickaxeRestAngle) > 0.5 Then
+            AniStart(AaRotateTransform(PathPickaxe, PickaxeRestAngle - AniAngle(PathPickaxe), 150, , New AniEaseOutFluent), "MyLoader Loop " & Uuid)
         End If
     End Sub
 

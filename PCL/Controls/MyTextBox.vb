@@ -148,14 +148,14 @@ Public Class MyTextBox
     ''' </summary>
     Private IsTextChanged As Boolean = False
 
-    Private _HintText As String = ""
+    Public Shared ReadOnly HintTextProperty As StyledProperty(Of String) =
+        AvaloniaProperty.Register(Of MyTextBox, String)(NameOf(HintText), "")
     Public Property HintText As String
         Get
-            Return _HintText
+            Return GetValue(HintTextProperty)
         End Get
         Set(value As String)
-            _HintText = If(value, "")
-            PlaceholderText = _HintText
+            SetValue(HintTextProperty, value)
         End Set
     End Property
 
@@ -246,6 +246,8 @@ Public Class MyTextBox
         MyBase.OnPropertyChanged(change)
         If change.Property Is ValidateResultProperty Then
             _IsValidated = String.IsNullOrEmpty(ValidateResult)
+        ElseIf change.Property Is HintTextProperty Then
+            PlaceholderText = If(HintText, "")
         ElseIf change.Property Is IsEnabledProperty Then
             RefreshColor()
             RefreshTextColor()

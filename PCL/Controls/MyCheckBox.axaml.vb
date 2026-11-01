@@ -85,6 +85,10 @@ Public Class MyCheckBox
             AniStop("MyCheckBox Scale " & Uuid)
             AniStop("MyCheckBox BorderColor " & Uuid)
             AniStop("MyCheckBox AllowMouseDown " & Uuid)
+            '脉冲动画被中断时尺寸会停在中间值，强制勾选（如非 Windows 下禁用 JLW）必须复位
+            ShapeBorder.Width = 18
+            ShapeBorder.Height = 18
+            ShapeBorder.Margin = New Thickness(1, 0, 0, 0)
             If Checked Then
                 AniSetScale(ShapeCheck, 1)
                 ShapeBorder.SetResourceReference(Border.BorderBrushProperty, If(IsEnabled, "ColorBrush2", "ColorBrushGray5"))

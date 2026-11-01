@@ -61,12 +61,8 @@ Namespace Global.PCL
         Friend WithEvents CheckAdvanceRunWait As PCL.MyCheckBox
         Friend WithEvents PanAdvanceJava As Avalonia.Controls.Grid
         Friend WithEvents ComboAdvanceJava As PCL.MyComboBox
+        Friend WithEvents LabAdvanceJava As Avalonia.Controls.TextBlock
         Friend WithEvents BtnAdvanceJavaSearch As PCL.MyIconButton
-        Friend WithEvents BtnAdvanceJavaUp As PCL.MyIconButton
-        Friend WithEvents BtnAdvanceJavaDown As PCL.MyIconButton
-        Friend WithEvents BtnAdvanceJavaRemove As PCL.MyIconButton
-        Friend WithEvents BtnAdvanceJavaOpen As PCL.MyIconButton
-        Friend WithEvents BtnAdvanceJavaImport As PCL.MyIconButton
         Friend WithEvents ComboAdvanceGC As PCL.MyComboBox
         Friend WithEvents CheckAdvanceDisableJLW As PCL.MyCheckBox
         Friend WithEvents CheckAdvanceDisableLUA As PCL.MyCheckBox
@@ -171,18 +167,10 @@ Namespace Global.PCL
             If PanAdvanceJava Is Nothing Then Throw New InvalidOperationException("找不到控件：PanAdvanceJava")
             ComboAdvanceJava = FindControl(Of PCL.MyComboBox)("ComboAdvanceJava")
             If ComboAdvanceJava Is Nothing Then Throw New InvalidOperationException("找不到控件：ComboAdvanceJava")
+            LabAdvanceJava = FindControl(Of Avalonia.Controls.TextBlock)("LabAdvanceJava")
+            If LabAdvanceJava Is Nothing Then Throw New InvalidOperationException("找不到控件：LabAdvanceJava")
             BtnAdvanceJavaSearch = FindControl(Of PCL.MyIconButton)("BtnAdvanceJavaSearch")
             If BtnAdvanceJavaSearch Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnAdvanceJavaSearch")
-            BtnAdvanceJavaUp = FindControl(Of PCL.MyIconButton)("BtnAdvanceJavaUp")
-            If BtnAdvanceJavaUp Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnAdvanceJavaUp")
-            BtnAdvanceJavaDown = FindControl(Of PCL.MyIconButton)("BtnAdvanceJavaDown")
-            If BtnAdvanceJavaDown Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnAdvanceJavaDown")
-            BtnAdvanceJavaRemove = FindControl(Of PCL.MyIconButton)("BtnAdvanceJavaRemove")
-            If BtnAdvanceJavaRemove Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnAdvanceJavaRemove")
-            BtnAdvanceJavaOpen = FindControl(Of PCL.MyIconButton)("BtnAdvanceJavaOpen")
-            If BtnAdvanceJavaOpen Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnAdvanceJavaOpen")
-            BtnAdvanceJavaImport = FindControl(Of PCL.MyIconButton)("BtnAdvanceJavaImport")
-            If BtnAdvanceJavaImport Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnAdvanceJavaImport")
             ComboAdvanceGC = FindControl(Of PCL.MyComboBox)("ComboAdvanceGC")
             If ComboAdvanceGC Is Nothing Then Throw New InvalidOperationException("找不到控件：ComboAdvanceGC")
             CheckAdvanceDisableJLW = FindControl(Of PCL.MyCheckBox)("CheckAdvanceDisableJLW")

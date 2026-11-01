@@ -32,13 +32,19 @@ Public Class PageSpeedLeft
         Timer.Start()
 
         '非调试模式隐藏线程数
-        If Not ModeDebug Then
-            RowDefinitions(12).Height = New GridLength(0)
-            RowDefinitions(13).Height = New GridLength(0)
-            RowDefinitions(14).Height = New GridLength(0)
-            RowDefinitions(15).Height = New GridLength(0)
-        End If
+        ApplyThreadVisibility()
 
+    End Sub
+
+    Private Sub ApplyThreadVisibility()
+        If ModeDebug Then Return
+        '行高为 0 时子元素仍会溢出绘制，需要一并隐藏
+        For Row = 12 To 15
+            RowDefinitions(Row).Height = New GridLength(0)
+        Next
+        For Each Child In Children
+            If Grid.GetRow(Child) >= 12 Then Child.IsVisible = False
+        Next
     End Sub
 
     '定时器任务

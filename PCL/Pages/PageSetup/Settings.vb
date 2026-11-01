@@ -143,6 +143,7 @@ Public Class Settings
         New Setting("UiLauncherLight", 20),
         New Setting("UiLauncherTheme", 0, OnChanged:=Sub() ThemeRefresh()),
         New Setting("UiLauncherThemeMode", 0, OnChanged:=Sub() ThemeRefresh()), '0 跟随系统，1 浅色，2 深色
+        New Setting("UiLanguage", "zh-CN", OnChanged:=Sub(Value) Localization.SetLanguage(CStr(Value))),
         New Setting("UiLauncherThemeHide", "0|1|2|3|4", Source:=Sources.Registry, Encrypted:=True),
         New Setting("UiLauncherThemeHide2", "0|1|2|3|4", Source:=Sources.Registry, Encrypted:=True),
         New Setting("UiLauncherLogo", True),
@@ -200,7 +201,7 @@ Public Class Settings
         New Setting("VersionArgumentJavaV2", 0, Source:=Sources.Instance),
         New Setting("VersionArgumentJavaRange", "", Source:=Sources.Instance),
         New Setting("VersionServerEnter", "", Source:=Sources.Instance),
-        New Setting("VersionServerLogin", 0, Source:=Sources.Instance),
+        New Setting("VersionServerLogin", 0, Source:=Sources.Instance, OnChanged:=AddressOf PageInstanceSetup.OnVersionServerLoginChanged),
         New Setting("VersionServerNide", "", Source:=Sources.Instance),
         New Setting("VersionServerAuthRegister", "", Source:=Sources.Instance),
         New Setting("VersionServerAuthName", "", Source:=Sources.Instance),

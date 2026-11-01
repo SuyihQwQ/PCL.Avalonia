@@ -5,7 +5,7 @@
     x:Class="PCL.PageResource"
     VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <StackPanel Orientation="Vertical" Margin="25">
-        <local:MyCard Title="搜索XXX" Margin="0,0,0,15" x:Name="PanAlways">
+        <local:MyCard Title="{DynamicResource LangAvalonia0095}" Margin="0,0,0,15" x:Name="PanAlways">
             <StackPanel Margin="25,40,25,15">
                 <Grid Margin="0,0,0,11" HorizontalAlignment="Stretch">
                     <Grid.ColumnDefinitions>
@@ -21,15 +21,17 @@
                         <RowDefinition Height="9" />
                         <RowDefinition Height="28" />
                     </Grid.RowDefinitions>
-                    <TextBlock VerticalAlignment="Center" HorizontalAlignment="Left" Text="名称" Margin="0,0,18,0" />
+                    <TextBlock VerticalAlignment="Center" HorizontalAlignment="Left" Text="{DynamicResource LangDownloadCompSearchName}" Margin="0,0,18,0" />
                     <local:MyTextBox x:Name="TextSearchName" Grid.Column="1" Grid.ColumnSpan="2" />
-                    <TextBlock VerticalAlignment="Center" Grid.Column="4" HorizontalAlignment="Left" Text="来源" Margin="0,0,18,0" />
+                    <TextBlock VerticalAlignment="Center" Grid.Column="4" HorizontalAlignment="Left" Text="{DynamicResource LangDownloadCompSearchSource}" Margin="0,0,18,0" />
                     <local:MyComboBox x:Name="ComboSearchSource" Grid.Column="5">
-                        <local:MyComboBoxItem Content="Modrinth" Tag="2" IsSelected="True" />
+                        <local:MyComboBoxItem Content="{DynamicResource LangDownloadCompSearchSourceAll}" Tag="3" IsSelected="True" />
+                        <local:MyComboBoxItem Content="CurseForge" Tag="1" />
+                        <local:MyComboBoxItem Content="Modrinth" Tag="2" />
                     </local:MyComboBox>
-                    <TextBlock VerticalAlignment="Center" Grid.Row="2" HorizontalAlignment="Left" Text="版本" Margin="0,0,18,0" />
+                    <TextBlock VerticalAlignment="Center" Grid.Row="2" HorizontalAlignment="Left" Text="{DynamicResource LangDownloadCompSearchVersion}" Margin="0,0,18,0" />
                     <local:MyComboBox x:Name="TextSearchVersion" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" IsEditable="True">
-                        <local:MyComboBoxItem Content="全部 (也可自行输入)" IsSelected="True" />
+                        <local:MyComboBoxItem Content="{DynamicResource LangDownloadCompSearchVersionAll}" IsSelected="True" />
                         <local:MyComboBoxItem Content="26.2" />
                         <local:MyComboBoxItem Content="26.1" />
                         <local:MyComboBoxItem Content="1.21.11" />
@@ -44,13 +46,13 @@
                         <local:MyComboBoxItem Content="1.7.10" />
                     </local:MyComboBox>
                     <local:MyComboBox x:Name="ComboSearchLoader" IsVisible="False" Grid.Row="2" Grid.Column="2" Margin="10,0,0,0">
-                        <local:MyComboBoxItem Content="任意 Mod 加载器" IsSelected="True" Tag="0" />
-                        <local:MyComboBoxItem Content="Forge" Tag="1" />
-                        <local:MyComboBoxItem Content="NeoForge" Tag="16" />
-                        <local:MyComboBoxItem Content="Fabric" Tag="4" />
-                        <local:MyComboBoxItem Content="LiteLoader" Tag="2" />
+                        <local:MyComboBoxItem Content="{DynamicResource LangDownloadCompSearchLoader}" IsSelected="True" Tag="0" />
+                        <local:MyComboBoxItem Content="{DynamicResource LangDownloadPageLeftForge}" Tag="1" />
+                        <local:MyComboBoxItem Content="{DynamicResource LangDownloadPageLeftNeoForge}" Tag="16" />
+                        <local:MyComboBoxItem Content="{DynamicResource LangDownloadPageLeftFabric}" Tag="4" />
+                        <local:MyComboBoxItem Content="{DynamicResource LangDownloadPageLeftLiteLoader}" Tag="2" />
                     </local:MyComboBox>
-                    <TextBlock VerticalAlignment="Center" Grid.Column="4" Grid.Row="2" HorizontalAlignment="Left" Text="类型" Margin="0,0,18,0" />
+                    <TextBlock VerticalAlignment="Center" Grid.Column="4" Grid.Row="2" HorizontalAlignment="Left" Text="{DynamicResource LangDownloadModType}" Margin="0,0,18,0" />
                     <local:MyComboBox x:Name="ComboSearchTag" Grid.Column="5" Grid.Row="2" />
                 </Grid>
                 <Grid Margin="0,4,0,6" Height="35">
@@ -59,15 +61,15 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <local:MyButton x:Name="BtnSearchRun" Text="搜索" MinWidth="140" Padding="13,0" Margin="0,0,20,0" ColorType="Highlight" />
-                    <local:MyButton x:Name="BtnSearchReset" Text="重置条件" MinWidth="140" Padding="13,0" Margin="0,0,20,0" Grid.Column="1" />
-                    <local:MyButton x:Name="BtnSearchInstallModPack" Text="安装已有整合包" MinWidth="140" Padding="13,0" Margin="0,0,20,0" Grid.Column="2"
-                                    ToolTip.Tip="在当前选择的 Minecraft 文件夹下安装整合包" />
+                    <local:MyButton x:Name="BtnSearchRun" Text="{DynamicResource LangDownloadCompSearch}" MinWidth="140" Padding="13,0" Margin="0,0,20,0" ColorType="Highlight" />
+                    <local:MyButton x:Name="BtnSearchReset" Text="{DynamicResource LangDownloadModReset}" MinWidth="140" Padding="13,0" Margin="0,0,20,0" Grid.Column="1" />
+                    <local:MyButton x:Name="BtnSearchInstallModPack" Text="{DynamicResource LangDownloadModpackInstallFromLocal}" MinWidth="140" Padding="13,0" Margin="0,0,20,0" Grid.Column="2"
+                                    ToolTip.Tip="{DynamicResource LangDownloadModpackInstallFromLocalToolTip}" />
                 </Grid>
             </StackPanel>
         </local:MyCard>
         <StackPanel x:Name="PanContent">
-            <local:MyHint x:Name="HintError" HasBorder="True" Text="无法连接到 Modrinth，搜索结果可能不全。&#xa;请稍后再试，或使用 VPN 改善网络环境。" Theme="Yellow" Margin="0,0,0,15" />
+            <local:MyHint x:Name="HintError" HasBorder="True" Text="{DynamicResource LangAvalonia0099}" Theme="Yellow" Margin="0,0,0,15" />
             <local:MyCard x:Name="CardProjects" UseAnimation="False">
                 <StackPanel x:Name="PanProjects" Margin="12" />
             </local:MyCard>
@@ -85,7 +87,7 @@
             </local:MyCard>
         </StackPanel>
         <local:MyCard HorizontalAlignment="Center" VerticalAlignment="Center" x:Name="PanLoad" UseAnimation="False" Margin="40,50">
-            <local:MyLoading Text="正在获取XXX列表" Margin="20,20,20,17" x:Name="Load" HorizontalAlignment="Center" VerticalAlignment="Center" ShowProgress="True" />
+            <local:MyLoading Text="{DynamicResource LangAvalonia0110}" Margin="20,20,20,17" x:Name="Load" HorizontalAlignment="Center" VerticalAlignment="Center" ShowProgress="True" />
         </local:MyCard>
     </StackPanel>
 </local:MyScrollViewer>

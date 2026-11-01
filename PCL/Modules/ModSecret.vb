@@ -12,9 +12,6 @@ Friend Module ModSecret
     Public OAuthClientId As String = If(Environment.GetEnvironmentVariable("PCL_MS_CLIENT_ID"), "")
     'CurseForge API Key
     Public CurseForgeAPIKey As String = If(Environment.GetEnvironmentVariable("PCL_CURSEFORGE_API_KEY"), "")
-    '微软登录与 CurseForge 资源都需要自行申请对应的 API 权限，暂未开放
-    Public Const MsLoginEnabled As Boolean = False
-    Public Const CurseForgeEnabled As Boolean = False
     '用于匿名数据收集的腾讯云日志服务上报 URL，形如 https://{region}.cls.tencentcs.com/track?topic_id={topic_id}
     Public Const ClsBaseUrl As String = ""
 
@@ -172,8 +169,15 @@ Friend Module ModSecret
             Application.Current.Resources("ColorBrushGray8") = New SolidColorBrush(ColorGray8)
             Application.Current.Resources("ColorBrushCard") = New SolidColorBrush(ColorCard)
             Application.Current.Resources("ColorBrushSemiTransparent") = New SolidColorBrush(ColorSemiTransparent)
-            '深色模式下半透明白会叠成灰色板，直接使用透明填充
-            Application.Current.Resources("ColorBrushHalfWhite") = New SolidColorBrush(If(IsDarkTheme, Colors.Transparent, Color.Parse("#55FFFFFF")))
+            '深色模式下半透明白会叠成灰色板；颜色动画以它为起点时，RGB 与页面背景不一致会在插值中途闪一下，
+            '因此取背景同色相的 0 透明度
+            If IsDarkTheme Then
+                Application.Current.Resources("ColorBrushHalfWhite") = New SolidColorBrush(New MyColor(0, Color8))
+            Else
+                Application.Current.Resources("ColorBrushHalfWhite") = New SolidColorBrush(Color.Parse("#55FFFFFF"))
+            End If
+            '透明色取背景同色相的 0 透明度，避免颜色动画从透明白插值经过灰色时闪一下
+            Application.Current.Resources("ColorBrushTransparent") = New SolidColorBrush(New MyColor(0, Color8))
             Application.Current.Resources("ColorBrushBackgroundTransparentSidebar") = New SolidColorBrush(New MyColor(241, Color8))
             Application.Current.Resources("ColorObject1") = CType(Color1, Color)
             Application.Current.Resources("ColorObject2") = CType(Color2, Color)

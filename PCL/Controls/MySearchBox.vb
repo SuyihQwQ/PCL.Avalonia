@@ -58,14 +58,23 @@ Public Class MySearchBox
     End Sub
 
     '属性
+    Public Shared ReadOnly HintTextProperty As StyledProperty(Of String) =
+        AvaloniaProperty.Register(Of MySearchBox, String)(NameOf(HintText), "")
     Public Property HintText As String
         Get
-            Return TextBox.HintText
+            Return If(TextBox Is Nothing, GetValue(HintTextProperty), TextBox.HintText)
         End Get
         Set(value As String)
-            TextBox.HintText = value
+            SetValue(HintTextProperty, value)
         End Set
     End Property
+
+    Protected Overrides Sub OnPropertyChanged(change As AvaloniaPropertyChangedEventArgs)
+        MyBase.OnPropertyChanged(change)
+        If change.Property Is HintTextProperty AndAlso TextBox IsNot Nothing Then
+            TextBox.HintText = CStr(GetValue(HintTextProperty))
+        End If
+    End Sub
     Public Property Text As String
         Get
             Return TextBox.Text

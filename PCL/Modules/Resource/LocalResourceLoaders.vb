@@ -123,7 +123,7 @@ Public Module LocalResourceLoaders
         '开始网络获取
         Logger.Info($"正在检查 Mod 信息的版本：{VanillaVersion}，加载器 {ModLoaders}")
         Dim EndedThreadCount As Integer = 0, IsFailed As Boolean = False
-        Dim ThreadCount As Integer = If(CurseForgeEnabled, 2, 1)
+        Dim ThreadCount As Integer = 2
         Dim CurrentTaskThread As Thread = Thread.CurrentThread
         '从 Modrinth 获取信息
         RunInNewThread(
@@ -203,8 +203,7 @@ Public Module LocalResourceLoaders
                 EndedThreadCount += 1
             End Try
         End Sub, "Mod List Detail Loader Modrinth")
-        '从 CurseForge 获取信息（需要 CurseForge API 权限，暂未开放）
-        If CurseForgeEnabled Then
+        '从 CurseForge 获取信息
         RunInNewThread(
         Sub()
             Try
@@ -320,7 +319,6 @@ Public Module LocalResourceLoaders
                 EndedThreadCount += 1
             End Try
         End Sub, "Mod List Detail Loader CurseForge")
-        End If
         '等待线程结束
         Do Until EndedThreadCount >= ThreadCount
             Thread.Sleep(10)

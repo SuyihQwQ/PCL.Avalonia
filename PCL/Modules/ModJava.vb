@@ -16,7 +16,7 @@ Public Module ModJava
                     Logger.Warn("正在从老版本迁移 Java 列表")
                     Dim OldJavaList = Settings.Get(Of String)("LaunchArgumentJavaAll").DeserializeJson(Of JArray).
                                       Select(Function(JavaObject) New Java(JavaObject("Path").ToString)).ToList()
-                    OldJavaList = JavaUtils.SortAsync(OldJavaList).Run()
+                    OldJavaList = JavaUtils.CheckAllAsync(OldJavaList).Run()
                     Logger.Info($"已从老版本设置中发现 {OldJavaList.Count} 个 Java")
                     '强制选择的 Java
                     Dim SelectedJavaSetting = Settings.Get(Of String)("LaunchArgumentJavaSelect")
@@ -176,23 +176,6 @@ Public Module ModJava
     ''' </summary>
     Public Sub JavaRemove(Entry As Java)
         ManuallyRemoveJava(Entry)
-    End Sub
-
-    ''' <summary>
-    ''' 调整 Java 在列表中的顺序，以控制优先选择哪一个。
-    ''' </summary>
-    Public Sub JavaMove(Entry As Java, Offset As Integer)
-        If Entry Is Nothing Then Return
-        Configs.JavaList.Edit(
-        Sub(ByRef List As ConcurrentList(Of Java))
-            Dim Items = List.ToList()
-            Dim Index As Integer = Items.FindIndex(Function(j) PathUtils.IsSame(j.Folder, Entry.Folder))
-            Dim NewIndex As Integer = Index + Offset
-            If Index < 0 OrElse NewIndex < 0 OrElse NewIndex >= Items.Count Then Return
-            List.RemoveAt(Index)
-            List.Insert(NewIndex, Entry)
-        End Sub)
-        UpdateJavaLists()
     End Sub
 
 #End Region

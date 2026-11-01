@@ -567,7 +567,8 @@ Public Module ModBase
     ''' 启动进程并返回进程实例，若失败则抛出异常。
     ''' </summary>
     Public Function StartProcess(FileName As String, Optional Arguments As String = "") As Process
-        Return StartProcess(New ProcessStartInfo With {.FileName = FileName, .Arguments = Arguments})
+        '与原版 .NET Framework 的默认行为一致：用系统默认程序打开文件（例如查看崩溃输出、打开文件夹）
+        Return StartProcess(New ProcessStartInfo With {.FileName = FileName, .Arguments = Arguments, .UseShellExecute = True})
     End Function
     ''' <summary>
     ''' 启动进程并返回进程实例，若失败则抛出异常。

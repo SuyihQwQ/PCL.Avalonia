@@ -10,9 +10,9 @@ namespace PCL.Tests;
 
 public class Step13MusicTests {
 
-    private static string WriteTestWav(int seconds = 2) {
+    private static string WriteTestWav(int seconds = 2, int rate = 44100, int channels = 2) {
         var path = Path.Combine(Path.GetTempPath(), "pcl_music_test_" + Guid.NewGuid().ToString("N") + ".wav");
-        const int rate = 44100, channels = 2, bits = 16;
+        const int bits = 16;
         var samples = rate * seconds;
         using var stream = File.Create(path);
         using var writer = new BinaryWriter(stream);
@@ -32,8 +32,7 @@ public class Step13MusicTests {
         writer.Write(dataLength);
         for (var i = 0; i < samples; i++) {
             var value = (short)(Math.Sin(2 * Math.PI * 440 * i / rate) * 8000);
-            writer.Write(value);
-            writer.Write(value);
+            for (var channel = 0; channel < channels; channel++) writer.Write(value);
         }
         return path;
     }
@@ -66,6 +65,19 @@ public class Step13MusicTests {
             Assert.Equal(SoundFlow.Enums.PlaybackState.Stopped, player.State);
         } finally {
             File.Delete(path);
+        }
+    }
+
+    [AvaloniaFact]
+    public void Music_player_keeps_duration_for_mono_and_other_sample_rates() {
+        foreach (var (rate, channels) in new[] { (44100, 1), (48000, 1), (22050, 2) }) {
+            var path = WriteTestWav(2, rate, channels);
+            try {
+                using var player = new global::PCL.ModMusic.MusicPlayer(path);
+                Assert.InRange(player.TotalTime.TotalSeconds, 1.9, 2.1);
+            } finally {
+                File.Delete(path);
+            }
         }
     }
 }

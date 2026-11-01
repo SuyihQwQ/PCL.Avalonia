@@ -12,10 +12,18 @@ Public Class App
 
     Public Overrides Sub OnFrameworkInitializationCompleted()
         FixDispatcherClock()
+        Localization.Initialize(Settings.Get(Of String)("UiLanguage"))
         ThemeRefresh()
         AddHandler ActualThemeVariantChanged, Sub() ThemeVariantChanged()
         If TypeOf ApplicationLifetime Is IClassicDesktopStyleApplicationLifetime Then
-            DirectCast(ApplicationLifetime, IClassicDesktopStyleApplicationLifetime).MainWindow = New FormMain()
+            Dim Desktop = DirectCast(ApplicationLifetime, IClassicDesktopStyleApplicationLifetime)
+            EnsureLinuxDesktopEntry()
+            If Settings.Get(Of Boolean)("UiLauncherLogo") Then
+                FrmStart = New FormSplash()
+                FrmStart.Show()
+            End If
+            Desktop.MainWindow = New FormMain()
+            ModJava.JavaInit()
         End If
         MyBase.OnFrameworkInitializationCompleted()
     End Sub

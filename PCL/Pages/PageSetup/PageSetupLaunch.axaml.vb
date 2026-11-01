@@ -6,7 +6,6 @@ Public Class PageSetupLaunch
 
     Private IsLoadedOnce As Boolean = False
     Private RamTimer As DispatcherTimer
-    Private PendingJavaSelection As String
 
     Public Sub New()
         InitControls()
@@ -52,12 +51,28 @@ Public Class PageSetupLaunch
             RefreshAdvanceRunWait()
             RefreshJvmResetButton()
             UpdateJavaList()
+            CheckArgumentRam.IsEnabled = OperatingSystem.IsWindows()
+            RefreshJavaLaunchWrapperSetting()
+            CheckAdvanceGraphicCard.IsEnabled = OperatingSystem.IsWindows() OrElse OperatingSystem.IsLinux()
             RefreshRam(False)
         Catch ex As NullReferenceException
             Logger.Error(ex, "启动设置项存在异常，已被自动重置", LogBehavior.Alert)
             Reset()
         Catch ex As Exception
             Logger.Error(ex, "重载启动设置时出错")
+        End Try
+    End Sub
+
+    Private Sub RefreshJavaLaunchWrapperSetting()
+        Dim IsWindows As Boolean = OperatingSystem.IsWindows()
+        CheckAdvanceDisableJLW.IsEnabled = IsWindows
+        If IsWindows Then Return
+
+        AniControlEnabled += 1
+        Try
+            CheckAdvanceDisableJLW.SetChecked(True, False)
+        Finally
+            AniControlEnabled -= 1
         End Try
     End Sub
 
@@ -443,94 +458,61 @@ Public Class PageSetupLaunch
     ''' 刷新 Java 下拉框的显示。
     ''' </summary>
     Public Sub UpdateJavaList()
-        If ComboAdvanceJava Is Nothing Then Return
-        Dim SelectedFolder As String = PendingJavaSelection
-        If SelectedFolder Is Nothing Then SelectedFolder = GetSelectedJava()?.Folder
-        PendingJavaSelection = Nothing
+        If ComboAdvanceJava Is Nothing OrElse LabAdvanceJava Is Nothing Then Return
         ComboAdvanceJava.Items.Clear()
+        '还需要等待搜索结束
         If ModJava.IsRefreshing Then
             BtnAdvanceJavaSearch.IsEnabled = False
-            BtnAdvanceJavaImport.IsEnabled = False
             ComboAdvanceJava.IsEnabled = False
-            ComboAdvanceJava.PlaceholderText = "正在搜索 Java …"
-            RefreshJavaButtons()
+            LabAdvanceJava.Text = "搜索中 …"
             Return
         End If
+        '========================================== 显示结果 ==========================================
         BtnAdvanceJavaSearch.IsEnabled = True
-        BtnAdvanceJavaImport.IsEnabled = True
         ComboAdvanceJava.IsEnabled = True
+        '更新下拉框文本
         Dim Entries = ModJava.JavaList
-        For Each Entry In Entries
-            Dim Item As New MyComboBoxItem With {.Content = Entry.ToString()}
-            ToolTip.SetTip(Item, Entry.ToString())
-            ComboAdvanceJava.Items.Add(Item)
-        Next
-        ComboAdvanceJava.PlaceholderText = If(Entries.Count = 0,
-            "未找到 Java，请点击右侧按钮搜索或导入", "")
-        If SelectedFolder IsNot Nothing Then
-            Dim Index As Integer = Entries.ToList().FindIndex(Function(j) PathUtils.IsSame(j.Folder, SelectedFolder))
-            If Index >= 0 Then ComboAdvanceJava.SelectedIndex = Index
-        End If
-        RefreshJavaButtons()
-    End Sub
-
-    Private Function GetSelectedJava() As Java
-        Dim Entries = ModJava.JavaList
-        Dim Index As Integer = ComboAdvanceJava.SelectedIndex
-        If Index < 0 OrElse Index >= Entries.Count Then Return Nothing
-        Return Entries(Index)
-    End Function
-
-    Private Sub RefreshJavaButtons()
-        Dim Entry = GetSelectedJava()
-        Dim Entries = ModJava.JavaList
-        Dim Index As Integer = ComboAdvanceJava.SelectedIndex
-        Dim IsAvailable As Boolean = Entry IsNot Nothing AndAlso Not ModJava.IsRefreshing
-        BtnAdvanceJavaUp.IsEnabled = IsAvailable AndAlso Index > 0
-        BtnAdvanceJavaDown.IsEnabled = IsAvailable AndAlso Index < Entries.Count - 1
-        BtnAdvanceJavaRemove.IsEnabled = IsAvailable
-        BtnAdvanceJavaOpen.IsEnabled = Entry IsNot Nothing
-    End Sub
-
-    Private Sub ComboAdvanceJava_SelectionChanged(sender As Object, e As SelectionChangedEventArgs) Handles ComboAdvanceJava.SelectionChanged
-        RefreshJavaButtons()
-        If AniControlEnabled <> 0 OrElse ModJava.IsRefreshing Then Return
-        If ComboAdvanceJava.SelectedIndex < 0 Then Return
-        Hint("使用下方的箭头按钮可以调整 Java 的优先级，PCL 会优先选择列表中靠前且兼容的 Java。", HintType.Blue, False)
+        LabAdvanceJava.Text = If(Entries.Count > 0, $"共有 {Entries.Count} 个 Java …", "未找到 Java，点击以导入已有的 Java")
+        '更新列表
+        Try
+            For Each Entry In Entries
+                Dim Item As New MyListItem With {
+                    .FontSize = 13, .Height = 24, .IsScaleAnimationEnabled = False, .Type = MyListItem.CheckType.Clickable,
+                    .Tag = Entry, .Title = Entry.ToString()}
+                AddHandler Item.PointerReleased, Sub(s, e) e.Handled = True
+                AddHandler Item.Click, Sub() ComboAdvanceJava.IsDropDownOpen = False
+                ComboAdvanceJava.Items.Add(Item)
+                Dim Buttons As New List(Of MyIconButton)
+                '从列表中移除按钮
+                Dim IsOfficial As Boolean = PathUtils.IsParentOf($"{Paths.AppData}.minecraft\runtime\", Entry.Folder)
+                Dim DeleteButton As New MyIconButton With {.Logo = Logo.IconButtonStop, .Height = 24, .Width = 24}
+                DeleteButton.IsEnabled = Not IsOfficial
+                DeleteButton.ToolTip = If(DeleteButton.IsEnabled, "从列表中移除", "无法移除官方 Java")
+                AddHandler DeleteButton.Click, Sub() ModJava.JavaRemove(Entry)
+                ToolTip.SetShowOnDisabled(DeleteButton, True)
+                Buttons.Add(DeleteButton)
+                '打开文件夹按钮
+                Dim OpenButton As New MyIconButton With {.Logo = Logo.IconButtonOpen, .LogoScale = 1.1, .Height = 24, .Width = 24}
+                OpenButton.ToolTip = "打开文件夹"
+                AddHandler OpenButton.Click, Sub() OpenExplorer(Entry.JavaExePath)
+                Buttons.Add(OpenButton)
+                Item.Buttons = Buttons
+            Next
+            Dim ImportItem As New MyListItem With {
+                .FontSize = 13, .Height = 24, .IsScaleAnimationEnabled = False, .Title = "导入电脑中已有的 Java…", .Type = MyListItem.CheckType.Clickable}
+            AddHandler ImportItem.PointerReleased,
+            Sub(s, e)
+                e.Handled = True
+                ModJava.JavaManuallyImport()
+            End Sub
+            ComboAdvanceJava.Items.Add(ImportItem)
+        Catch ex As Exception
+            Logger.Error(ex, "更新 Java 列表下拉框失败")
+        End Try
     End Sub
 
     Private Sub BtnAdvanceJavaSearch_Click(sender As Object, e As EventArgs) Handles BtnAdvanceJavaSearch.Click
         ModJava.JavaListRefresh()
-    End Sub
-
-    Private Sub BtnAdvanceJavaImport_Click(sender As Object, e As EventArgs) Handles BtnAdvanceJavaImport.Click
-        ModJava.JavaManuallyImport()
-    End Sub
-
-    Private Sub BtnAdvanceJavaUp_Click(sender As Object, e As EventArgs) Handles BtnAdvanceJavaUp.Click
-        Dim Entry = GetSelectedJava()
-        If Entry Is Nothing Then Return
-        PendingJavaSelection = Entry.Folder
-        ModJava.JavaMove(Entry, -1)
-    End Sub
-
-    Private Sub BtnAdvanceJavaDown_Click(sender As Object, e As EventArgs) Handles BtnAdvanceJavaDown.Click
-        Dim Entry = GetSelectedJava()
-        If Entry Is Nothing Then Return
-        PendingJavaSelection = Entry.Folder
-        ModJava.JavaMove(Entry, 1)
-    End Sub
-
-    Private Sub BtnAdvanceJavaRemove_Click(sender As Object, e As EventArgs) Handles BtnAdvanceJavaRemove.Click
-        Dim Entry = GetSelectedJava()
-        If Entry Is Nothing Then Return
-        PendingJavaSelection = ""
-        ModJava.JavaRemove(Entry)
-    End Sub
-
-    Private Sub BtnAdvanceJavaOpen_Click(sender As Object, e As EventArgs) Handles BtnAdvanceJavaOpen.Click
-        Dim Entry = GetSelectedJava()
-        If Entry IsNot Nothing Then OpenExplorer(Entry.JavaExePath)
     End Sub
 
 #End Region

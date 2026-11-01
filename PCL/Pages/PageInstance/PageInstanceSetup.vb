@@ -8,6 +8,7 @@ Public Class PageInstanceSetup
 
     Public Sub New()
         InitControls()
+        ModMain.FrmInstanceSetup = Me
         '校验规则（XAML 中无法使用 System:String 提供字符串项）
         TextArgumentInfo.ValidateRules.Add(New ValidateExcept With {
             .Excepts = New Collection(Of String) From {"""", "“", "”"}})
@@ -69,15 +70,9 @@ Public Class PageInstanceSetup
             UpdateJavaList()
 
             '服务器
-            '微软登录暂未开放，下拉框中前两项（正版相关）直接移除
-            If Not MsLoginEnabled AndAlso ComboServerLogin.ItemCount > 3 Then
-                ComboServerLogin.Items.RemoveAt(1)
-                ComboServerLogin.Items.RemoveAt(0)
-            End If
             Dim LoginStored As Integer = Settings.Get(Of Integer)("VersionServerLogin", Instance:=PageInstanceLeft.Instance)
-            If Not MsLoginEnabled AndAlso LoginStored <= 1 Then LoginStored = 2
             ComboServerLoginLast = LoginStored
-            ComboServerLogin.SelectedIndex = ServerLoginStoredToIndex(LoginStored)
+            ComboServerLogin.SelectedIndex = LoginStored
             UpdateServerLoginUI()
 
             '高级设置
@@ -88,12 +83,27 @@ Public Class PageInstanceSetup
             End If
 
             SettingService.RefreshSettings(Me)
+            ComboRamOptimize.IsEnabled = OperatingSystem.IsWindows()
+            RefreshJavaLaunchWrapperSetting()
 
             '游戏内存
             OnVersionRamTypeChanged(Settings.Get(Of Integer)("VersionRamType", Instance:=PageInstanceLeft.Instance))
 
         Catch ex As Exception
             Logger.Error(ex, "重载版本独立设置时出错")
+        End Try
+    End Sub
+
+    Private Sub RefreshJavaLaunchWrapperSetting()
+        Dim IsWindows As Boolean = OperatingSystem.IsWindows()
+        CheckAdvanceDisableJLW.IsEnabled = IsWindows
+        If IsWindows Then Return
+
+        AniControlEnabled += 1
+        Try
+            CheckAdvanceDisableJLW.SetChecked(True, False)
+        Finally
+            AniControlEnabled -= 1
         End Try
     End Sub
 
@@ -128,6 +138,10 @@ Public Class PageInstanceSetup
     Public Sub RamType(Type As Integer)
         If SliderRamCustom Is Nothing Then Return
         SliderRamCustom.IsEnabled = (Type = 1)
+    End Sub
+
+    Private Sub RamTypeChanged() Handles RadioRamType0.Check, RadioRamType1.Check, RadioRamType2.Check
+        SliderRamCustom.IsEnabled = RadioRamType1.Checked
     End Sub
 
     Private Shared Function FormatRam(Value As Double) As String
@@ -350,31 +364,28 @@ Public Class PageInstanceSetup
 
     '全局
     Private ComboServerLoginLast As Integer
-    Private Shared Function ServerLoginStoredToIndex(Value As Integer) As Integer
-        If MsLoginEnabled Then Return Value
-        Return Math.Max(Value - 2, 0)
-    End Function
-    Private Shared Function ServerLoginIndexToStored(Index As Integer) As Integer
-        If MsLoginEnabled Then Return Index
-        Return Index + 2
-    End Function
-    Private Sub ComboServerLogin_Changed() Handles ComboServerLogin.SelectionChanged, TextServerNide.ValidatedTextChanged, TextServerAuthServer.ValidatedTextChanged, TextServerAuthRegister.ValidatedTextChanged
-        If AniControlEnabled <> 0 Then Return
+    Private Sub ComboServerLogin_Changed() Handles ComboServerLogin.SelectionChanged
+        'XAML 的 IsSelected 会在页面挂上视觉树时触发一次选中，不能当作设置修改
+        If AniControlEnabled <> 0 OrElse Not IsLoaded Then Return
         If ComboServerLogin.SelectedIndex < 0 Then Return
         UpdateServerLoginUI()
-        Dim Type As Integer = ServerLoginIndexToStored(ComboServerLogin.SelectedIndex)
-        '检查是否输入正确，正确才触发设置改变
+        Dim Type As Integer = ComboServerLogin.SelectedIndex
+        If ComboServerLoginLast = Type Then Return
+        ComboServerLoginLast = Type
+        Settings.Set("VersionServerLogin", Type, Instance:=PageInstanceLeft.Instance)
+    End Sub
+    Private Sub ServerLoginConfig_Changed() Handles TextServerNide.ValidatedTextChanged, TextServerAuthServer.ValidatedTextChanged, TextServerAuthRegister.ValidatedTextChanged
+        If AniControlEnabled <> 0 OrElse ComboServerLogin.SelectedIndex < 0 Then Return
+        Dim Type As Integer = ComboServerLogin.SelectedIndex
         If Type = 3 AndAlso Not TextServerNide.IsValidated Then Return
         If Type = 4 AndAlso Not TextServerAuthServer.IsValidated Then Return
-        '检查结果是否发生改变，未改变则不触发设置改变
         If ComboServerLoginLast = Type Then Return
-        '触发
         ComboServerLoginLast = Type
         Settings.Set("VersionServerLogin", Type, Instance:=PageInstanceLeft.Instance)
     End Sub
     Private Sub UpdateServerLoginUI()
         If LabServerNide Is Nothing OrElse ComboServerLogin.SelectedIndex < 0 Then Return
-        Dim Type = ServerLoginIndexToStored(ComboServerLogin.SelectedIndex)
+        Dim Type = ComboServerLogin.SelectedIndex
         LabServerNide.IsVisible = Type = 3
         TextServerNide.IsVisible = Type = 3
         PanServerNide.IsVisible = Type = 3

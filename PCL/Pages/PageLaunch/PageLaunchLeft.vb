@@ -26,6 +26,11 @@ Public Class PageLaunchLeft
     '加载当前版本
     Private IsLoad As Boolean = False
     Private IsLoadFinished As Boolean = False
+    Private StartupLoadFailed As Boolean = False
+    Private StartupStage As String = "初始化"
+    Private StartupFailureMessage As String = ""
+    Private StartupLoadWatchdog As System.Threading.Timer
+    Private Const StartupLoaderTimeoutMs As Integer = 120000
 
     '愚人节动画变换
     Public ReadOnly Property AprilScaleTrans As New ScaleTransform()
@@ -47,10 +52,58 @@ Public Class PageLaunchLeft
         PanLaunchBox.RenderTransformOrigin = New RelativePoint(0.5, 0.5, RelativeUnit.Relative)
         ProgressLaunchingFinished = PanProgress.ColumnDefinitions(0)
         ProgressLaunchingUnfinished = PanProgress.ColumnDefinitions(1)
-        '初始化登录方式页面选择（微软登录暂未开放）
-        RadioLoginType5.IsVisible = MsLoginEnabled
-        RadioLoginType5.SetChecked(MsLoginEnabled AndAlso Settings.Get(Of McLoginType)("LoginType") = McLoginType.Ms, False, False)
-        RadioLoginType0.SetChecked(Not MsLoginEnabled OrElse Settings.Get(Of McLoginType)("LoginType") <> McLoginType.Ms, False, False)
+        '初始化登录方式页面选择
+        Select Case Settings.Get(Of McLoginType)("LoginType")
+            Case McLoginType.Legacy
+                RadioLoginType0.Checked = True
+            Case McLoginType.Ms
+                RadioLoginType5.Checked = True
+        End Select
+    End Sub
+
+    Private Shared Sub WaitForStartupLoader(Loader As LoaderBase, Input As Object, TimeoutMessage As String, Optional IsForceRestart As Boolean = False)
+        Try
+            If IsForceRestart OrElse (Loader.State <> LoadState.Loading AndAlso Loader.State <> LoadState.Finished) Then
+                Loader.Start(Input, IsForceRestart)
+            End If
+
+            Dim Remaining As Integer = StartupLoaderTimeoutMs
+            While Loader.State = LoadState.Loading
+                Thread.Sleep(10)
+                Remaining -= 10
+                If Remaining < 0 Then Throw New TimeoutException(TimeoutMessage)
+            End While
+            If Loader.State = LoadState.Finished Then Return
+            If Loader.State = LoadState.Canceled Then Throw New OperationCanceledException("启动页加载器已取消：" & Loader.Name)
+            If Loader.Error IsNot Nothing Then Throw Loader.Error
+            Throw New Exception($"启动页加载器 {Loader.Name} 以状态 {Loader.State} 结束")
+        Catch ex As TimeoutException
+            Loader.Cancel()
+            Throw
+        End Try
+    End Sub
+
+    Private Sub SetStartupStage(Stage As String)
+        StartupStage = Stage
+        Logger.Info($"启动页初始化阶段：{Stage}")
+        RunInUi(
+            Sub()
+                If Not IsLoadFinished AndAlso Not StartupLoadFailed Then LabVersion.Text = Stage
+            End Sub)
+    End Sub
+
+    Private Sub FinishStartupLoad(Optional FailureMessage As String = Nothing)
+        If IsLoadFinished Then Return
+        StartupLoadWatchdog?.Dispose()
+        StartupLoadWatchdog = Nothing
+        StartupLoadFailed = FailureMessage IsNot Nothing
+        StartupFailureMessage = If(FailureMessage, "")
+        IsLoadFinished = True
+        If StartupLoadFailed Then
+            Logger.Error($"启动页初始化失败，阶段：{StartupStage}；原因：{StartupFailureMessage}", LogBehavior.None)
+        End If
+        RefreshButtonsUI()
+        RefreshPage(False, False)
     End Sub
 
 #End Region
@@ -59,7 +112,12 @@ Public Class PageLaunchLeft
 
     Private Sub PageLaunchLeft_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
         InitCustom()
-        If IsLoad Then RefreshPage(True, False)
+        If IsLoad Then
+            '重新进入页面时 XAML 的 DynamicResource 会覆盖代码设置过的文字，需要强制刷新还原
+            BtnLaunchState = -1
+            RefreshPage(True, False, ForceReload:=True)
+            RefreshButtonsUI()
+        End If
 
         AprilPosTrans.X = 0
         AprilPosTrans.Y = 0
@@ -73,19 +131,31 @@ Public Class PageLaunchLeft
         AddHandler McFolderListLoader.LoadingStateChanged, Sub(NewState, OldState) RefreshButtonsUI()
         RefreshButtonsUI()
 
+        StartupLoadWatchdog = New System.Threading.Timer(
+            Sub()
+                RunInUi(
+                    Sub()
+                        If IsLoadFinished Then Return
+                        FinishStartupLoad($"初始化超时（{StartupStage}）。请查看启动器日志。")
+                    End Sub)
+            End Sub, Nothing, StartupLoaderTimeoutMs, Timeout.Infinite)
+
         '加载版本
         RunInNewThread(
         Sub()
+            Try
             '自动整合包安装：准备
+            SetStartupStage("检查待安装整合包")
             Dim PackInstallPath As String = Nothing
             If FileUtils.Exists(Paths.Base & "modpack.zip") Then PackInstallPath = Paths.Base & "modpack.zip"
             If FileUtils.Exists(Paths.Base & "modpack.mrpack") Then PackInstallPath = Paths.Base & "modpack.mrpack"
             If PackInstallPath IsNot Nothing Then
                 Logger.Warn($"需自动安装整合包：{PackInstallPath}")
                 PageSelectLeft.CreateMcFolderInCurrentPath()
-                McFolderListLoader.WaitForExit()
+                WaitForStartupLoader(McFolderListLoader, Nothing, "加载 Minecraft 文件夹列表超时")
             End If
             '确认 Minecraft 文件夹存在
+            SetStartupStage("检查 Minecraft 文件夹")
             If McFolderSelected = "" OrElse Not DirectoryUtils.Exists(McFolderSelected) Then
                 '无效的文件夹
                 If McFolderSelected = "" Then
@@ -93,16 +163,18 @@ Public Class PageLaunchLeft
                 Else
                     Logger.Warn($"Minecraft 文件夹无效，该文件夹已不存在：{McFolderSelected}")
                 End If
-                McFolderListLoader.WaitForExit(IsForceRestart:=True)
+                WaitForStartupLoader(McFolderListLoader, Nothing, "加载 Minecraft 文件夹列表超时", IsForceRestart:=True)
                 If McFolderList.Any Then McFolderSelected = McFolderList.First.Location
             End If
+            Dim StartupFolder As String = McFolderSelected
             If Settings.Get(Of Boolean)("SystemDebugDelay") Then Thread.Sleep(RandomInteger(500, 3000))
             '自动整合包安装
             If PackInstallPath IsNot Nothing Then
                 Try
+                    SetStartupStage("安装待处理的整合包")
                     Dim InstallLoader = ModpackInstall(PackInstallPath)
                     Logger.Info($"自动安装整合包已开始：{PackInstallPath}")
-                    InstallLoader.WaitForExit()
+                    InstallLoader.WaitForExitTime(StartupLoaderTimeoutMs, TimeoutMessage:="自动安装整合包超时")
                     If InstallLoader.State = LoadState.Finished Then
                         Logger.Info($"自动安装整合包成功，清理安装包：{PackInstallPath}")
                         FileUtils.Delete(PackInstallPath)
@@ -116,12 +188,24 @@ Public Class PageLaunchLeft
                 End Try
             End If
             '确认 Minecraft 版本存在
-            Dim Selection As String = ReadIni(McFolderSelected & "PCL.ini", "Version")
+            SetStartupStage("检查当前游戏版本")
+            Dim Selection As String = ReadIni(StartupFolder & "PCL.ini", "Version")
             Dim Instance As McInstance = If(Selection = "", Nothing, New McInstance(Selection))
-            If Instance Is Nothing OrElse Not PathUtils.IsParentOf(McFolderSelected, Instance.PathVersion) OrElse Not Instance.Check() Then
+            If Instance Is Nothing OrElse Not PathUtils.IsParentOf(StartupFolder, Instance.PathVersion) OrElse Not Instance.Check() Then
                 '无效的版本
                 Logger.Info($"当前选择的 Minecraft 版本无效：{If(Instance Is Nothing, "null", Instance.PathVersion)}", If(IsNothing(Instance), LogBehavior.None, LogBehavior.ToastIfDebug))
-                If Not McInstanceListLoader.State = LoadState.Finished Then LoaderFolderRun(McInstanceListLoader, McFolderSelected, LoaderFolderRunType.ForceRun, MaxDepth:=1, ExtraPath:="versions\", WaitForExit:=True)
+                Dim InstanceListInput = TryCast(McInstanceListLoader.Input, String)
+                Dim HasCurrentList = McInstanceListLoader.State = LoadState.Finished AndAlso
+                                     InstanceListInput IsNot Nothing AndAlso PathUtils.IsSame(InstanceListInput, StartupFolder)
+                If Not HasCurrentList Then
+                    Dim IsCurrentListLoading = McInstanceListLoader.State = LoadState.Loading AndAlso
+                                               InstanceListInput IsNot Nothing AndAlso PathUtils.IsSame(InstanceListInput, StartupFolder)
+                    If Not IsCurrentListLoading Then
+                        SetStartupStage("扫描 Minecraft 版本列表")
+                        LoaderFolderRun(McInstanceListLoader, StartupFolder, LoaderFolderRunType.ForceRun, MaxDepth:=1, ExtraPath:="versions\")
+                    End If
+                    WaitForStartupLoader(McInstanceListLoader, StartupFolder, "加载 Minecraft 版本列表超时")
+                End If
                 Dim FirstInstance As McInstance = Nothing
                 If McInstanceList.Any Then FirstInstance = McInstanceList.First.Value(0)
                 If FirstInstance Is Nothing OrElse FirstInstance.Logo.Contains("RedstoneBlock") Then
@@ -134,10 +218,10 @@ Public Class PageLaunchLeft
             End If
             RunInUi(
             Sub()
+                If IsLoadFinished Then Return
                 McInstanceSelected = Instance '绕这一圈是为了避免 McVersionCheck 触发第二次版本改变
-                IsLoadFinished = True
-                RefreshButtonsUI()
-                RefreshPage(False, False) '有可能选择的版本变化了，需要重新刷新
+                FinishStartupLoad()
+                '有可能选择的版本变化了，需要重新刷新
                 If McLoginAble() = "" Then McLoginLoader.Start() '自动登录
                 '用于自动化测试生成的程序是否可以正常运行
                 If Environment.CommandLine.Contains("--test") Then
@@ -160,6 +244,18 @@ Public Class PageLaunchLeft
                     End Sub)
                 End If
             End Sub)
+            Catch ex As Exception
+                If ex.IsCanceled Then
+                    Logger.Info("启动页版本加载已取消")
+                Else
+                    Logger.Error(ex, $"启动页版本加载失败（阶段：{StartupStage}）", LogBehavior.Alert)
+                End If
+                RunInUi(
+                Sub()
+                    If IsLoadFinished Then Return
+                    FinishStartupLoad(If(ex.IsCanceled, "启动页初始化已取消。", $"初始化失败（{StartupStage}），请查看启动器日志。"))
+                End Sub)
+            End Try
         End Sub, "Version Check", ThreadPriority.AboveNormal)
 
         '改变页面
@@ -334,7 +430,7 @@ Public Class PageLaunchLeft
     ''' <summary>
     ''' 确认当前显示的子页面正确，并刷新该页面。
     ''' </summary>
-    Public Sub RefreshPage(KeepInput As Boolean, Anim As Boolean)
+    Public Sub RefreshPage(KeepInput As Boolean, Anim As Boolean, Optional ForceReload As Boolean = False)
         '获取页面的可用种类并回写缓存
         Dim Type As PageType
         Dim LoginPageType As Integer
@@ -345,8 +441,6 @@ Public Class PageLaunchLeft
         Else
             LoginPageType = Settings.Get(Of Integer)("LoginPageType")
         End If
-        '微软登录暂未开放，相关页面统一按仅离线处理
-        If Not MsLoginEnabled AndAlso LoginPageType <= 1 Then LoginPageType = 2
         Select Case LoginPageType
             Case 0 '正版或离线
 UnknownType:
@@ -413,8 +507,11 @@ UnknownType:
                 GoTo UnknownType
         End Select
         '刷新页面
-        If PageCurrent = Type Then Return
-        DirectCast(PageChange(Type, Anim), ILoginPage).Reload(KeepInput)
+        If PageCurrent <> Type Then
+            DirectCast(PageChange(Type, Anim), ILoginPage).Reload(KeepInput)
+        ElseIf ForceReload Then
+            DirectCast(PageGet(Type), ILoginPage).Reload(KeepInput)
+        End If
         Select Case Settings.Get(Of McLoginType)("LoginType")
             Case McLoginType.Ms
                 RadioLoginType5.Checked = True
@@ -681,14 +778,16 @@ Finish:
             FrmMain.PageChange(FormMain.PageType.Download, FormMain.PageSubType.DownloadInstall)
         End If
     End Sub
-    Private BtnLaunchState As Integer = 0
+    Private BtnLaunchState As Integer = -1
     Private BtnLaunchInstance As McInstance = Nothing
     Public Sub RefreshButtonsUI() Handles BtnLaunch.Loaded
         If BtnLaunch Is Nothing OrElse Not BtnLaunch.IsLoaded Then Return
         '获取当前状态
         Dim CurrentState As Integer
-        If (Not IsLoadFinished) OrElse McInstanceListLoader.State = LoadState.Loading OrElse McFolderListLoader.State = LoadState.Loading Then
+        If Not IsLoadFinished Then
             CurrentState = 0
+        ElseIf StartupLoadFailed Then
+            CurrentState = 4
         Else
             If McInstanceSelected Is Nothing Then
                 If Settings.Get(Of Boolean)("UiHiddenPageDownload") AndAlso Not PageSetupUI.HiddenForceShow Then
@@ -733,12 +832,26 @@ Finish:
                 BtnVersion.IsEnabled = True
                 BtnLaunch.IsEnabled = True
                 LabVersion.Text = McInstanceSelected.Name
+            Case 4
+                BtnLaunch.Text = "加载失败"
+                BtnLaunch.IsEnabled = False
+                BtnVersion.IsEnabled = True
+                BtnMore.IsVisible = False
+                LabVersion.Text = StartupFailureMessage
         End Select
 ExitRefresh:
         '功能隐藏
         BtnVersion.IsVisible = Not PageSetupUI.HiddenForceShow AndAlso Not Settings.Get(Of Boolean)("UiHiddenFunctionSelect")
         If CurrentState = 3 Then BtnMore.IsVisible = BtnVersion.IsVisible
     End Sub
+
+    Public Sub RefreshAfterPageEnter()
+        If Not IsLoadFinished Then Return
+        BtnLaunchState = -1
+        RefreshPage(True, False, ForceReload:=True)
+        RefreshButtonsUI()
+    End Sub
+
     '取消按钮
     Public Sub BtnCancel_Click() Handles BtnCancel.Click
         If McLaunchLoaderReal IsNot Nothing Then

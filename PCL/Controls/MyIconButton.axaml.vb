@@ -169,7 +169,7 @@ Public Class MyIconButton
                 Else
                     Path.SetResourceReference(Avalonia.Controls.Shapes.Shape.FillProperty, "ColorBrushGray5")
                 End If
-                PanBack.Background = CType(New MyColor(0, 255, 255, 255), Brush)
+                PanBack.SetResourceReference(Border.BackgroundProperty, "ColorBrushTransparent")
                 Return
             End If
 
@@ -193,19 +193,19 @@ Public Class MyIconButton
                 Select Case Theme
                     Case Themes.Color
                         AnimList.Add(AaColor(Path, Avalonia.Controls.Shapes.Shape.FillProperty, "ColorBrush4", AnimationColorOut))
-                        PanBack.Background = CType(New MyColor(0, 255, 255, 255), Brush)
+                        PanBack.SetResourceReference(Border.BackgroundProperty, "ColorBrushTransparent")
                     Case Themes.White
                         AnimList.Add(AaColor(Path, Avalonia.Controls.Shapes.Shape.FillProperty, "ColorBrushWhite", AnimationColorOut))
-                        AnimList.Add(AaColor(PanBack, BackgroundProperty, New MyColor(0, 255, 255, 255) - New MyColor(PanBack.Background), AnimationColorOut))
+                        AnimList.Add(AaColor(PanBack, BackgroundProperty, "ColorBrushTransparent", AnimationColorOut))
                     Case Themes.Red
                         AnimList.Add(AaColor(Path, Avalonia.Controls.Shapes.Shape.FillProperty, New MyColor(160, 255, 76, 76) - New MyColor(Path.Fill), AnimationColorOut))
-                        PanBack.Background = CType(New MyColor(0, 255, 255, 255), Brush)
+                        PanBack.SetResourceReference(Border.BackgroundProperty, "ColorBrushTransparent")
                     Case Themes.Black
                         AnimList.Add(AaColor(Path, Avalonia.Controls.Shapes.Shape.FillProperty, New MyColor(160, 0, 0, 0) - New MyColor(Path.Fill), AnimationColorOut))
-                        PanBack.Background = CType(New MyColor(0, 255, 255, 255), Brush)
+                        PanBack.SetResourceReference(Border.BackgroundProperty, "ColorBrushTransparent")
                     Case Themes.Custom
                         AnimList.Add(AaColor(Path, Avalonia.Controls.Shapes.Shape.FillProperty, New MyColor(160, Foreground) - New MyColor(Path.Fill), AnimationColorOut))
-                        PanBack.Background = CType(New MyColor(0, 255, 255, 255), Brush)
+                        PanBack.SetResourceReference(Border.BackgroundProperty, "ColorBrushTransparent")
                 End Select
             End If
             AniStart(AnimList, "MyIconButton Color " & Uuid)

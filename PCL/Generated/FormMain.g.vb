@@ -15,6 +15,14 @@ Namespace Global.PCL
     Partial Public Class FormMain
 
         Friend WithEvents PanBack As Avalonia.Controls.Grid
+        Friend WithEvents ResizerT As Avalonia.Controls.Shapes.Rectangle
+        Friend WithEvents ResizerB As Avalonia.Controls.Shapes.Rectangle
+        Friend WithEvents ResizerL As Avalonia.Controls.Shapes.Rectangle
+        Friend WithEvents ResizerR As Avalonia.Controls.Shapes.Rectangle
+        Friend WithEvents ResizerLT As Avalonia.Controls.Shapes.Rectangle
+        Friend WithEvents ResizerRT As Avalonia.Controls.Shapes.Rectangle
+        Friend WithEvents ResizerLB As Avalonia.Controls.Shapes.Rectangle
+        Friend WithEvents ResizerRB As Avalonia.Controls.Shapes.Rectangle
         Friend WithEvents BorderForm As Avalonia.Controls.Border
         Friend WithEvents PanForm As Avalonia.Controls.Grid
         Friend WithEvents ImgBack As Avalonia.Controls.Canvas
@@ -48,19 +56,27 @@ Namespace Global.PCL
         Friend WithEvents BtnExtraMusic As PCL.MyExtraButton
         Friend WithEvents PanHint As Avalonia.Controls.StackPanel
         Friend WithEvents PanMsg As Avalonia.Controls.Grid
-        Friend WithEvents ResizerT As Avalonia.Controls.Shapes.Rectangle
-        Friend WithEvents ResizerB As Avalonia.Controls.Shapes.Rectangle
-        Friend WithEvents ResizerL As Avalonia.Controls.Shapes.Rectangle
-        Friend WithEvents ResizerR As Avalonia.Controls.Shapes.Rectangle
-        Friend WithEvents ResizerLT As Avalonia.Controls.Shapes.Rectangle
-        Friend WithEvents ResizerRT As Avalonia.Controls.Shapes.Rectangle
-        Friend WithEvents ResizerLB As Avalonia.Controls.Shapes.Rectangle
-        Friend WithEvents ResizerRB As Avalonia.Controls.Shapes.Rectangle
 
         Private Sub InitControls()
             AvaloniaXamlLoader.Load(Me)
             PanBack = FindControl(Of Avalonia.Controls.Grid)("PanBack")
             If PanBack Is Nothing Then Throw New InvalidOperationException("找不到控件：PanBack")
+            ResizerT = FindControl(Of Avalonia.Controls.Shapes.Rectangle)("ResizerT")
+            If ResizerT Is Nothing Then Throw New InvalidOperationException("找不到控件：ResizerT")
+            ResizerB = FindControl(Of Avalonia.Controls.Shapes.Rectangle)("ResizerB")
+            If ResizerB Is Nothing Then Throw New InvalidOperationException("找不到控件：ResizerB")
+            ResizerL = FindControl(Of Avalonia.Controls.Shapes.Rectangle)("ResizerL")
+            If ResizerL Is Nothing Then Throw New InvalidOperationException("找不到控件：ResizerL")
+            ResizerR = FindControl(Of Avalonia.Controls.Shapes.Rectangle)("ResizerR")
+            If ResizerR Is Nothing Then Throw New InvalidOperationException("找不到控件：ResizerR")
+            ResizerLT = FindControl(Of Avalonia.Controls.Shapes.Rectangle)("ResizerLT")
+            If ResizerLT Is Nothing Then Throw New InvalidOperationException("找不到控件：ResizerLT")
+            ResizerRT = FindControl(Of Avalonia.Controls.Shapes.Rectangle)("ResizerRT")
+            If ResizerRT Is Nothing Then Throw New InvalidOperationException("找不到控件：ResizerRT")
+            ResizerLB = FindControl(Of Avalonia.Controls.Shapes.Rectangle)("ResizerLB")
+            If ResizerLB Is Nothing Then Throw New InvalidOperationException("找不到控件：ResizerLB")
+            ResizerRB = FindControl(Of Avalonia.Controls.Shapes.Rectangle)("ResizerRB")
+            If ResizerRB Is Nothing Then Throw New InvalidOperationException("找不到控件：ResizerRB")
             BorderForm = FindControl(Of Avalonia.Controls.Border)("BorderForm")
             If BorderForm Is Nothing Then Throw New InvalidOperationException("找不到控件：BorderForm")
             PanForm = FindControl(Of Avalonia.Controls.Grid)("PanForm")
@@ -127,22 +143,6 @@ Namespace Global.PCL
             If PanHint Is Nothing Then Throw New InvalidOperationException("找不到控件：PanHint")
             PanMsg = FindControl(Of Avalonia.Controls.Grid)("PanMsg")
             If PanMsg Is Nothing Then Throw New InvalidOperationException("找不到控件：PanMsg")
-            ResizerT = FindControl(Of Avalonia.Controls.Shapes.Rectangle)("ResizerT")
-            If ResizerT Is Nothing Then Throw New InvalidOperationException("找不到控件：ResizerT")
-            ResizerB = FindControl(Of Avalonia.Controls.Shapes.Rectangle)("ResizerB")
-            If ResizerB Is Nothing Then Throw New InvalidOperationException("找不到控件：ResizerB")
-            ResizerL = FindControl(Of Avalonia.Controls.Shapes.Rectangle)("ResizerL")
-            If ResizerL Is Nothing Then Throw New InvalidOperationException("找不到控件：ResizerL")
-            ResizerR = FindControl(Of Avalonia.Controls.Shapes.Rectangle)("ResizerR")
-            If ResizerR Is Nothing Then Throw New InvalidOperationException("找不到控件：ResizerR")
-            ResizerLT = FindControl(Of Avalonia.Controls.Shapes.Rectangle)("ResizerLT")
-            If ResizerLT Is Nothing Then Throw New InvalidOperationException("找不到控件：ResizerLT")
-            ResizerRT = FindControl(Of Avalonia.Controls.Shapes.Rectangle)("ResizerRT")
-            If ResizerRT Is Nothing Then Throw New InvalidOperationException("找不到控件：ResizerRT")
-            ResizerLB = FindControl(Of Avalonia.Controls.Shapes.Rectangle)("ResizerLB")
-            If ResizerLB Is Nothing Then Throw New InvalidOperationException("找不到控件：ResizerLB")
-            ResizerRB = FindControl(Of Avalonia.Controls.Shapes.Rectangle)("ResizerRB")
-            If ResizerRB Is Nothing Then Throw New InvalidOperationException("找不到控件：ResizerRB")
         End Sub
 
     End Class

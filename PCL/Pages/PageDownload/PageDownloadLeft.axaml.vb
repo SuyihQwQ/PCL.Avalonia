@@ -3,6 +3,7 @@
 ''' </summary>
 Public Class PageDownloadLeft
     Inherits MyPageLeft
+    Implements IRefreshable
 
     ''' <summary>
     ''' 当前显示的子页面。
@@ -136,19 +137,58 @@ Public Class PageDownloadLeft
         Refresh(CInt(Val(sender.Tag)))
     End Sub
 
+    Public Sub Refresh() Implements IRefreshable.Refresh
+        Refresh(FrmMain.PageCurrentSub)
+    End Sub
+
     Public Sub Refresh(SubType As FormMain.PageSubType)
+        ResourceProject.Cache.Clear()
+        ResourceVersion.ProjectFilesCache.Clear()
         Select Case SubType
             Case FormMain.PageSubType.DownloadInstall
+                DlClientListLoader.Start(IsForceRestart:=True)
+                DlOptiFineListLoader.Start(IsForceRestart:=True)
+                DlForgeListLoader.Start(IsForceRestart:=True)
+                DlNeoForgeListLoader.Start(IsForceRestart:=True)
+                DlLiteLoaderListLoader.Start(IsForceRestart:=True)
+                DlFabricListLoader.Start(IsForceRestart:=True)
+                DlFabricApiLoader.Start(IsForceRestart:=True)
+                DlOptiFabricLoader.Start(IsForceRestart:=True)
                 ItemInstall.SetChecked(True, False, False)
             Case FormMain.PageSubType.DownloadMod
+                If FrmDownloadMod IsNot Nothing Then
+                    FrmDownloadMod.Content.Storage = New ResourceSearcher.SearchResult
+                    FrmDownloadMod.Content.Page = 0
+                    FrmDownloadMod.PageLoaderRestart()
+                End If
                 ItemMod.SetChecked(True, False, False)
             Case FormMain.PageSubType.DownloadPack
+                If FrmDownloadPack IsNot Nothing Then
+                    FrmDownloadPack.Content.Storage = New ResourceSearcher.SearchResult
+                    FrmDownloadPack.Content.Page = 0
+                    FrmDownloadPack.PageLoaderRestart()
+                End If
                 ItemPack.SetChecked(True, False, False)
             Case FormMain.PageSubType.DownloadDataPack
+                If FrmDownloadDataPack IsNot Nothing Then
+                    FrmDownloadDataPack.Content.Storage = New ResourceSearcher.SearchResult
+                    FrmDownloadDataPack.Content.Page = 0
+                    FrmDownloadDataPack.PageLoaderRestart()
+                End If
                 ItemDataPack.SetChecked(True, False, False)
             Case FormMain.PageSubType.DownloadResourcePack
+                If FrmDownloadResourcePack IsNot Nothing Then
+                    FrmDownloadResourcePack.Content.Storage = New ResourceSearcher.SearchResult
+                    FrmDownloadResourcePack.Content.Page = 0
+                    FrmDownloadResourcePack.PageLoaderRestart()
+                End If
                 ItemResourcePack.SetChecked(True, False, False)
             Case FormMain.PageSubType.DownloadShader
+                If FrmDownloadShader IsNot Nothing Then
+                    FrmDownloadShader.Content.Storage = New ResourceSearcher.SearchResult
+                    FrmDownloadShader.Content.Page = 0
+                    FrmDownloadShader.PageLoaderRestart()
+                End If
                 ItemShader.SetChecked(True, False, False)
         End Select
         Hint("正在刷新……", Log:=False)

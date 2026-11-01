@@ -6,7 +6,7 @@
     PanScroll="PanBack">
     <local:MyScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" x:Name="PanBack">
         <StackPanel x:Name="PanMain" Margin="25,25,25,10">
-            <local:MyCard x:Name="CardArgument" Margin="0,0,0,15" Title="启动选项">
+            <local:MyCard x:Name="CardArgument" Margin="0,0,0,15" Title="{DynamicResource LangPageSetupLaunchLaunchOptions}">
                 <StackPanel Margin="25,40,25,25">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -26,46 +26,46 @@
                             <RowDefinition Height="9" />
                             <RowDefinition Height="28" />
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Left" Text="默认版本隔离" Margin="0,0,25,0" />
+                        <TextBlock Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Left" Text="{DynamicResource LangPageSetupLaunchLaunchVersionIsolation}" Margin="0,0,25,0" />
                         <local:MyComboBox x:Name="ComboArgumentIndieV2" Grid.Row="0" Grid.Column="1"
                                           local:SettingService.Key="LaunchArgumentIndieV2"
-                                          ToolTip.Tip="当安装新版本时，据此自动设置新版本的隔离选项。&#xa;若想调整已有版本的隔离策略，请前往它的版本设置。">
-                            <local:MyComboBoxItem Content="关闭"
-                                                  ToolTip.Tip="所有版本均使用同一档案，存档、Mod、资源包等均为公用。&#xa;若存在多个安装了 Mod 的版本，可能会导致 Mod 冲突。" />
-                            <local:MyComboBoxItem Content="隔离可安装 Mod 的版本"
-                                                  ToolTip.Tip="可安装 Mod 的版本（例如 Forge、Fabric）均互相独立以避免 Mod 冲突，其他版本（例如原版）则不会被隔离。" />
-                            <local:MyComboBoxItem Content="隔离非正式版"
-                                                  ToolTip.Tip="将 Minecraft 快照、预发布版、远古版本、愚人节版本与其他版本进行隔离。" />
-                            <local:MyComboBoxItem Content="隔离可安装 Mod 的版本与非正式版"
-                                                  ToolTip.Tip="将可安装 Mod 的版本、Minecraft 快照、预发布版、远古版本、愚人节版本与其他版本进行隔离。" />
-                            <local:MyComboBoxItem Content="隔离所有版本"
-                                                  ToolTip.Tip="不同版本之间的存档、Mod、资源包等均不互通。&#xa;这会导致不同原版版本间的存档不能共用，所以一般不推荐。" />
+                                          ToolTip.Tip="{DynamicResource LangPageSetupLaunchLaunchVersionIsolationToolTip}">
+                            <local:MyComboBoxItem Content="{DynamicResource LangPageSetupLaunchLaunchVersionIsolationClose}"
+                                                  ToolTip.Tip="{DynamicResource LangAvalonia0085}" />
+                            <local:MyComboBoxItem Content="{DynamicResource LangPageSetupLaunchLaunchVersionIsolationModOnly}"
+                                                  ToolTip.Tip="{DynamicResource LangPageSetupLaunchLaunchVersionIsolationModOnlyToolTip}" />
+                            <local:MyComboBoxItem Content="{DynamicResource LangPageSetupLaunchLaunchVersionIsolationBetaOnly}"
+                                                  ToolTip.Tip="{DynamicResource LangAvalonia0065}" />
+                            <local:MyComboBoxItem Content="{DynamicResource LangAvalonia0147}"
+                                                  ToolTip.Tip="{DynamicResource LangAvalonia0066}" />
+                            <local:MyComboBoxItem Content="{DynamicResource LangPageSetupLaunchLaunchVersionIsolationAll}"
+                                                  ToolTip.Tip="{DynamicResource LangPageSetupLaunchLaunchVersionIsolationAllToolTip}" />
                         </local:MyComboBox>
-                        <TextBlock Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Left" Text="游戏窗口标题" Margin="0,0,25,0" />
+                        <TextBlock Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Left" Text="{DynamicResource LangPageSetupLaunchLaunchWindowTitle}" Margin="0,0,25,0" />
                         <local:MyTextBox x:Name="TextArgumentTitle" Grid.Row="2" Grid.Column="1"
-                                         local:SettingService.Key="LaunchArgumentTitle" MaxHeight="28" MaxLength="100" HintText="默认"
-                                         ToolTip.Tip="自定义游戏窗口的标题，若留空则不进行更改。&#xa;你可以用替换标记来动态改变其内容，在 更多 → 帮助 中搜索 “替换标记” 以了解用法。" />
-                        <TextBlock Grid.Row="4" VerticalAlignment="Center" HorizontalAlignment="Left" Text="自定义信息" Margin="0,0,25,0" />
+                                         local:SettingService.Key="LaunchArgumentTitle" MaxHeight="28" MaxLength="100" HintText="{DynamicResource LangPageSetupLaunchLaunchWindowSizeDefault}"
+                                         ToolTip.Tip="{DynamicResource LangPageSetupLaunchLaunchWindowTitleToolTip}" />
+                        <TextBlock Grid.Row="4" VerticalAlignment="Center" HorizontalAlignment="Left" Text="{DynamicResource LangPageSetupLaunchLaunchCustomInfo}" Margin="0,0,25,0" />
                         <local:MyTextBox x:Name="TextArgumentInfo" Grid.Row="4" Grid.Column="1"
                                          local:SettingService.Key="LaunchArgumentInfo" MaxHeight="28" Text="PCL"
-                                         ToolTip.Tip="注意：Mojang 于 Minecraft 26.1 移除了该设置，因此该设置在新版本中无效。&#xa;&#xa;该信息会显示在游戏主界面的左下角，与 F3 调试页面的左上角。&#xa;你可以用替换标记来动态改变其内容，在 更多 → 帮助 中搜索 “替换标记” 以了解用法。" />
-                        <TextBlock Grid.Row="6" VerticalAlignment="Center" HorizontalAlignment="Left" Text="启动器可见性" Margin="0,0,25,0" />
+                                         ToolTip.Tip="{DynamicResource LangAvalonia0112}" />
+                        <TextBlock Grid.Row="6" VerticalAlignment="Center" HorizontalAlignment="Left" Text="{DynamicResource LangPageSetupLaunchLaunchVisibility}" Margin="0,0,25,0" />
                         <local:MyComboBox x:Name="ComboArgumentVisibie" Grid.Row="6" Grid.Column="1"
                                           local:SettingService.Key="LaunchArgumentVisible">
-                            <local:MyComboBoxItem Content="游戏启动后立即关闭" />
-                            <local:MyComboBoxItem Content="游戏启动后隐藏，游戏退出后自动关闭" local:SettingService.Value="2" />
-                            <local:MyComboBoxItem Content="游戏启动后隐藏，游戏退出后重新打开" local:SettingService.Value="3" />
-                            <local:MyComboBoxItem Content="游戏启动后最小化" local:SettingService.Value="4" />
-                            <local:MyComboBoxItem Content="游戏启动后仍保持不变" local:SettingService.Value="5" />
+                            <local:MyComboBoxItem Content="{DynamicResource LangPageSetupLaunchLaunchVisibilityCloseOnGameStart}" />
+                            <local:MyComboBoxItem Content="{DynamicResource LangPageSetupLaunchLaunchVisibilityCloseOnGameClose}" local:SettingService.Value="2" />
+                            <local:MyComboBoxItem Content="{DynamicResource LangPageSetupLaunchLaunchVisibilityRestartOnGameClose}" local:SettingService.Value="3" />
+                            <local:MyComboBoxItem Content="{DynamicResource LangPageSetupLaunchLaunchVisibilityMinimizeOnGameStart}" local:SettingService.Value="4" />
+                            <local:MyComboBoxItem Content="{DynamicResource LangPageSetupLaunchLaunchVisibilityKeep}" local:SettingService.Value="5" />
                         </local:MyComboBox>
-                        <TextBlock Grid.Row="8" VerticalAlignment="Center" HorizontalAlignment="Left" Text="进程优先级" Margin="0,0,25,0" />
+                        <TextBlock Grid.Row="8" VerticalAlignment="Center" HorizontalAlignment="Left" Text="{DynamicResource LangPageSetupLaunchLaunchGamePriority}" Margin="0,0,25,0" />
                         <local:MyComboBox x:Name="ComboArgumentPriority" Grid.Row="8" Grid.Column="1"
                                           local:SettingService.Key="LaunchArgumentPriority">
-                            <local:MyComboBoxItem Content="高（优先保证游戏运行，游戏性能更佳，但可能造成其他程序卡顿）" />
-                            <local:MyComboBoxItem Content="中（平衡）" />
-                            <local:MyComboBoxItem Content="低（优先保证其他程序运行，但可能让游戏卡顿，适合挂机时使用）" />
+                            <local:MyComboBoxItem Content="{DynamicResource LangPageSetupLaunchLaunchGamePriorityHigh}" />
+                            <local:MyComboBoxItem Content="{DynamicResource LangPageSetupLaunchLaunchGamePriorityMedium}" />
+                            <local:MyComboBoxItem Content="{DynamicResource LangPageSetupLaunchLaunchGamePriorityLow}" />
                         </local:MyComboBox>
-                        <TextBlock Grid.Row="10" VerticalAlignment="Center" HorizontalAlignment="Left" Text="窗口大小" Margin="0,0,25,0" />
+                        <TextBlock Grid.Row="10" VerticalAlignment="Center" HorizontalAlignment="Left" Text="{DynamicResource LangPageSetupLaunchLaunchWindowSize}" Margin="0,0,25,0" />
                         <Grid x:Name="PanArgumentWindow" Grid.Row="10" Grid.Column="1">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition />
@@ -74,11 +74,11 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <local:MyComboBox x:Name="ComboArgumentWindowType" local:SettingService.Key="LaunchArgumentWindowType">
-                                <local:MyComboBoxItem Content="全屏" />
-                                <local:MyComboBoxItem Content="默认" />
-                                <local:MyComboBoxItem Content="与启动器尺寸一致" />
-                                <local:MyComboBoxItem Content="自定义尺寸" ToolTip.Tip="Forge 1.12.2 等个别版本存在 Bug，会导致高度设定无效" />
-                                <local:MyComboBoxItem Content="最大化" />
+                                <local:MyComboBoxItem Content="{DynamicResource LangPageSetupLaunchLaunchWindowSizeFullscreen}" />
+                                <local:MyComboBoxItem Content="{DynamicResource LangPageSetupLaunchLaunchWindowSizeDefault}" />
+                                <local:MyComboBoxItem Content="{DynamicResource LangPageSetupLaunchLaunchWindowSizeSameWithLaunch}" />
+                                <local:MyComboBoxItem Content="{DynamicResource LangPageSetupLaunchLaunchWindowSizeCustom}" ToolTip.Tip="{DynamicResource LangPageSetupLaunchLaunchWindowSizeCustomToolTip}" />
+                                <local:MyComboBoxItem Content="{DynamicResource LangPageSetupLaunchLaunchWindowSizeMaximum}" />
                             </local:MyComboBox>
                             <local:MyTextBox x:Name="TextArgumentWindowWidth" Grid.Column="1" Width="60" Margin="50,0,0,0"
                                              local:SettingService.Key="LaunchArgumentWindowWidth"
@@ -88,12 +88,12 @@
                             <local:MyTextBox x:Name="TextArgumentWindowHeight" Grid.Column="3" Width="60"
                                              local:SettingService.Key="LaunchArgumentWindowHeight"
                                              HorizontalContentAlignment="Center" IsVisible="False" Text="480"
-                                             ToolTip.Tip="Forge 1.12.2 等个别版本存在 Bug，会导致高度设定无效" />
+                                             ToolTip.Tip="{DynamicResource LangPageSetupLaunchLaunchWindowSizeCustomToolTip}" />
                         </Grid>
                     </Grid>
                 </StackPanel>
             </local:MyCard>
-            <local:MyCard x:Name="CardRam" Margin="0,0,0,15" Title="内存分配">
+            <local:MyCard x:Name="CardRam" Margin="0,0,0,15" Title="{DynamicResource LangPageSetupLaunchLaunchMem}">
                 <StackPanel Margin="25,40,25,15">
                     <Grid Margin="0,0,0,3">
                         <Grid.ColumnDefinitions>
@@ -107,17 +107,17 @@
                             <RowDefinition Height="9" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <local:MyRadioBox x:Name="RadioRamType0" Grid.Row="0" Text="自动配置" Width="110" Margin="0,0,20,0"
+                        <local:MyRadioBox x:Name="RadioRamType0" Grid.Row="0" Text="{DynamicResource LangPageSetupLaunchLaunchMemAutoAdjust}" Width="110" Margin="0,0,20,0"
                                           local:SettingService.Key="LaunchRamType" local:SettingService.Value="0"
-                                          ToolTip.Tip="根据安装的 Mod 量与电脑剩余内存，动态调整为游戏分配的内存" />
-                        <local:MyRadioBox x:Name="RadioRamType1" Grid.Row="2" Text="自定义" Margin="0,0,20,0"
+                                          ToolTip.Tip="{DynamicResource LangAvalonia0105}" />
+                        <local:MyRadioBox x:Name="RadioRamType1" Grid.Row="2" Text="{DynamicResource LangPageSetupLaunchLaunchMemCustom}" Margin="0,0,20,0"
                                           local:SettingService.Key="LaunchRamType" local:SettingService.Value="1" />
                         <local:MySlider x:Name="SliderRamCustom" Grid.Row="2" Grid.Column="1" IsEnabled="False"
                                         local:SettingService.Key="LaunchRamCustom" MaxValue="49" Value="13" />
                         <local:MyCheckBox x:Name="CheckArgumentRam" Grid.Row="4" Grid.ColumnSpan="2" Height="22"
-                                          Text="启动游戏前进行内存优化"
+                                          Text="{DynamicResource LangPageSetupLaunchLaunchMemReduceMemBeforeLaunch}"
                                           local:SettingService.Key="LaunchArgumentRam"
-                                          ToolTip.Tip="内存优化能将当前物理内存占用降低约 1/3，不仅限于 MC！&#xa;如果使用机械硬盘，这还可能会导致一小段时间的严重卡顿。&#xa;使用 --memory 参数启动 PCL 可以静默执行内存优化。" />
+                                          ToolTip.Tip="{DynamicResource LangPageSetupLaunchLaunchMemReduceMemBeforeLaunchToolTip}" />
                     </Grid>
                     <Grid x:Name="PanRamDisplay" Margin="0,11,2,0">
                         <Grid.ColumnDefinitions>
@@ -130,13 +130,13 @@
                             <RowDefinition Height="4" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <TextBlock x:Name="LabRamUsedTitle" Grid.ColumnSpan="3" Text="已使用内存" FontSize="11" Opacity="0.7"
+                        <TextBlock x:Name="LabRamUsedTitle" Grid.ColumnSpan="3" Text="{DynamicResource LangPageSetupLaunchLaunchMemUsedMem}" FontSize="11" Opacity="0.7"
                                    Margin="2,0,0,5" HorizontalAlignment="Left" />
-                        <TextBlock x:Name="LabRamGameTitle" Grid.ColumnSpan="3" Text="游戏分配" FontSize="11" Opacity="0.7"
+                        <TextBlock x:Name="LabRamGameTitle" Grid.ColumnSpan="3" Text="{DynamicResource LangPageSetupLaunchLaunchMemMemForGame}" FontSize="11" Opacity="0.7"
                                    Margin="0,0,2,5" HorizontalAlignment="Right" />
                         <Rectangle x:Name="RectRamUsed" Grid.Row="1" StrokeThickness="0">
                             <Rectangle.Fill>
-                                <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                                <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
                                     <GradientStop Color="{DynamicResource ColorObject3}" Offset="0" />
                                     <GradientStop Color="{DynamicResource ColorObject2}" Offset="0.5" />
                                 </LinearGradientBrush>
@@ -155,9 +155,9 @@
                     </Grid>
                 </StackPanel>
             </local:MyCard>
-            <local:MyCard x:Name="CardSkin" Margin="0,0,0,15" Title="离线皮肤" CanSwap="True" IsSwapped="True">
+            <local:MyCard x:Name="CardSkin" Margin="0,0,0,15" Title="{DynamicResource LangPageSetupLaunchSkin}" CanSwap="True" IsSwapped="True">
                 <StackPanel Margin="25,40,25,15">
-                    <local:MyHint Margin="0,0,0,10" Text="由于技术问题，此功能只保证对 1.19.2 以前的版本有效！" HintTheme="Yellow" />
+                    <local:MyHint Margin="0,0,0,10" Text="{DynamicResource LangPageSetupLaunchSkinTips}" HintTheme="Yellow" />
                     <Grid Margin="-1,0,0,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition />
@@ -168,7 +168,7 @@
                         </Grid.ColumnDefinitions>
                         <local:MyRadioBox x:Name="RadioSkinType0" Grid.Column="0" Height="22"
                                           local:SettingService.Key="LaunchSkinType" local:SettingService.Value="0"
-                                          Text="随机" ToolTip.Tip="随机选择一个默认皮肤" />
+                                          Text="{DynamicResource LangPageSetupLaunchSkinTypeRandom}" ToolTip.Tip="{DynamicResource LangPageSetupLaunchSkinTypeRandomToolTip}" />
                         <local:MyRadioBox x:Name="RadioSkinType1" Grid.Column="1" Height="22"
                                           local:SettingService.Key="LaunchSkinType" local:SettingService.Value="1"
                                           Text="Steve" />
@@ -177,10 +177,10 @@
                                           Text="Alex" />
                         <local:MyRadioBox x:Name="RadioSkinType3" Grid.Column="3" Height="22"
                                           local:SettingService.Key="LaunchSkinType" local:SettingService.Value="3"
-                                          Text="正版皮肤" ToolTip.Tip="使用某个正版玩家的皮肤" />
+                                          Text="{DynamicResource LangPageSetupLaunchSkinTypeMicrosoft}" ToolTip.Tip="{DynamicResource LangPageSetupLaunchSkinTypeMicrosoftToolTip}" />
                         <local:MyRadioBox x:Name="RadioSkinType4" Grid.Column="4" Height="22"
                                           local:SettingService.Key="LaunchSkinType" local:SettingService.Value="4"
-                                          Text="自定义" ToolTip.Tip="以资源包的形式加载自定义皮肤。&#xa;使用此方式更换的皮肤在多人游戏中仅自己可见，且会替换游戏中所有的角色。" />
+                                          Text="{DynamicResource LangPageSetupLaunchLaunchMemCustom}" ToolTip.Tip="{DynamicResource LangPageSetupLaunchSkinTypeCustomToolTip}" />
                     </Grid>
                     <Grid x:Name="PanSkinID" Margin="0,14,0,2" IsVisible="False">
                         <Grid.ColumnDefinitions>
@@ -191,7 +191,7 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <TextBlock VerticalAlignment="Center" HorizontalAlignment="Left" Text="正版玩家名" Margin="0,0,25,0" />
+                        <TextBlock VerticalAlignment="Center" HorizontalAlignment="Left" Text="{DynamicResource LangPageSetupLaunchSkinTypeMicrosoftName}" Margin="0,0,25,0" />
                         <local:MyTextBox x:Name="TextSkinID" Grid.Column="1" MaxLength="50"
                                          local:SettingService.Key="LaunchSkinID" />
                         <Grid Height="35" Grid.Row="1" Grid.ColumnSpan="2" Margin="0,14,0,0">
@@ -199,9 +199,9 @@
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <local:MyButton x:Name="BtnSkinSave" Text="保存皮肤" MinWidth="140" Padding="13,0" Margin="0,0,20,0" />
-                            <local:MyButton x:Name="BtnSkinCache" Text="刷新" MinWidth="140" Padding="13,0" Margin="0,0,20,0"
-                                            Grid.Column="1" ToolTip.Tip="刷新并重新下载 PCL 当前显示的皮肤" />
+                            <local:MyButton x:Name="BtnSkinSave" Text="{DynamicResource LangPageLoginMsSkinSkinSave}" MinWidth="140" Padding="13,0" Margin="0,0,20,0" />
+                            <local:MyButton x:Name="BtnSkinCache" Text="{DynamicResource LangDownloadPageLeftRefresh}" MinWidth="140" Padding="13,0" Margin="0,0,20,0"
+                                            Grid.Column="1" ToolTip.Tip="{DynamicResource LangPageSetupLaunchSkinRefreshToolTip}" />
                         </Grid>
                     </Grid>
                     <Grid x:Name="PanSkinChange" Margin="0,14,0,2" Height="35" IsVisible="False">
@@ -209,13 +209,13 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <local:MyButton x:Name="BtnSkinChange" Text="更改皮肤" MinWidth="140" Padding="13,0" Margin="0,0,20,0" />
-                        <local:MyButton x:Name="BtnSkinDelete" Text="重置皮肤" MinWidth="140" Padding="13,0" Margin="0,0,20,0"
+                        <local:MyButton x:Name="BtnSkinChange" Text="{DynamicResource LangPageSetupLaunchSkinChange}" MinWidth="140" Padding="13,0" Margin="0,0,20,0" />
+                        <local:MyButton x:Name="BtnSkinDelete" Text="{DynamicResource LangPageSetupLaunchSkinReset}" MinWidth="140" Padding="13,0" Margin="0,0,20,0"
                                         ColorType="Red" Grid.Column="1" />
                     </Grid>
                 </StackPanel>
             </local:MyCard>
-            <local:MyCard Margin="0,0,0,15" Title="高级选项" IsSwapped="True" CanSwap="True">
+            <local:MyCard Margin="0,0,0,15" Title="{DynamicResource LangPageSetupLaunchLaunchAdvanceOptions}" IsSwapped="True" CanSwap="True">
                 <Grid Margin="25,40,25,15">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -229,102 +229,83 @@
                         <RowDefinition Height="28" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="9" />
-                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="28" />
                         <RowDefinition Height="9" />
                         <RowDefinition Height="28" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <StackPanel Grid.Row="0" VerticalAlignment="Center" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,25,0">
-                        <TextBlock Text="Java 虚拟机参数" VerticalAlignment="Center" />
+                        <TextBlock Text="{DynamicResource LangPageSetupLaunchLaunchAdvanceOptionsJVMHead}" VerticalAlignment="Center" />
                         <local:MyIconButton x:Name="BtnAdvanceJvmReset" Height="23" Margin="0,1,0,0" VerticalAlignment="Center"
                                             IsVisible="False" LogoScale="0.9"
-                                            ToolTip.Tip="还原"
+                                            ToolTip.Tip="{DynamicResource LangPageSetupLaunchLaunchAdvanceOptionsJVMHeadReset}"
                                             Logo="M530 0c287 0 521 229 521 511s-233 511-521 511c-233 0-436-151-500-368a63 63 0 0 1 44-79 65 65 0 0 1 80 43c48 162 200 276 375 276 215 0 390-171 390-383s-174-383-390-383c-103 0-199 39-270 106l21-5a63 63 0 0 1 33 123l-157 42a65 65 0 0 1-90-42l-49-183a65 65 0 1 1 126-33l6 26A524 524 0 0 1 530 0z" />
                     </StackPanel>
                     <local:MyTextBox x:Name="TextAdvanceJvm" Grid.Row="0" Grid.Column="1" Height="100"
                                      local:SettingService.Key="LaunchAdvanceJvm" MaxLength="4000"
                                      AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top"
                                      ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                     ToolTip.Tip="启动 Minecraft 时使用的额外 JVM 参数，除非有确定把握，否则请不要修改。&#xa;&#xa;支持 Minecraft 版本 JSON 中的字符串替换标记，例如 ${library_directory}。&#xa;也支持使用 PCL 的替换标记，在 更多 → 帮助 中搜索 “替换标记” 以了解用法。" />
-                    <TextBlock Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Left" Text="游戏参数" Margin="0,0,25,0" />
+                                     ToolTip.Tip="{DynamicResource LangPageSetupLaunchLaunchAdvanceOptionsJVMHeadTops}" />
+                    <TextBlock Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Left" Text="{DynamicResource LangPageSetupLaunchLaunchAdvanceOptionsJVMTail}" Margin="0,0,25,0" />
                     <local:MyTextBox x:Name="TextAdvanceGame" Grid.Row="2" Grid.Column="1" MaxHeight="28"
                                      local:SettingService.Key="LaunchAdvanceGame"
-                                     ToolTip.Tip="文本框中的内容将会被直接拼合在启动参数的末尾。&#xa;例如，输入 --demo 则会以试玩模式启动游戏。&#xa;&#xa;支持 Minecraft 版本 JSON 中的字符串替换标记，例如 ${library_directory}。&#xa;也支持使用 PCL 的替换标记，在 更多 → 帮助 中搜索 “替换标记” 以了解用法。" />
-                    <TextBlock Grid.Row="4" VerticalAlignment="Center" HorizontalAlignment="Left" Text="启动前执行命令" Margin="0,0,25,0" />
+                                     ToolTip.Tip="{DynamicResource LangPageSetupLaunchLaunchAdvanceOptionsJVMTailTip}" />
+                    <TextBlock Grid.Row="4" VerticalAlignment="Center" HorizontalAlignment="Left" Text="{DynamicResource LangPageSetupLaunchLaunchAdvanceOptionsCommandBeforeStart}" Margin="0,0,25,0" />
                     <local:MyTextBox x:Name="TextAdvanceRun" Grid.Row="4" Grid.Column="1" MaxHeight="28"
                                      local:SettingService.Key="LaunchAdvanceRun"
-                                     ToolTip.Tip="在 MC 启动前执行特定命令或程序，语法与 Windows 的命令提示符一致。&#xa;&#xa;你可以用替换标记来动态改变其内容或实现相对路径，在 更多 → 帮助 中搜索 “替换标记” 以了解用法。&#xa;例如：&#xa; · &quot;{verpath}test.exe&quot; ：运行版本文件夹下的 test.exe 程序&#xa; · notepad &quot;{verindie}options.txt&quot; ：使用记事本打开该版本的设置文件&#xa;&#xa;涉及路径的操作最好都打上双引号，以避免路径中的空格导致运行失败。&#xa;执行命令时，命令行所在的目录是当前的 .minecraft 文件夹。" />
+                                     ToolTip.Tip="{DynamicResource LangAvalonia0059}" />
                     <local:MyCheckBox x:Name="CheckAdvanceRunWait" Grid.Row="5" Grid.Column="1" IsVisible="False"
-                                      Text="等待命令执行完成后再继续启动" Margin="0,8,0,7"
+                                      Text="{DynamicResource LangPageSetupLaunchLaunchAdvanceOptionsCommandStartWaitForCommand}" Margin="0,8,0,7"
                                       local:SettingService.Key="LaunchAdvanceRunWait" />
                     <StackPanel Grid.Row="7" VerticalAlignment="Center" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,25,0">
-                        <TextBlock Text="Java 列表" VerticalAlignment="Center"
-                                   ToolTip.Tip="启动游戏时，PCL 会选择列表中第一个兼容当前 Minecraft 的 Java。&#xa;使用右侧按钮可以进行排序、移除或打开文件夹。&#xa;若想无视兼容性，强制使用某个 Java，请在版本独立设置中修改。" />
+                        <TextBlock Text="{DynamicResource LangPageSetupLaunchLaunchJava}" VerticalAlignment="Center"
+                                   ToolTip.Tip="{DynamicResource LangPageSetupLaunchLaunchJavaToolTip}" />
                         <local:MyIconButton Height="23" Margin="0,1,0,0" VerticalAlignment="Center" Theme="Black" CanClick="False"
                                             Opacity="0.3" LogoScale="0.9"
                                             Logo="M512 1008C238.7 1008 16 785.2 16 512S238.7 16 512 16 1008 238.7 1008 512 785.2 1008 512 1008z m0-896c-220.8 0-400 179.2-400 400s179.2 400 400 400 400-179.2 400-400S732.8 112 512 112z M514.5 638.7c-26.2 0-48-21.7-48-48 0-52.4 32-100.4 81.9-120.9 26.8-11.5 51.2-39.6 44.8-76.8-5.1-27.5-32-51.8-62.7-56.9-26.2-4.4-51.8 2.5-70.4 18.5-16 13.4-24.3 32-24.3 51.2 0 26.2-21.7 48-48 48s-48-21.7-48-48c0-47.3 21.1-92.8 58.2-124.1a182.4 182.4 0 0 1 147.8-39.6c71.0 11.5 129.2 66.5 142.0 133.7 14.0 76.8-27.5 151.6-101.7 183.0-14.0 5.7-23.0 18.5-23.0 32.6 0 26.2-21.7 48-48 48zM514.5 793.6c-15.3 0-30.0-6.4-40.9-16.6-10.8-10.8-16.6-25.6-16.6-40.9s5.7-30.0 16.6-40.9c2.5-2.5 5.7-5.1 8.9-7.0s6.4-3.8 9.6-5.1a57.7 57.7 0 0 1 80 53.1 57.6 57.6 0 0 1-57.6 57.6z" />
                     </StackPanel>
-                    <Grid x:Name="PanAdvanceJava" Grid.Row="7" Grid.Column="1" HorizontalAlignment="Stretch">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="28" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
+                    <Grid x:Name="PanAdvanceJava" Grid.Row="7" Grid.Column="1" Grid.ColumnSpan="2" HorizontalAlignment="Stretch" Height="28">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <local:MyComboBox x:Name="ComboAdvanceJava" Grid.Row="0" Grid.Column="0" PlaceholderText="未找到 Java，请点击右侧按钮搜索或导入" />
-                        <local:MyIconButton x:Name="BtnAdvanceJavaSearch" Grid.Row="0" Grid.Column="1" Margin="5,2,0,2"
-                                            LogoScale="0.95" ToolTip.Tip="重新搜索 Java"
+                        <local:MyComboBox x:Name="ComboAdvanceJava" Grid.Column="0" />
+                        <TextBlock x:Name="LabAdvanceJava" Grid.Column="0" Margin="8.5,0,21.5,0" IsHitTestVisible="False"
+                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                        <local:MyIconButton x:Name="BtnAdvanceJavaSearch" Grid.Column="1" Width="24" Height="24" Margin="5,2,0,2"
+                                            LogoScale="0.95" ToolTip.Tip="{DynamicResource LangAvalonia0144}"
                                             Logo="M512.0 838.3c-80.2 0-153.4-29.3-210.2-77.4l75.5-75.5c11.5-11.5 25.8-22.0 25.8-37.0a27.2 27.2 0 0 0-27.1-27.1H104.0c-27.1 0-27.1 23.9-27.1 27.1v271.9a27.1 27.1 0 0 0 27.1 27.1c15.0 0 27.8-16.6 42.5-31.2l77.9-77.9c76.6 67.7 177.1 108.9 287.4 108.9 221.7 0 404.5-166.0 431.2-380.6h-109.8c-25.9 154.2-159.7 271.9-321.3 271.9zM919.9 76.6c-15.0 0-27.8 16.6-42.5 31.3L799.5 185.8c-76.5-67.7-177.1-108.9-287.4-108.9-221.8 0-404.5 166.1-431.3 380.6H190.6c25.9-154.2 159.7-271.9 321.4-271.9 80.2 0 153.4 29.3 210.1 77.4l-75.5 75.5c-11.6 11.5-25.8 22.0-25.8 37.1a27.2 27.2 0 0 0 27.1 27.1h271.9c27.1 0 27.1-23.9 27.1-27.1V103.8a27.1 27.1 0 0 0-27.1-27.1z" />
-                        <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,7,0,0">
-                            <local:MyIconButton x:Name="BtnAdvanceJavaUp" Width="24" Height="24" Margin="0,0,5,0"
-                                                LogoScale="0.95" ToolTip.Tip="提高优先级"
-                                                Logo="M554 333V853h-85V333l-228 228-60-60L512 170l331 331-60 60L554 333z" />
-                            <local:MyIconButton x:Name="BtnAdvanceJavaDown" Width="24" Height="24" Margin="0,0,5,0"
-                                                LogoScale="0.95" ToolTip.Tip="降低优先级"
-                                                Logo="M554 691V171h-85V691L241 463l-60 60L512 854l331-331-60-60L554 691z" />
-                            <local:MyIconButton x:Name="BtnAdvanceJavaRemove" Width="24" Height="24" Margin="0,0,5,0"
-                                                ToolTip.Tip="从列表中移除"
-                                                Logo="M508 990.4c-261.6 0-474.4-212-474.4-474.4S246.4 41.6 508 41.6s474.4 212 474.4 474.4S769.6 990.4 508 990.4zM508 136.8c-209.6 0-379.2 169.6-379.2 379.2 0 209.6 169.6 379.2 379.2 379.2s379.2-169.6 379.2-379.2C887.2 306.4 717.6 136.8 508 136.8zM697.6 563.2 318.4 563.2c-26.4 0-47.2-21.6-47.2-47.2 0-26.4 21.6-47.2 47.2-47.2l379.2 0c26.4 0 47.2 21.6 47.2 47.2C744.8 542.4 724 563.2 697.6 563.2z" />
-                            <local:MyIconButton x:Name="BtnAdvanceJavaOpen" Width="24" Height="24" Margin="0,0,5,0"
-                                                LogoScale="1.1" ToolTip.Tip="打开文件夹"
-                                                Logo="M889.018182 418.909091H884.363636V316.509091a93.090909 93.090909 0 0 0-99.607272-89.832727h-302.545455l-93.090909-76.334546A46.545455 46.545455 0 0 0 358.865455 139.636364H146.152727A93.090909 93.090909 0 0 0 46.545455 229.469091V837.818182a46.545455 46.545455 0 0 0 46.545454 46.545454 46.545455 46.545455 0 0 0 16.756364-3.258181 109.381818 109.381818 0 0 0 25.134545 3.258181h586.472727a85.178182 85.178182 0 0 0 87.04-63.301818l163.374546-302.545454a46.545455 46.545455 0 0 0 5.585454-21.876364A82.385455 82.385455 0 0 0 889.018182 418.909091z m-744.727273-186.181818h198.283636l93.09091 76.334545a46.545455 46.545455 0 0 0 29.323636 10.705455h319.301818a12.101818 12.101818 0 0 1 6.516364 0V418.909091H302.545455a85.178182 85.178182 0 0 0-87.04 63.301818L139.636364 622.778182V232.727273a19.549091 19.549091 0 0 1 6.516363 0z m578.094546 552.029091a27.461818 27.461818 0 0 0-2.792728 6.516363H154.530909l147.083636-272.290909a27.461818 27.461818 0 0 0 2.792728-6.981818h565.061818z" />
-                            <local:MyIconButton x:Name="BtnAdvanceJavaImport" Width="24" Height="24"
-                                                ToolTip.Tip="导入电脑中已有的 Java"
-                                                Logo="M512 1008C238.7 1008 16 785.2 16 512S238.7 16 512 16 1008 238.7 1008 512 785.2 1008 512 1008z m0-896c-220.8 0-400 179.2-400 400s179.2 400 400 400 400-179.2 400-400S732.8 112 512 112z M537 715 537 895h-48V715H309l203-203 203 203H537z" />
-                        </StackPanel>
                     </Grid>
-                    <TextBlock Grid.Row="9" VerticalAlignment="Center" HorizontalAlignment="Left" Text="内存管理" Margin="0,0,25,0" />
+                    <TextBlock Grid.Row="9" VerticalAlignment="Center" HorizontalAlignment="Left" Text="{DynamicResource LangAvalonia0042}" Margin="0,0,25,0" />
                     <local:MyComboBox x:Name="ComboAdvanceGC" Grid.Row="9" Grid.Column="1" local:SettingService.Key="LaunchAdvanceGC">
-                        <local:MyComboBoxItem Content="尽量使用 ZGC" ToolTip.Tip="在 Java 21+ 使用分代 ZGC，20~15 使用非分代的 ZGC，14- 使用 G1GC。&#xa;ZGC 的内存占用比 G1GC 更高，不过在回收内存时不会导致卡顿。&#xa;覆盖 “Java 虚拟机参数” 设置中的 GC 相关参数。" />
-                        <local:MyComboBoxItem Content="尽量使用分代 ZGC" ToolTip.Tip="在 Java 21+ 使用分代 ZGC，20- 使用 G1GC。&#xa;ZGC 的内存占用比 G1GC 更高，不过在回收内存时不会导致卡顿。&#xa;覆盖 “Java 虚拟机参数” 设置中的 GC 相关参数。" />
-                        <local:MyComboBoxItem Content="标准 G1GC" ToolTip.Tip="总是使用 G1GC，附带 Mojang 官方的优化参数。&#xa;G1GC 的内存占用比 ZGC 更低，但在回收内存时会导致突然的卡顿。&#xa;覆盖 “Java 虚拟机参数” 设置中的 GC 相关参数。" />
-                        <local:MyComboBoxItem Content="调优 G1GC" local:SettingService.Value="4" ToolTip.Tip="总是使用 G1GC，附带 PCL 调优过的优化参数。&#xa;G1GC 的内存占用比 ZGC 更低，但在回收内存时会导致突然的卡顿。&#xa;覆盖 “Java 虚拟机参数” 设置中的 GC 相关参数。" />
-                        <local:MyComboBoxItem Content="不指定（可自定义）" local:SettingService.Value="3" ToolTip.Tip="不自动添加 GC 参数。&#xa;仅当选择此项时，你可以在 “Java 虚拟机参数” 设置中手动添加 GC 参数。" />
+                        <local:MyComboBoxItem Content="{DynamicResource LangAvalonia0068}" ToolTip.Tip="{DynamicResource LangAvalonia0058}" />
+                        <local:MyComboBoxItem Content="{DynamicResource LangAvalonia0069}" ToolTip.Tip="{DynamicResource LangAvalonia0057}" />
+                        <local:MyComboBoxItem Content="{DynamicResource LangAvalonia0104}" ToolTip.Tip="{DynamicResource LangAvalonia0081}" />
+                        <local:MyComboBoxItem Content="{DynamicResource LangAvalonia0135}" local:SettingService.Value="4" ToolTip.Tip="{DynamicResource LangAvalonia0082}" />
+                        <local:MyComboBoxItem Content="{DynamicResource LangAvalonia0022}" local:SettingService.Value="3" ToolTip.Tip="{DynamicResource LangAvalonia0023}" />
                     </local:MyComboBox>
                     <StackPanel Grid.Row="10" Grid.ColumnSpan="2" Margin="0,12,0,4" HorizontalAlignment="Left">
-                        <local:MyCheckBox x:Name="CheckAdvanceDisableJLW" Height="28" Text="禁用 Java Launch Wrapper"
+                        <local:MyCheckBox x:Name="CheckAdvanceDisableJLW" Height="28" Text="{DynamicResource LangPageSetupLaunchLaunchAdvanceOptionsDisableJLW}"
                                           local:SettingService.Key="LaunchAdvanceDisableJLW"
-                                          ToolTip.Tip="是否使用 Java Launch Wrapper 修复 Java 18- 在中文路径下可能无法正常启动的问题。&#xa;详见：https://github.com/00ll00/java_launch_wrapper" />
-                        <local:MyCheckBox x:Name="CheckAdvanceDisableLUA" Height="28" Text="禁用 LWJGL Unsafe Agent"
+                                          ToolTip.Tip="{DynamicResource LangPageSetupLaunchLaunchAdvanceOptionsDisableJLWToolTip}" />
+                        <local:MyCheckBox x:Name="CheckAdvanceDisableLUA" Height="28" Text="{DynamicResource LangAvalonia0121}"
                                           local:SettingService.Key="LaunchAdvanceDisableLUA"
-                                          ToolTip.Tip="是否使用 LWJGL Unsafe Agent 修复 LWJGL 3.4.1 的一个性能问题。&#xa;详见：https://github.com/HMCL-dev/lwjgl-unsafe-agent" />
-                        <local:MyCheckBox x:Name="CheckAdvanceGraphicCard" Height="28" Text="使用高性能显卡"
+                                          ToolTip.Tip="{DynamicResource LangAvalonia0100}" />
+                        <local:MyCheckBox x:Name="CheckAdvanceGraphicCard" Height="28" Text="{DynamicResource LangPageSetupLaunchLaunchAdvanceOptionsGPUPerfence}"
                                           local:SettingService.Key="LaunchAdvanceGraphicCard"
-                                          ToolTip.Tip="自动在 Windows 设置 → 系统 → 屏幕 → 显示卡 中将 PCL 和 Java 改为使用高性能显卡。&#xa;如果同时有集成显卡和独立显卡，这能确保 MC 使用独立显卡进行渲染，以大幅提高帧率。" />
-                        <local:MyCheckBox x:Name="CheckDownloadCert" Height="28" Text="在正版登录时验证 SSL 证书"
+                                          ToolTip.Tip="{DynamicResource LangPageSetupLaunchLaunchAdvanceOptionsGPUPerfenceToolTip}" />
+                        <local:MyCheckBox x:Name="CheckDownloadCert" Height="28" Text="{DynamicResource LangPageSetupSystemDownloadSSL}"
                                           local:SettingService.Key="ToolDownloadCert"
-                                          ToolTip.Tip="开启验证可以提高安全性，但可能会导致正版登录失败（见 #3018）。&#xa;若登录因为 “未能为 SSL/TLS 安全通道建立信任关系” 失败，请考虑关闭此选项。" />
+                                          ToolTip.Tip="{DynamicResource LangPageSetupSystemDownloadSSLToolTip}" />
                     </StackPanel>
                     <local:MyHint x:Name="HintMoreAdvancedSetup" Grid.Row="11" Grid.ColumnSpan="2" Margin="0,5,0,10"
-                                  Text="版本独立设置中还有更多高级选项可供调整。" HintTheme="Blue"
+                                  Text="{DynamicResource LangPageSetupLaunchLaunchAdvanceOptionsMoreTips}" HintTheme="Blue"
                                   CanClose="True" RelativeSetup="HintMoreAdvancedSetup" />
                 </Grid>
             </local:MyCard>
             <local:MyExtraTextButton HorizontalAlignment="Center" Margin="0,-5,0,15"
-                x:Name="BtnSwitch" Text="版本独立设置" IsVisible="False"
+                x:Name="BtnSwitch" Text="{DynamicResource LangPageSetupLaunchGotoVersionSetting}" IsVisible="False"
                 LogoScale="0.9" Logo="M73 584L920 584 608 896C579 925 579 972 608 1001 637 1030 683 1030 712 1001L1149 565C1164 550 1170 531 1170 511 1170 492 1164 472 1149 457L712 21C683-7 637-7 608 21 579 50 579 97 608 126L920 438 73 438C33 438 0 471 0 511 0 551 33 584 73 584Z" />
         </StackPanel>
     </local:MyScrollViewer>

@@ -1,4 +1,6 @@
+Imports Avalonia
 Imports Avalonia.Controls
+Imports Avalonia.Controls.ApplicationLifetimes
 Imports Avalonia.Input
 Imports Avalonia.Media
 Imports Avalonia.Media.Imaging
@@ -397,9 +399,10 @@ Public Class FormMain
         TextOptions.SetTextRenderingMode(Me, TextRenderingMode.Antialias)
         EnsurePanBackTransform()
         DragDrop.SetAllowDrop(Me, True)
-        DragDrop.AddDragEnterHandler(Me, AddressOf FormMain_HandleDrag)
-        DragDrop.AddDragOverHandler(Me, AddressOf FormMain_HandleDrag)
-        DragDrop.AddDropHandler(Me, AddressOf FormMain_Drop)
+        '与原版一致：子控件可能先处理拖拽事件，这里必须监听已处理事件
+        MyBase.AddHandler(DragDrop.DragEnterEvent, AddressOf FormMain_HandleDrag, RoutingStrategies.Bubble, True)
+        MyBase.AddHandler(DragDrop.DragOverEvent, AddressOf FormMain_HandleDrag, RoutingStrategies.Bubble, True)
+        MyBase.AddHandler(DragDrop.DropEvent, AddressOf FormMain_Drop, RoutingStrategies.Bubble, True)
         Opacity = 0
     End Sub
 
@@ -420,6 +423,7 @@ Public Class FormMain
         '尽早执行的加载池：下载的已存在文件检测与版本选择页都依赖该列表
         McFolderListLoader.Start(0)
         AniStart()
+        CloseSplash()
         AniStart({
             AaOpacity(Me, Settings.Get(Of Integer)("UiLauncherTransparent") / 1000 + 0.4, 250, 100),
             AaDouble(Sub(i) TransformPos.Y += i, -TransformPos.Y, 600, 100, New AniEaseOutBack(AniEasePower.Weak)),
@@ -430,6 +434,19 @@ Public Class FormMain
                 Logger.Info("窗口加载完成")
             End Sub, , True)
         }, "Form Show")
+    End Sub
+
+    ''' <summary>
+    ''' 关闭启动时显示的 PCL 图标，与原版一致在 400ms 内淡出。
+    ''' </summary>
+    Private Sub CloseSplash()
+        Dim Splash = FrmStart
+        If Splash Is Nothing Then Return
+        FrmStart = Nothing
+        AniStart({
+            AaDouble(Sub(i) Splash.Opacity += i, -Splash.Opacity, 400),
+            AaCode(Sub() Splash.Close(), After:=True)
+        }, "Splash Close")
     End Sub
 
     '关闭窗口
@@ -453,7 +470,12 @@ Public Class FormMain
                 AaDouble(Sub(i) TransformScale.ScaleY += i, 0.88 - TransformScale.ScaleY, 180),
                 AaDouble(Sub(i) TransformPos.Y += i, 20 - TransformPos.Y, 180, 0, New AniEaseOutFluent(AniEasePower.Weak)),
                 AaDouble(Sub(i) TransformRotate.Angle += i, 0.6 - TransformRotate.Angle, 180, 0, New AniEaseInoutFluent(AniEasePower.Weak)),
-                AaCode(AddressOf Close, 40, True)
+                AaCode(
+                Sub()
+                    IsHitTestVisible = False
+                    Hide()
+                End Sub, 210),
+                AaCode(AddressOf EndProgramForce, 230)
             }, "Form Close")
         End Sub)
     End Sub
@@ -470,6 +492,8 @@ Public Class FormMain
     '强制关闭程序
     Private Shared IsLogShown As Boolean = False
     Public Shared Sub EndProgramForce(Optional ReturnCode As ProcessReturnValues = ProcessReturnValues.Success)
+        '无桌面生命周期（测试等场景）时只播放关闭动画，不结束进程
+        If TypeOf Application.Current?.ApplicationLifetime IsNot IClassicDesktopStyleApplicationLifetime Then Return
         Try
             IsProgramEnding = True
             AniControlEnabled += 1
@@ -487,7 +511,12 @@ Public Class FormMain
             ConfigUtils.SaveAll()
             Logger.Instance.Flush()
             If ReturnCode <> ProcessReturnValues.Success Then Environment.Exit(ReturnCode)
-            Process.GetCurrentProcess().Kill()
+            If OperatingSystem.IsWindows() Then
+                Process.GetCurrentProcess().Kill()
+            Else
+                'Process.Kill 在 Linux 上会以 SIGKILL 结束进程，改用 Environment.Exit 正常退出
+                Environment.Exit(0)
+            End If
         Catch ex As Exception
             Logger.Error(ex, "强制关闭程序失败")
             Environment.Exit(1)
@@ -496,6 +525,15 @@ Public Class FormMain
 
     '标题栏按钮
     Private Sub BtnTitleClose_Click(sender As Object, e As RoutedEventArgs) Handles BtnTitleClose.Click
+        EndProgram(True)
+    End Sub
+
+    '关闭窗口
+    Private Sub FormMain_Closing(sender As Object, e As WindowClosingEventArgs) Handles Me.Closing
+        '测试等无桌面生命周期的场景直接关闭；程序正在退出时也不再拦截
+        If TypeOf Application.Current?.ApplicationLifetime IsNot IClassicDesktopStyleApplicationLifetime Then Return
+        If IsProgramEnding Then Return
+        e.Cancel = True
         EndProgram(True)
     End Sub
 
@@ -632,6 +670,7 @@ Public Class FormMain
             Sub()
                 TargetLeft.Opacity = 1
                 TargetLeft.TriggerShowAnimation()
+                If TypeOf TargetLeft Is PageLaunchLeft Then DirectCast(TargetLeft, PageLaunchLeft).RefreshAfterPageEnter()
             End Sub, 30, True)
         }, "FrmMain PageChangeLeft")
         AniStart({
@@ -1095,12 +1134,27 @@ Public Class FormMain
 
 #Region "文件拖放"
 
+    ''' <summary>
+    ''' 文件拖放时反馈给系统的效果。
+    ''' Wayland 后端只支持 Copy/Move，Link 会被映射为“无动作”，导致拖动源取消拖放、收不到 Drop 事件。
+    ''' </summary>
+    Private Shared ReadOnly Property FileDragEffect As DragDropEffects
+        Get
+            If OperatingSystem.IsLinux() AndAlso Not String.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY")) Then
+                Return DragDropEffects.Copy
+            End If
+            Return DragDropEffects.Link
+        End Get
+    End Property
+
     Private Sub FormMain_HandleDrag(sender As Object, e As DragEventArgs)
         Try
             If e.Handled AndAlso e.DragEffects <> DragDropEffects.None Then Return
             e.Handled = True
             e.DragEffects = DragDropEffects.None
-            If e.DataTransfer.Formats.Contains(DataFormat.Text) Then
+            If e.DataTransfer.Formats.Contains(DataFormat.File) Then
+                e.DragEffects = FileDragEffect
+            ElseIf e.DataTransfer.Formats.Contains(DataFormat.Text) Then
                 Dim Str As String = Nothing
                 Try
                     Str = e.DataTransfer.TryGetText()
@@ -1113,9 +1167,8 @@ Public Class FormMain
                         e.DragEffects = DragDropEffects.Copy
                     End If
                 End If
-            ElseIf e.DataTransfer.Formats.Contains(DataFormat.File) Then
-                e.DragEffects = DragDropEffects.Link
             End If
+            Logger.Info($"设置拖放类型：{e.DragEffects}")
         Catch ex As Exception
             Logger.Error(ex, "处理拖放时出错")
         End Try
@@ -1124,7 +1177,26 @@ Public Class FormMain
     Private Sub FormMain_Drop(sender As Object, e As DragEventArgs)
         Try
             ShowWindowToTop()
-            If e.DataTransfer.Formats.Contains(DataFormat.Text) Then
+            '文件拖拽优先：部分平台同时提供文本与文件两种格式，按文件处理才能安装整合包
+            If e.DataTransfer.Formats.Contains(DataFormat.File) Then
+                e.Handled = True
+                e.DragEffects = FileDragEffect
+                Dim Files = e.DataTransfer.TryGetFiles()
+                If Files Is Nothing Then
+                    Hint("请将文件解压后再拖入！", HintType.Red)
+                    Return
+                End If
+                Dim PathList As New List(Of String)
+                For Each FileItem In Files
+                    Dim LocalPath = FileItem.TryGetLocalPath()
+                    If Not String.IsNullOrEmpty(LocalPath) Then PathList.Add(LocalPath)
+                Next
+                If PathList.Count = 0 Then
+                    Hint("请将文件解压后再拖入！", HintType.Red)
+                    Return
+                End If
+                FileDrag(PathList)
+            ElseIf e.DataTransfer.Formats.Contains(DataFormat.Text) Then
                 Dim Str As String = ""
                 Try
                     Str = e.DataTransfer.TryGetText()
@@ -1150,24 +1222,6 @@ Public Class FormMain
                 Catch ex As Exception
                     Logger.Warn(ex, "无法接取文本拖拽事件")
                 End Try
-            ElseIf e.DataTransfer.Formats.Contains(DataFormat.File) Then
-                e.Handled = True
-                e.DragEffects = DragDropEffects.Link
-                Dim Files = e.DataTransfer.TryGetFiles()
-                If Files Is Nothing Then
-                    Hint("请将文件解压后再拖入！", HintType.Red)
-                    Return
-                End If
-                Dim PathList As New List(Of String)
-                For Each FileItem In Files
-                    Dim LocalPath = FileItem.TryGetLocalPath()
-                    If Not String.IsNullOrEmpty(LocalPath) Then PathList.Add(LocalPath)
-                Next
-                If PathList.Count = 0 Then
-                    Hint("请将文件解压后再拖入！", HintType.Red)
-                    Return
-                End If
-                FileDrag(PathList)
             End If
         Catch ex As Exception
             Logger.Error(ex, "接取拖拽事件失败")

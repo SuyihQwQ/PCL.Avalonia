@@ -6,9 +6,9 @@
         Background="{DynamicResource ColorBrushSemiTransparent}">
     <Border.ContextMenu>
         <ContextMenu>
-            <MenuItem x:Name="BtnSkinSave" Header="另存为" />
-            <MenuItem x:Name="BtnSkinRefresh" Header="刷新" />
-            <MenuItem x:Name="BtnSkinCape" Header="更换披风" />
+            <MenuItem x:Name="BtnSkinSave" Header="{DynamicResource LangDownloadSaveAs}" />
+            <MenuItem x:Name="BtnSkinRefresh" Header="{DynamicResource LangDownloadPageLeftRefresh}" />
+            <MenuItem x:Name="BtnSkinCape" Header="{DynamicResource LangMySkinChange}" />
         </ContextMenu>
     </Border.ContextMenu>
     <Grid>

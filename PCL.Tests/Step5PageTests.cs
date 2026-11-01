@@ -38,6 +38,7 @@ public class AboutPageTests {
         } finally {
             window.Close();
         }
+
     }
 
     [AvaloniaFact]
@@ -173,6 +174,15 @@ public class AboutPageTests {
             Assert.NotNull(page.PanSelect);
             Assert.NotNull(page.BtnStart);
             Assert.NotNull(page.CardMinecraft);
+            Assert.All(new[] {
+                page.BtnForgeClear,
+                page.BtnNeoForgeClear,
+                page.BtnFabricClear,
+                page.BtnFabricApiClear,
+                page.BtnOptiFineClear,
+                page.BtnOptiFabricClear,
+                page.BtnLiteLoaderClear
+            }, button => Assert.Equal(global::PCL.MyIconButton.Themes.Color, button.Theme));
         } finally {
             // 关闭页面触发 Unloaded 取消初始化加载器，避免其失败后从后台线程访问已结束的测试会话
             window.Close();
@@ -188,12 +198,12 @@ public class AboutPageTests {
 public class ResourcePageTests {
 
     [AvaloniaFact]
-    public void Resource_search_source_only_offers_modrinth() {
+    public void Resource_search_source_offers_both_platforms() {
         var page = new global::PCL.PageResource();
         var combo = page.FindControl<global::PCL.MyComboBox>("ComboSearchSource")!;
-        Assert.Single(combo.Items.Cast<object>());
-        var item = Assert.IsType<global::PCL.MyComboBoxItem>(combo.Items[0]);
-        Assert.Equal("Modrinth", item.Content);
+        Assert.Equal(3, combo.ItemCount);
+        Assert.Equal("CurseForge", Assert.IsType<global::PCL.MyComboBoxItem>(combo.Items[1]).Content);
+        Assert.Equal("Modrinth", Assert.IsType<global::PCL.MyComboBoxItem>(combo.Items[2]).Content);
     }
 
     [AvaloniaFact]
@@ -325,6 +335,7 @@ public class VersionSelectFolderTests {
                     found = true;
                     break;
                 }
+
             }
             var itemDump = string.Join(";", page.PanList.Children.OfType<global::PCL.MyListItem>().Select(i => i.Title + "@" + i.Info));
             var folderDump = string.Join(";", global::PCL.ModMinecraft.McFolderList.Select(f => f.Name + "@" + f.Location + "@" + f.Type));
@@ -362,3 +373,58 @@ public class VersionSelectFolderTests {
     }
 }
 
+public class InstanceNavigationTests {
+    [AvaloniaFact]
+    public void Instance_page_navigation_keeps_selected_tab_in_sync() {
+        var savedMain = global::PCL.ModMain.FrmMain;
+        global::PCL.ModMain.FrmMain = null;
+        try {
+            var page = new global::PCL.PageInstanceLeft();
+
+            page.PageChange(global::PCL.FormMain.PageSubType.InstanceSetup);
+            Assert.True(page.ItemSetup.Checked);
+            Assert.False(page.ItemOverall.Checked);
+
+            page.PageChange(global::PCL.FormMain.PageSubType.InstanceOverall);
+            Assert.True(page.ItemOverall.Checked);
+            Assert.False(page.ItemSetup.Checked);
+
+            page.PageChange(global::PCL.FormMain.PageSubType.InstanceOverall);
+            Assert.True(page.ItemOverall.Checked);
+        } finally {
+            global::PCL.ModMain.FrmMain = savedMain;
+        }
+    }
+}
+
+public class SpeedPageTests {
+    [AvaloniaFact]
+    public void Speed_page_hides_thread_rows_when_not_in_debug_mode() {
+        var page = new global::PCL.PageSpeedLeft();
+        typeof(global::PCL.PageSpeedLeft)
+            .GetMethod("ApplyThreadVisibility", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .Invoke(page, null);
+        var threadRows = page.Children.Cast<Control>().Where(c => Grid.GetRow(c) >= 12).ToList();
+        Assert.NotEmpty(threadRows);
+        Assert.All(threadRows, c => Assert.False(c.IsVisible));
+        Assert.All(page.Children.Cast<Control>().Where(c => Grid.GetRow(c) is >= 9 and <= 11), c => Assert.True(c.IsVisible));
+    }
+
+    [AvaloniaFact]
+    public void Speed_page_dividers_use_relative_gradients() {
+        var page = new global::PCL.PageSpeedLeft();
+        page.Measure(new Size(200, 450));
+        page.Arrange(new Rect(0, 0, 200, 450));
+        var dividers = page.GetVisualDescendants()
+            .OfType<Avalonia.Controls.Shapes.Rectangle>()
+            .Where(r => Math.Abs(r.Height - 2) < 0.1)
+            .ToList();
+        Assert.Equal(4, dividers.Count);
+        foreach (var divider in dividers) {
+            Assert.True(divider.Bounds.Width > 100);
+            var brush = Assert.IsType<Avalonia.Media.LinearGradientBrush>(divider.Fill);
+            Assert.Equal(RelativeUnit.Relative, brush.StartPoint.Unit);
+            Assert.Equal(RelativeUnit.Relative, brush.EndPoint.Unit);
+        }
+    }
+}

@@ -7,6 +7,55 @@ Public Module ModLaunch
 
 #Region "开始"
 
+    ''' <summary>
+    ''' 生成让 Java 使用独立显卡的环境变量。只有存在多块显卡时才设置。
+    ''' </summary>
+    ''' <param name="PciDevicesPath">PCI 设备目录（sysfs）。</param>
+    ''' <param name="NvidiaDriverMarker">NVIDIA 专有驱动标记文件；nouveau 下不能强制 nvidia GLX。</param>
+    Public Function GetLinuxGpuOffloadEnvironment(PciDevicesPath As String, Optional NvidiaDriverMarker As String = "/proc/driver/nvidia/version") As Dictionary(Of String, String)
+        Dim Gpus As New List(Of (Address As String, Vendor As String, IsBoot As Boolean, Vram As Long))
+        For Each DevicePath In Directory.EnumerateDirectories(PciDevicesPath)
+            Dim ClassPath = Path.Combine(DevicePath, "class")
+            Dim VendorPath = Path.Combine(DevicePath, "vendor")
+            If Not File.Exists(ClassPath) OrElse Not File.Exists(VendorPath) Then Continue For
+            If Not File.ReadAllText(ClassPath).Trim().StartsWith("0x03", StringComparison.OrdinalIgnoreCase) Then Continue For
+            Dim BootPath = Path.Combine(DevicePath, "boot_vga")
+            Dim VramPath = Path.Combine(DevicePath, "mem_info_vram_total")
+            Dim Vram As Long = 0
+            If File.Exists(VramPath) Then Long.TryParse(File.ReadAllText(VramPath).Trim(), Vram)
+            Gpus.Add((Path.GetFileName(DevicePath), File.ReadAllText(VendorPath).Trim().ToLowerInvariant(),
+                      File.Exists(BootPath) AndAlso File.ReadAllText(BootPath).Trim() = "1", Vram))
+        Next
+
+        If Gpus.Count < 2 Then Return New Dictionary(Of String, String)
+        'NVIDIA 专有驱动已作为默认显示卡时无需再切换
+        Dim BootGpu = Gpus.FirstOrDefault(Function(Gpu) Gpu.IsBoot)
+        If BootGpu.Address IsNot Nothing AndAlso BootGpu.Vendor = "0x10de" AndAlso File.Exists(NvidiaDriverMarker) Then
+            Return New Dictionary(Of String, String)
+        End If
+        '优先选非 boot_vga 且显存最大的显卡作为渲染卡
+        Dim Target = Gpus.Where(Function(Gpu) Not Gpu.IsBoot).OrderByDescending(Function(Gpu) Gpu.Vram).FirstOrDefault()
+        If Target.Address Is Nothing Then Target = Gpus.OrderByDescending(Function(Gpu) Gpu.Vram).FirstOrDefault()
+        If Target.Vendor = "0x10de" AndAlso File.Exists(NvidiaDriverMarker) Then
+            Return New Dictionary(Of String, String) From {
+                {"__NV_PRIME_RENDER_OFFLOAD", "1"},
+                {"__GLX_VENDOR_LIBRARY_NAME", "nvidia"},
+                {"__VK_LAYER_NV_optimus", "NVIDIA_only"}
+            }
+        End If
+        'PCI 地址比 Mesa 的设备序号更可靠（序号取决于驱动加载顺序）
+        Dim Prime As String = "1"
+        If Target.Address Like "####:##:##.#" Then Prime = "pci-" & Target.Address.Replace(":", "_").Replace(".", "_")
+        Return New Dictionary(Of String, String) From {{"DRI_PRIME", Prime}}
+    End Function
+
+    Friend Function ShouldUseJavaLaunchWrapper(IsWindows As Boolean, IsGBKEncoding As Boolean,
+                                               IsGloballyDisabled As Func(Of Boolean),
+                                               IsInstanceDisabled As Func(Of Boolean)) As Boolean
+        If Not IsWindows Then Return False
+        Return Not IsGloballyDisabled() AndAlso Not IsInstanceDisabled() AndAlso Not IsGBKEncoding
+    End Function
+
     Public CurrentLaunchOptions As McLaunchOptions = Nothing
     Public Class McLaunchOptions
         ''' <summary>
@@ -135,18 +184,20 @@ Public Module ModLaunch
                 New LoaderTask(Of Process, Integer)("等待游戏窗口出现", AddressOf McLaunchWait) With {.ProgressWeight = 1},
                 New LoaderTask(Of Integer, Integer)("结束处理", AddressOf McLaunchEnd) With {.ProgressWeight = 1}
             }
-            '内存优化
-            Select Case Settings.Get(Of Integer)("VersionRamOptimize", Instance:=McInstanceSelected)
-                Case 0 '全局
-                    If Settings.Get(Of Boolean)("LaunchArgumentRam") Then '使用全局设置
+            '内存优化仅支持 Windows；从 Windows 迁移来的旧版本设置在其他平台忽略。
+            If OperatingSystem.IsWindows() Then
+                Select Case Settings.Get(Of Integer)("VersionRamOptimize", Instance:=McInstanceSelected)
+                    Case 0 '全局
+                        If Settings.Get(Of Boolean)("LaunchArgumentRam") Then '使用全局设置
+                            CType(Loaders(2), LoaderCombo(Of String)).Block = False
+                            Loaders.Insert(3, New LoaderTask(Of Integer, Integer)("内存优化", AddressOf McLaunchMemoryOptimize) With {.ProgressWeight = 30})
+                        End If
+                    Case 1 '开启
                         CType(Loaders(2), LoaderCombo(Of String)).Block = False
                         Loaders.Insert(3, New LoaderTask(Of Integer, Integer)("内存优化", AddressOf McLaunchMemoryOptimize) With {.ProgressWeight = 30})
-                    End If
-                Case 1 '开启
-                    CType(Loaders(2), LoaderCombo(Of String)).Block = False
-                    Loaders.Insert(3, New LoaderTask(Of Integer, Integer)("内存优化", AddressOf McLaunchMemoryOptimize) With {.ProgressWeight = 30})
-                Case 2 '关闭
-            End Select
+                    Case 2 '关闭
+                End Select
+            End If
             Dim LaunchLoader As New LoaderCombo(Of Object)("Minecraft 启动", Loaders) With {.Show = False}
             If McLoginLoader.State = LoadState.Finished Then McLoginLoader.State = LoadState.Waiting '要求重启登录主加载器，它会自行决定是否启动副加载器
             '等待加载器执行并更新 UI
@@ -1256,10 +1307,11 @@ NextInstance:
 
         'JLW
         '非 GBK 编码下命令行参数乱码的问题（JDK-8272352）；其原生库只有 Windows DLL，其他平台不能启用
-        Dim UseJLW As Boolean =
-            OperatingSystem.IsWindows() AndAlso
-            Not Settings.Get(Of Boolean)("LaunchAdvanceDisableJLW") AndAlso Not Settings.Get(Of Boolean)("VersionAdvanceDisableJLW", McInstanceSelected) AndAlso
-            Not IsGBKEncoding '即使游戏文件夹名称不含非 ASCII 字符，但玩家名等也可能出现中文，因此依然需要 JLW（#8739）
+        Dim UseJLW As Boolean = ShouldUseJavaLaunchWrapper(
+            OperatingSystem.IsWindows(),
+            IsGBKEncoding,
+            Function() Settings.Get(Of Boolean)("LaunchAdvanceDisableJLW"),
+            Function() Settings.Get(Of Boolean)("VersionAdvanceDisableJLW", McInstanceSelected))
         If UseJLW AndAlso CustomArg.Contains("-javaagent") Then
             UseJLW = False
             McLaunchLog("由于使用了自定义 javaagent，已禁用 JLW，这可能导致游戏崩溃！", LogLevel.Warn)
@@ -1640,7 +1692,8 @@ NextInstance:
     Private Sub McLaunchNatives(Loader As LoaderTask(Of Integer, Integer))
 
         '创建文件夹
-        Dim Target As String = GetNativesFolder()
+        'Target 必须与 DirectoryUtils.EnumerateFiles 返回的路径格式一致，否则删除多余文件时会把刚解压的文件全部删掉
+        Dim Target As String = PathUtils.ForApi(GetNativesFolder())
         DirectoryUtils.Create(Target)
 
         '解压文件
@@ -2084,6 +2137,15 @@ IgnoreCustomSkin:
         PathList.Add(PathUtils.ToShortPath(McLaunchJavaSelected.Folder))
         StartInfo.Environment(PathEnvKey) = PathList.Distinct.Join(PathSeparator)
         StartInfo.Environment("appdata") = PathUtils.ToShortPath(McFolderSelected)
+        If Settings.Get(Of Boolean)("LaunchAdvanceGraphicCard") AndAlso OperatingSystem.IsLinux() Then
+            Try
+                For Each Variable In GetLinuxGpuOffloadEnvironment("/sys/bus/pci/devices")
+                    StartInfo.Environment(Variable.Key) = Variable.Value
+                Next
+            Catch ex As Exception
+                Logger.Warn(ex, "检测 Linux 高性能显卡失败，Minecraft 将使用默认显卡")
+            End Try
+        End If
 
         '设置其他参数
         StartInfo.WorkingDirectory = McInstanceSelected.PathIndie

@@ -126,6 +126,10 @@ Public Class MyRadioBox
             AniStop("MyRadioBox Border " & Uuid)
             AniStop("MyRadioBox Dot " & Uuid)
             AniStop("MyRadioBox BorderColor " & Uuid)
+            '脉冲动画被中断时尺寸会停在中间值，禁用动画时必须复位
+            ShapeBorder.Width = 18
+            ShapeBorder.Height = 18
+            ShapeBorder.Margin = New Thickness(1, 0, 0, 0)
             If Checked Then
                 ShapeDot.Width = 9
                 ShapeDot.Height = 9

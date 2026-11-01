@@ -23,12 +23,16 @@ Public Class PageInstanceExport
     Inherits MyPageRight
     Implements IRefreshable
 
+    Public Shared Instance As PageInstanceExport
+
     Public Sub New()
+        Instance = Me
         InitControls()
         '统一复选框高度（原 XAML 中使用隐式 Style 设置）
         For Each CheckBox In GetAllOptions(True)
             CheckBox.Height = 26
         Next
+        RefreshLocalizedOptions()
     End Sub
 
     Private CurrentInstance As String = ""
@@ -171,15 +175,29 @@ Public Class PageInstanceExport
                 CheckBox.IsVisible = Pass
                 CheckBox.Checked = TargetOption.DefaultChecked AndAlso Pass
             End If
-            '名称与简介
-            CheckBox.Inlines.Clear()
-            If Not CheckBox.IsVisible Then Continue For
-            CheckBox.Inlines.Add(New Run(TargetOption.Title))
-            If Not String.IsNullOrEmpty(TargetOption.Description) Then
-                CheckBox.Inlines.Add(New Run("   " & TargetOption.Description) With {.Foreground = CType(ColorGray5, Brush)})
-            End If
+            RefreshOptionText(CheckBox)
         Next
         RefreshOptionBindings()
+    End Sub
+
+    Public Shared Sub RefreshLocalization()
+        Instance?.RefreshLocalizedOptions()
+    End Sub
+
+    Private Sub RefreshLocalizedOptions()
+        For Each CheckBox In GetAllOptions(True)
+            RefreshOptionText(CheckBox)
+        Next
+    End Sub
+
+    Private Sub RefreshOptionText(CheckBox As MyCheckBox)
+        CheckBox.Inlines.Clear()
+        If Not CheckBox.IsVisible Then Return
+        Dim TargetOption = GetExportOption(CheckBox)
+        CheckBox.Inlines.Add(New Run(Localization.TranslateText(TargetOption.Title)))
+        If Not String.IsNullOrEmpty(TargetOption.Description) Then
+            CheckBox.Inlines.Add(New Run("   " & Localization.TranslateText(TargetOption.Description)) With {.Foreground = CType(ColorGray5, Brush)})
+        End If
     End Sub
 
     ''' <summary>
@@ -625,7 +643,7 @@ Public Class PageInstanceExport
 
             '分平台获取下载地址
             Dim EndedThreadCount As Integer = 0, FailedExceptions As New List(Of Exception)
-            Dim ThreadCount As Integer = If(CurseForgeEnabled, 2, 1)
+            Dim ThreadCount As Integer = 2
 
             '从 Modrinth 获取信息
             RunInNewThread(
@@ -651,8 +669,7 @@ Public Class PageInstanceExport
                 End Try
             End Sub, "Modrinth - " & LoaderName)
 
-            '从 CurseForge 获取信息（需要 CurseForge API 权限，暂未开放）
-            If CurseForgeEnabled Then
+            '从 CurseForge 获取信息
             RunInNewThread(
             Sub()
                 Try
@@ -681,7 +698,6 @@ Public Class PageInstanceExport
                     Loader.Progress += 0.45
                 End Try
             End Sub, "CurseForge - " & LoaderName)
-            End If
 
             '等待线程结束
             Do Until EndedThreadCount >= ThreadCount

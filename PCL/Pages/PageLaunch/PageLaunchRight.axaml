@@ -6,7 +6,7 @@
     <local:MyScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" x:Name="PanBack">
         <StackPanel x:Name="PanMain" Margin="25,25,25,10">
             <StackPanel x:Name="PanCustom" />
-            <local:MyCard Margin="0,0,0,15" Title="启动日志" x:Name="PanLog">
+            <local:MyCard Margin="0,0,0,15" Title="{DynamicResource LangLaunchRightLog}" x:Name="PanLog">
                 <local:MyTextBox x:Name="LabLog" Margin="15,34,15,13" Padding="0,4" IsReadOnly="True" IsUndoEnabled="False"
                                  AcceptsReturn="True" TextWrapping="Wrap" BorderThickness="0" HasBackground="False"
                                  ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled" />

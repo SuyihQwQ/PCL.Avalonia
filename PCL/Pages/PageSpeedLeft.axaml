@@ -22,10 +22,10 @@
         <RowDefinition Height="Auto" />
         <RowDefinition Height="1*" />
     </local:MyPageLeft.RowDefinitions>
-    <TextBlock Text="总进度" Grid.Row="1" HorizontalAlignment="Center" FontSize="14" Foreground="{DynamicResource ColorBrush3}" />
+    <TextBlock Text="{DynamicResource LangSpeedTotalProgress}" Grid.Row="1" HorizontalAlignment="Center" FontSize="14" Foreground="{DynamicResource ColorBrush3}" />
     <Rectangle Grid.Row="2" Height="2" Margin="25,7">
         <Rectangle.Fill>
-            <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+            <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
                 <GradientStop Color="{DynamicResource ColorObjectBg1}" Offset="0" />
                 <GradientStop Color="{DynamicResource ColorObject3}" Offset="0.02" />
                 <GradientStop Color="{DynamicResource ColorObject3}" Offset="0.98" />
@@ -34,10 +34,10 @@
         </Rectangle.Fill>
     </Rectangle>
     <TextBlock Text="00.00 %" Grid.Row="3" x:Name="LabProgress" HorizontalAlignment="Center" FontSize="20" />
-    <TextBlock Text="下载速度" Grid.Row="5" HorizontalAlignment="Center" FontSize="14" Foreground="{DynamicResource ColorBrush3}" />
+    <TextBlock Text="{DynamicResource LangLaunchLeftStageDownload}" Grid.Row="5" HorizontalAlignment="Center" FontSize="14" Foreground="{DynamicResource ColorBrush3}" />
     <Rectangle Grid.Row="6" Height="2" Margin="25,7">
         <Rectangle.Fill>
-            <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+            <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
                 <GradientStop Color="{DynamicResource ColorObjectBg1}" Offset="0" />
                 <GradientStop Color="{DynamicResource ColorObject3}" Offset="0.02" />
                 <GradientStop Color="{DynamicResource ColorObject3}" Offset="0.98" />
@@ -46,10 +46,10 @@
         </Rectangle.Fill>
     </Rectangle>
     <TextBlock Text="0 B/s" Grid.Row="7" x:Name="LabSpeed" HorizontalAlignment="Center" FontSize="20" />
-    <TextBlock Text="剩余文件" Grid.Row="9" HorizontalAlignment="Center" FontSize="14" Foreground="{DynamicResource ColorBrush3}" />
+    <TextBlock Text="{DynamicResource LangSpeedLeftFiles}" Grid.Row="9" HorizontalAlignment="Center" FontSize="14" Foreground="{DynamicResource ColorBrush3}" />
     <Rectangle Grid.Row="10" Height="2" Margin="25,7">
         <Rectangle.Fill>
-            <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+            <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
                 <GradientStop Color="{DynamicResource ColorObjectBg1}" Offset="0" />
                 <GradientStop Color="{DynamicResource ColorObject3}" Offset="0.02" />
                 <GradientStop Color="{DynamicResource ColorObject3}" Offset="0.98" />
@@ -58,10 +58,10 @@
         </Rectangle.Fill>
     </Rectangle>
     <TextBlock Text="123456789" Grid.Row="11" x:Name="LabFile" HorizontalAlignment="Center" FontSize="20" />
-    <TextBlock Text="剩余线程" Grid.Row="13" HorizontalAlignment="Center" FontSize="14" Foreground="{DynamicResource ColorBrush3}" />
+    <TextBlock Text="{DynamicResource LangSpeedLeftThreads}" Grid.Row="13" HorizontalAlignment="Center" FontSize="14" Foreground="{DynamicResource ColorBrush3}" />
     <Rectangle Grid.Row="14" Height="2" Margin="25,7">
         <Rectangle.Fill>
-            <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+            <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
                 <GradientStop Color="{DynamicResource ColorObjectBg1}" Offset="0" />
                 <GradientStop Color="{DynamicResource ColorObject3}" Offset="0.02" />
                 <GradientStop Color="{DynamicResource ColorObject3}" Offset="0.98" />

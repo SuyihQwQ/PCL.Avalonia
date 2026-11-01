@@ -115,25 +115,6 @@ public static class JavaUtils {
         return javas.Where(j => j.available == true).ToList();
     }
 
-    /// <summary>
-    /// 将 Java 列表进行排序。
-    /// 这同时会检查所有未检查的 Java。
-    /// </summary>
-    public static async Task<List<Java>> SortAsync(List<Java> javas, CancellationToken cancellationToken = default, ProgressProvider? progress = null) {
-        javas = await JavaUtils.CheckAllAsync(javas, cancellationToken, progress).NoCapture();
-        javas.Sort((left, right) => {
-            // 优先使用带完整 Java 的文件夹列表中的 Java
-            var isLeftInCandidateFolder = JavaUtils.CandidateFolders.Value.Any(folder => PathUtils.IsParentOf(folder, left.Folder));
-            var isRightInCandidateFolder = JavaUtils.CandidateFolders.Value.Any(folder => PathUtils.IsParentOf(folder, right.Folder));
-            if (isLeftInCandidateFolder != isRightInCandidateFolder) return isLeftInCandidateFolder ? -1 : 1;
-            // 其次优先使用主版本号接近 21 的 Java
-            var leftDistance = left.Version is null ? int.MaxValue : Math.Abs(left.Version.Major - 21);
-            var rightDistance = right.Version is null ? int.MaxValue : Math.Abs(right.Version.Major - 21);
-            return leftDistance.CompareTo(rightDistance);
-        });
-        return javas;
-    }
-
     #region 搜索
 
     /// <summary>
@@ -186,7 +167,7 @@ public static class JavaUtils {
         foreach (var name in new[] { "JDK_HOME", "JAVA_HOME" }) {
             var value = Environment.GetEnvironmentVariable(name);
             if (string.IsNullOrWhiteSpace(value)) continue;
-            folders.AddRange(value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(path => path.Trim('"')));
+            folders.AddRange(value.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(path => path.Trim('"')));
         }
         return folders.Select(f => {
             try {
@@ -205,11 +186,13 @@ public static class JavaUtils {
     public static async Task RefreshListAsync(CancellationToken c = default, ProgressProvider? p = null) {
         // 搜索
         List<Java> javaList = await SearchFoldersAsync(true, CandidateFolders.Value, c, p?.SplitTo(0.5)).NoCapture();
+        javaList.AddRange(GetPathJavaCandidates(Environment.GetEnvironmentVariable("PATH")));
+        javaList = javaList.Distinct().ToList();
         // 将新发现的 Java 排在最前，原有列表保留既有顺序排在后面
         var oldJavaList = Configs.JavaList.Get()!;
         oldJavaList = await JavaUtils.CheckAllAsync(oldJavaList, c, p?.SplitTo(0.9)).NoCapture(); // 检查原有列表中的 Java
         javaList.RemoveAll(oldJavaList); // 此时 javaList 中只剩下新发现的 Java
-        javaList = await JavaUtils.SortAsync(javaList, c).NoCapture(); // 将所有新发现的 Java 按优先级排序
+        javaList = await JavaUtils.CheckAllAsync(javaList, c).NoCapture(); // 检查新发现的 Java，保持扫描顺序
         javaList.AddRange(oldJavaList);
         javaList = javaList.Distinct().ToList();
         // 删掉已被移除的 Java
@@ -217,6 +200,22 @@ public static class JavaUtils {
         // 写入设置
         Configs.JavaList.Set([..javaList]);
         Logger.Info($"Java 搜索完成，发现 {javaList.Count} 个 Java");
+    }
+
+    internal static List<Java> GetPathJavaCandidates(string? path) {
+        if (string.IsNullOrWhiteSpace(path)) return [];
+        List<Java> javas = [];
+        foreach (var directory in path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)) {
+            try {
+                var pathDirectory = directory.Trim('"');
+                if (string.IsNullOrWhiteSpace(pathDirectory)) continue;
+                var executable = Path.Combine(pathDirectory, Java.ExecutableName);
+                if (File.Exists(executable)) javas.Add(new Java(Path.GetDirectoryName(executable)!));
+            } catch (Exception ex) {
+                Logger.Warn(ex, $"从 PATH 检测 Java 时跳过无效目录（{directory}）");
+            }
+        }
+        return javas;
     }
 
     /// <summary>
@@ -274,7 +273,6 @@ public static class JavaUtils {
         // 检查并返回
         List<Java> javaList = results.Select(r => r.Folder).Distinct(StringComparer.OrdinalIgnoreCase).Select(folder => new Java(folder)).ToList();
         javaList = (await JavaUtils.CheckAllAsync(javaList, cancellationToken, progress?.SplitTo(1)).NoCapture()).ToList();
-        javaList = await JavaUtils.SortAsync(javaList, cancellationToken).NoCapture();
         Logger.Info($"快速查找 Java 完成，共有 {javaList.Count} 个候选：{javaList.Join('、')}");
         return javaList;
     }

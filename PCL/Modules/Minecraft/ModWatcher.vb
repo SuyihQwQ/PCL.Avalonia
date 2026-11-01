@@ -103,7 +103,7 @@ Public Module ModWatcher
                         TimerLog()
                         '设置窗口标题
                         For i = 1 To 3
-                            If IsWindowFinished AndAlso IsWindowAppeared AndAlso WindowTitle <> "" AndAlso State = MinecraftState.Running AndAlso Not GameProcess.HasExited Then
+                            If OperatingSystem.IsWindows() AndAlso IsWindowFinished AndAlso IsWindowAppeared AndAlso WindowTitle <> "" AndAlso State = MinecraftState.Running AndAlso Not GameProcess.HasExited Then
                                 Dim RealTitle As String = WindowTitle.Replace("{date}", Date.Now.ToString("yyyy'/'M'/'d")).Replace("{time}", Date.Now.ToString("HH':'mm':'ss"))
                                 SetWindowText(WindowHandle, RealTitle)
                             End If
@@ -115,6 +115,8 @@ Public Module ModWatcher
                 Catch ex As Exception
                     Logger.Error(ex, "Minecraft 日志监控主循环出错")
                     State = MinecraftState.Ended
+                Finally
+                    CloseX11Window()
                 End Try
             End Sub, "Minecraft Watcher PID " & PID)
         End Sub
@@ -252,17 +254,27 @@ Public Module ModWatcher
         ''' </summary>
         Private IsWindowFinished As Boolean = False
         Private WindowHandle As IntPtr
+        'X11 窗口检测（仅非 Windows，含 XWayland）
+        Private X11Display As IntPtr
+        Private X11Windows As HashSet(Of Long)
+        Private X11Initialized As Boolean
         Private Sub TimerWindow()
             Try
                 If GameProcess.HasExited Then Return
                 If IsWindowFinished Then Return
                 If Not OperatingSystem.IsWindows() Then
-                    '非 Windows 平台无法枚举游戏窗口，改用日志进度判断游戏是否已开始运行
-                    If LogProgress >= 2 Then
-                        WatcherLog("日志进度已满足运行条件，判定游戏已开始运行")
+                    '非 Windows 平台无法使用 user32 枚举窗口：优先用 X11（含 XWayland）检测新增窗口，
+                    'X11 不可用时退回日志进度与运行时长
+                    If DetectX11Window() Then
+                        WatcherLog("已通过 X11 窗口检测确认游戏已开始运行")
+                        IsWindowAppeared = True
+                        IsWindowFinished = True
+                    ElseIf IsLaunchReady(LogProgress, (Date.Now - GameProcess.StartTime).TotalSeconds, Instance.ReleaseTime) Then
+                        WatcherLog($"已判定游戏开始运行（日志进度 {LogProgress}/5，已运行 {CInt((Date.Now - GameProcess.StartTime).TotalSeconds)} 秒）")
                         IsWindowAppeared = True
                         IsWindowFinished = True
                     End If
+                    If IsWindowAppeared AndAlso State = MinecraftState.Loading Then ProgressUpdate()
                     Return
                 End If
                 '获取全部窗口，检查是否有新增的
@@ -305,6 +317,55 @@ Public Module ModWatcher
                 Logger.Error(ex, "检查 Minecraft 窗口失败")
             End Try
         End Sub
+        ''' <summary>
+        ''' 非 Windows 平台无法使用 user32 枚举窗口，优先通过 X11（含 XWayland）检测启动后新增的游戏窗口。
+        ''' X11 不可用时返回 False，由日志进度与运行时长兜底。
+        ''' </summary>
+        Private Function DetectX11Window() As Boolean
+            If Not X11Initialized Then
+                X11Initialized = True
+                Try
+                    X11Display = X11WindowHelper.XOpenDisplay(Nothing)
+                    If X11Display <> IntPtr.Zero Then X11Windows = X11WindowHelper.GetClientWindows(X11Display)
+                Catch ex As Exception
+                    Logger.Warn(ex, "初始化 X11 窗口检测失败")
+                    CloseX11Window()
+                End Try
+            End If
+            If X11Display = IntPtr.Zero Then Return False
+            Try
+                For Each WindowId In X11WindowHelper.GetClientWindows(X11Display)
+                    If X11Windows IsNot Nothing AndAlso X11Windows.Contains(WindowId) Then Continue For
+                    If Not X11WindowHelper.IsGameWindow(X11Display, WindowId, PID) Then Continue For
+                    WatcherLog($"检测到游戏窗口：0x{WindowId:X}")
+                    WindowHandle = New IntPtr(WindowId)
+                    Return True
+                Next
+            Catch ex As Exception
+                Logger.Warn(ex, "X11 窗口检测失败")
+                CloseX11Window()
+            End Try
+            Return False
+        End Function
+        Private Sub CloseX11Window()
+            If X11Display = IntPtr.Zero Then Return
+            Try
+                X11WindowHelper.XCloseDisplay(X11Display)
+            Catch
+            End Try
+            X11Display = IntPtr.Zero
+            X11Windows = Nothing
+        End Sub
+        ''' <summary>
+        ''' 非 Windows 平台无法枚举游戏窗口，根据日志进度与运行时长判断游戏是否已开始运行。
+        ''' 极旧版本（rd、Classic 等）不会输出 Setting user: 等现代日志，只能按运行时长兜底。
+        ''' </summary>
+        Private Shared Function IsLaunchReady(LogProgress As Integer, ElapsedSeconds As Double, ReleaseTime As Date) As Boolean
+            If LogProgress >= 2 Then Return True
+            '与 McVersion 对 Old 版本（2001-2012）的划分一致；1970 代表版本信息未知，不做兜底
+            If ReleaseTime.Year <= 2000 OrElse ReleaseTime.Year >= 2013 Then Return False
+            Return (LogProgress >= 1 AndAlso ElapsedSeconds >= 5) OrElse ElapsedSeconds >= 15
+        End Function
         ''' <summary>
         ''' 获取可能是当前进程对应的 Minecraft 窗口的句柄和标题。
         ''' Nothing 代表未找到。

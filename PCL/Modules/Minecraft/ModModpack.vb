@@ -156,8 +156,6 @@ Public Module ModModpack
     'CurseForge
     Private Function InstallPackCurseForge(FileAddress As String, Archive As ZipArchive, ArchiveBaseFolder As String,
                                            Optional InstanceName As String = Nothing, Optional Logo As String = Nothing) As LoaderCombo(Of String)
-        If Not CurseForgeEnabled Then Throw New Exception("CurseForge 整合包安装暂未开放（需要 CurseForge API 权限）")
-
         '读取 Json 文件
         Dim Json As JObject
         Try

@@ -1,5 +1,6 @@
 Imports Avalonia.Layout
 Imports Avalonia.Media
+Imports System.Collections.Concurrent
 Imports System.Collections.ObjectModel
 Imports System.Runtime.InteropServices
 
@@ -11,6 +12,11 @@ Public Module ModMain
     ''' 主窗体。在 FormMain 构造时赋值。
     ''' </summary>
     Public FrmMain As FormMain
+
+    ''' <summary>
+    ''' 启动时显示的 PCL 图标（对应原版的 SplashScreen）。在启动器加载完成后关闭。
+    ''' </summary>
+    Public FrmStart As Window
 
     ''' <summary>
     ''' 版本 Mod 管理页面。在页面创建时赋值。
@@ -120,28 +126,146 @@ Public Module ModMain
         Red
     End Enum
 
+    Private Class HintMessage
+        Public Text As String
+        Public Type As HintType
+        Public Log As Boolean
+    End Class
+
+    Private Class HintControlInfo
+        Public Uuid As Integer
+        Public Reusable As Boolean = True
+    End Class
+
+    ''' <summary>
+    ''' 等待弹出的提示列表。
+    ''' </summary>
+    Private HintWaiting As New ConcurrentQueue(Of HintMessage)
+
     ''' <summary>
     ''' 在窗口左下角弹出提示文本。
     ''' </summary>
     Public Sub Hint(Text As String, Optional Type As HintType = HintType.Blue, Optional Log As Boolean = True)
-        If Log Then Logger.Info($"弹出提示：{Text}")
-        If FrmMain Is Nothing Then Return
-        RunInUi(
-        Sub()
-            If FrmMain Is Nothing OrElse FrmMain.PanHint Is Nothing Then Return
-            Dim NewHint As New MyHint With {
-                .Text = Text,
-                .HintTheme = If(Type = HintType.Red, MyHint.Themes.Red, MyHint.Themes.Blue),
-                .CanClose = False,
-                .Opacity = 0,
-                .RenderTransform = New TranslateTransform(0, 20)}
-            FrmMain.PanHint.Children.Add(NewHint)
-            AniStart({
-                AaOpacity(NewHint, 1, 120),
-                AaTranslateY(NewHint, -20, 200, , New AniEaseOutFluent(AniEasePower.Weak)),
-                AaCode(Sub() AniDispose(NewHint, True), 3200, True)
-            }, "Hint " & NewHint.Uuid)
-        End Sub)
+        HintWaiting.Enqueue(New HintMessage With {.Text = Localization.TranslateText(Text), .Type = Type, .Log = Log})
+        RunInUi(AddressOf HintTick)
+    End Sub
+
+    Private Sub HintTick()
+        Try
+            Dim CurrentHint As HintMessage = Nothing
+            Do While HintWaiting.TryDequeue(CurrentHint)
+                CurrentHint.Text = If(CurrentHint.Text, "").ReplaceLineEndings(" ", mergeMultiple:=True)
+                If FrmMain Is Nothing OrElse FrmMain.PanHint Is Nothing Then Continue Do
+                If FrmMain.PanHint.Children.Count >= 20 Then Continue Do
+                '查找可以复用的重复提示
+                Dim DoubleStack As Border = Nothing
+                Dim DoubleInfo As HintControlInfo = Nothing
+                For Each Stack In FrmMain.PanHint.Children.OfType(Of Border)()
+                    Dim Info = TryCast(Stack.Tag, HintControlInfo)
+                    Dim HintText = TryCast(Stack.Child, TextBlock)
+                    If Info IsNot Nothing AndAlso Info.Reusable AndAlso HintText IsNot Nothing AndAlso HintText.Text = CurrentHint.Text Then
+                        DoubleStack = Stack
+                        DoubleInfo = Info
+                    End If
+                Next
+                '渐变颜色
+                Dim TargetColor0, TargetColor1 As MyColor
+                Dim Percent As Double = 0.3
+                Select Case CurrentHint.Type
+                    Case HintType.Blue
+                        TargetColor0 = New MyColor(215, 37, 155, 252)
+                        TargetColor1 = New MyColor(215, 10, 142, 252)
+                    Case HintType.Green
+                        TargetColor0 = New MyColor(215, 33, 177, 33)
+                        TargetColor1 = New MyColor(215, 29, 160, 29)
+                    Case Else 'HintType.Red
+                        TargetColor0 = New MyColor(215, 255, 53, 11)
+                        TargetColor1 = New MyColor(215, 255, 43, 0)
+                End Select
+                If DoubleStack IsNot Nothing Then
+                    '有重复提示，且该提示的进入动画已播放
+                    If Not AniIsRun("Hint Show " & DoubleInfo.Uuid) Then
+                        AniStop("Hint Hide " & DoubleInfo.Uuid)
+                        Dim Delay As Double = (800 + CurrentHint.Text.Length.Clamp(5, 23) * 180) * AniSpeed
+                        AniStart({
+                            AaX(DoubleStack, -12 - DoubleStack.Margin.Left, 50, , New AniEaseOutFluent),
+                            AaX(DoubleStack, -8, 50, 50, New AniEaseInFluent),
+                            AaX(DoubleStack, 8, 50, 100, New AniEaseOutFluent),
+                            AaX(DoubleStack, -8, 50, 150, New AniEaseInFluent),
+                            AaDouble(
+                                Sub(i As Object)
+                                    Percent += CDbl(i)
+                                    Dim Gradient = DirectCast(DoubleStack.Background, LinearGradientBrush)
+                                    Gradient.GradientStops(0).Color = TargetColor0 * Percent + New MyColor(255, 255, 255) * (1 - Percent)
+                                    Gradient.GradientStops(1).Color = TargetColor1 * Percent + New MyColor(255, 255, 255) * (1 - Percent)
+                                End Sub, 0.7, 250),
+                            AaX(DoubleStack, -50, 200, Delay, New AniEaseInFluent),
+                            AaOpacity(DoubleStack, -1, 150, Delay),
+                            AaCode(Sub() DoubleInfo.Reusable = False, Delay),
+                            AaHeight(DoubleStack, -26, 100, , New AniEaseOutFluent, True),
+                            AaCode(Sub() FrmMain.PanHint.Children.Remove(DoubleStack), , True)
+                        }, "Hint Hide " & DoubleInfo.Uuid)
+                    End If
+                Else
+                    '准备控件
+                    Dim Info As New HintControlInfo With {.Uuid = GetUuid()}
+                    Dim NewHintControl As New Border With {
+                        .Tag = Info,
+                        .Margin = New Thickness(-70, 0, 20, 0),
+                        .Opacity = 0,
+                        .Height = 0,
+                        .HorizontalAlignment = HorizontalAlignment.Left,
+                        .CornerRadius = New CornerRadius(0, 6, 6, 0)
+                    }
+                    Dim Gradient As New LinearGradientBrush With {
+                        .StartPoint = New RelativePoint(0, 0.5, RelativeUnit.Relative),
+                        .EndPoint = New RelativePoint(1, 0.5, RelativeUnit.Relative)
+                    }
+                    Gradient.GradientStops.Add(New GradientStop With {.Offset = 0, .Color = TargetColor0 * Percent + New MyColor(255, 255, 255) * (1 - Percent)})
+                    Gradient.GradientStops.Add(New GradientStop With {.Offset = 1, .Color = TargetColor1 * Percent + New MyColor(255, 255, 255) * (1 - Percent)})
+                    NewHintControl.Background = Gradient
+                    NewHintControl.Child = New TextBlock With {
+                        .TextTrimming = TextTrimming.CharacterEllipsis,
+                        .FontSize = 13,
+                        .Text = CurrentHint.Text,
+                        .Foreground = Brushes.White,
+                        .Margin = New Thickness(33, 5, 8, 5)
+                    }
+                    FrmMain.PanHint.Children.Add(NewHintControl)
+                    '控件动画
+                    Dim Animations As New List(Of AniData)
+                    If FrmMain.PanHint.Children.Count > 1 Then
+                        Animations.Add(AaHeight(NewHintControl, 26, 150, , New AniEaseOutFluent))
+                    Else
+                        NewHintControl.Height = 26
+                    End If
+                    Animations.AddRange({
+                        AaX(NewHintControl, 30, 400, , New AniEaseOutElastic(AniEasePower.Weak)),
+                        AaX(NewHintControl, 20, 200, , New AniEaseOutFluent),
+                        AaOpacity(NewHintControl, 1, 100),
+                        AaDouble(
+                            Sub(i As Object)
+                                Percent += CDbl(i)
+                                Gradient.GradientStops(0).Color = TargetColor0 * Percent + New MyColor(255, 255, 255) * (1 - Percent)
+                                Gradient.GradientStops(1).Color = TargetColor1 * Percent + New MyColor(255, 255, 255) * (1 - Percent)
+                            End Sub, 0.7, 250, 100)
+                    })
+                    AniStart(Animations, "Hint Show " & Info.Uuid)
+                    '结束动画
+                    Dim Delay As Double = (800 + CurrentHint.Text.Length.Clamp(5, 23) * 180) * AniSpeed
+                    AniStart({
+                        AaX(NewHintControl, -50, 200, Delay, New AniEaseInFluent),
+                        AaOpacity(NewHintControl, -1, 150, Delay),
+                        AaCode(Sub() Info.Reusable = False, Delay),
+                        AaHeight(NewHintControl, -26, 100, , New AniEaseOutFluent, True),
+                        AaCode(Sub() FrmMain.PanHint.Children.Remove(NewHintControl), , True)
+                    }, "Hint Hide " & Info.Uuid)
+                End If
+                If CurrentHint.Log Then Logger.Info($"弹出提示：{CurrentHint.Text}")
+            Loop
+        Catch ex As Exception
+            Logger.Warn(ex, "显示弹出提示失败")
+        End Try
     End Sub
 
 #End Region
@@ -218,6 +342,7 @@ Public Module ModMain
             .Type = MyMsgBoxType.Text, .Button1 = Button1, .Button2 = Button2, .Button3 = Button3,
             .Text = Caption, .IsWarn = IsWarn, .Title = Title, .HighLight = HighLight,
             .Button1Action = Button1Action, .Button2Action = Button2Action, .Button3Action = Button3Action}
+        LocalizeMessage(Converter)
         If Button2.Length > 0 OrElse ForceWait Then
             If RunInUi() Then
                 Return MyMsgBoxCore(Converter)
@@ -245,6 +370,7 @@ Public Module ModMain
             .Type = MyMsgBoxType.Input, .Text = If(Text, ""), .HintText = If(HintText, ""),
             .ValidateRules = If(ValidateRules, New Collection(Of Validate)),
             .Button1 = Button1, .Button2 = Button2, .Content = DefaultInput, .IsWarn = IsWarn, .Title = Title}
+        LocalizeMessage(Converter)
         Dim Result As Object = MyMsgBoxWait(Converter)
         Logger.Info($"输入弹框返回：{If(Result, "null")}")
         Return TryCast(Result, String)
@@ -257,11 +383,21 @@ Public Module ModMain
         Dim Converter As New MyMsgBoxConverter With {
             .Type = MyMsgBoxType.Select, .Button1 = Button1, .Button2 = Button2,
             .Content = Selections, .IsWarn = IsWarn, .Title = Title}
+        LocalizeMessage(Converter)
         Dim Result As Object = MyMsgBoxWait(Converter)
         Logger.Info($"选择弹框返回：{If(Result, "null")}")
         If Result Is Nothing Then Return Nothing
         Return CInt(Result)
     End Function
+
+    Private Sub LocalizeMessage(Converter As MyMsgBoxConverter)
+        Converter.Title = Localization.TranslateText(Converter.Title)
+        Converter.Text = Localization.TranslateText(Converter.Text)
+        Converter.HintText = Localization.TranslateText(Converter.HintText)
+        Converter.Button1 = Localization.TranslateText(Converter.Button1)
+        Converter.Button2 = Localization.TranslateText(Converter.Button2)
+        Converter.Button3 = Localization.TranslateText(Converter.Button3)
+    End Sub
 
     ''' <summary>
     ''' 将弹窗列入队列，并在 UI 线程上泵消息直到弹窗关闭，返回弹窗结果。

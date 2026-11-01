@@ -8,6 +8,7 @@
             CornerRadius="1000"
             RenderTransformOrigin="50%,50%"
             BorderThickness="0.001"
+            Background="{DynamicResource ColorBrushTransparent}"
             IsHitTestVisible="False">
         <Border.RenderTransform>
             <ScaleTransform />

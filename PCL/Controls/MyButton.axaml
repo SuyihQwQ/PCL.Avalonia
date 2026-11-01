@@ -10,11 +10,13 @@
             BorderBrush="{DynamicResource ColorBrush1}"
             RenderTransformOrigin="50%,50%"
             Background="{DynamicResource ColorBrushHalfWhite}">
-        <TextBlock x:Name="LabText"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   Foreground="{Binding $parent[Border].BorderBrush}"
-                   FontSize="13"
-                   IsHitTestVisible="False" />
+        <Grid>
+            <TextBlock x:Name="LabText"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Foreground="{Binding $parent[Border].BorderBrush}"
+                       FontSize="13"
+                       IsHitTestVisible="False" />
+        </Grid>
     </Border>
 </Border>

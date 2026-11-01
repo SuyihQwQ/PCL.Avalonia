@@ -7,6 +7,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using Xunit;
 
@@ -51,6 +52,108 @@ public class CoreControlTests {
             Assert.Equal(1, iconClicked);
         } finally {
             window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Launch_instance_name_uses_original_gray_subtitle_layout() {
+        var page = new global::PCL.PageLaunchLeft();
+        Assert.IsType<Grid>(page.PanLaunchBox.Parent).Children.Remove(page.PanLaunchBox);
+        var window = Show(page.PanLaunchBox);
+        try {
+            page.LabVersion.Text = "Fabric 1.21";
+            Assert.Equal("Fabric 1.21", page.LabVersion.Text);
+            Assert.Same(page.BtnLaunch.Parent, page.LabVersion.Parent);
+            Assert.False(page.LabVersion.IsHitTestVisible);
+            var expected = Assert.IsAssignableFrom<ISolidColorBrush>(Application.Current!.FindResource("ColorBrushGray3"));
+            var actual = Assert.IsAssignableFrom<ISolidColorBrush>(page.LabVersion.Foreground);
+            Assert.Equal(expected.Color, actual.Color);
+        } finally {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Launch_progress_bar_matches_reported_progress() {
+        var page = new global::PCL.PageLaunchLeft();
+        typeof(global::PCL.PageLaunchLeft)
+            .GetMethod("InitCustom", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .Invoke(page, null);
+        Assert.IsType<Grid>(page.PanLaunching.Parent).Children.Remove(page.PanLaunching);
+        page.PanLaunching.IsVisible = true;
+        page.PanLaunching.Opacity = 1;
+        page.PanProgress.ColumnDefinitions[0].Width = new GridLength(0, GridUnitType.Star);
+        page.PanProgress.ColumnDefinitions[1].Width = new GridLength(1, GridUnitType.Star);
+
+        var originalLoader = global::PCL.ModLaunch.McLaunchLoaderReal;
+        var originalOptions = global::PCL.ModLaunch.CurrentLaunchOptions;
+        var launchTask = new global::PCL.ModLoader.LoaderTask<object, object>("进度测试", _ => { }) {
+            State = global::PCL.ModBase.LoadState.Loading,
+            Progress = 0.6323
+        };
+        global::PCL.ModLaunch.McLaunchLoaderReal = new global::PCL.ModLoader.LoaderCombo<object>(
+            "Minecraft 启动", new global::PCL.ModLoader.LoaderBase[] { launchTask }) {
+            State = global::PCL.ModBase.LoadState.Loading
+        };
+        global::PCL.ModLaunch.CurrentLaunchOptions = new global::PCL.ModLaunch.McLaunchOptions();
+
+        var window = Show(page.PanLaunching);
+        try {
+            for (var i = 0; i < 60; i++) {
+                page.LaunchingRefresh();
+                RunTicks(5);
+            }
+            RunTicks(10);
+
+            var finishedWidth = page.PanProgress.Children[0].Bounds.Width;
+            var totalWidth = page.PanProgress.Bounds.Width;
+            Assert.True(totalWidth > 100, $"进度条宽度异常：{totalWidth}");
+            Assert.InRange(finishedWidth / totalWidth, 0.60, 0.67);
+            using var frame = Assert.IsType<WriteableBitmap>(window.CaptureRenderedFrame());
+            using var lockedFrame = frame.Lock();
+            var pixels = new byte[lockedFrame.RowBytes * lockedFrame.Size.Height];
+            Marshal.Copy(lockedFrame.Address, pixels, 0, pixels.Length);
+            var filledPoint = page.PanProgress.TranslatePoint(new Point(totalWidth * 0.3, 2), window)!.Value;
+            var unfilledPoint = page.PanProgress.TranslatePoint(new Point(totalWidth * 0.8, 2), window)!.Value;
+            var filledOffset = (int)filledPoint.Y * lockedFrame.RowBytes + (int)filledPoint.X * 4;
+            var unfilledOffset = (int)unfilledPoint.Y * lockedFrame.RowBytes + (int)unfilledPoint.X * 4;
+            var colorDifference = Enumerable.Range(0, 3)
+                .Sum(channel => Math.Abs(pixels[filledOffset + channel] - pixels[unfilledOffset + channel]));
+            Assert.True(colorDifference > 25, $"已完成与未完成进度条颜色不明显：差值 {colorDifference}");
+        } finally {
+            window.Close();
+            global::PCL.ModLaunch.McLaunchLoaderReal = originalLoader;
+            global::PCL.ModLaunch.CurrentLaunchOptions = originalOptions;
+        }
+    }
+
+    [AvaloniaFact]
+    public void Community_resource_refresh_clears_search_results_and_page_index() {
+        var originalMain = global::PCL.ModMain.FrmMain;
+        global::PCL.ModMain.FrmMain = null!;
+        try {
+            var left = new global::PCL.PageDownloadLeft();
+            var subTypes = new[] {
+                global::PCL.FormMain.PageSubType.DownloadMod,
+                global::PCL.FormMain.PageSubType.DownloadPack,
+                global::PCL.FormMain.PageSubType.DownloadDataPack,
+                global::PCL.FormMain.PageSubType.DownloadResourcePack,
+                global::PCL.FormMain.PageSubType.DownloadShader
+            };
+
+            foreach (var subType in subTypes) {
+                var page = left.PageGet(subType);
+                var resourcePage = Assert.IsType<global::PCL.PageResource>(page.Content);
+                var previousResults = resourcePage.Storage;
+                resourcePage.Page = 3;
+
+                left.Refresh(subType);
+
+                Assert.NotSame(previousResults, resourcePage.Storage);
+                Assert.Equal(0, resourcePage.Page);
+            }
+        } finally {
+            global::PCL.ModMain.FrmMain = originalMain;
         }
     }
 
@@ -361,13 +464,31 @@ public class CoreControlTests {
 
     [AvaloniaFact]
     public void Loading_pickaxe_stops_on_ground_and_emits_splash_particles() {
-        var loading = new global::PCL.MyLoading { Width = 135, Height = 65 };
+        var loading = new global::PCL.MyLoading { Width = 135, Height = 65, Text = "" };
         var window = new Window { Width = 200, Height = 120, Content = loading };
         window.Show();
         Dispatcher.UIThread.RunJobs();
         try {
             var left = loading.FindControl<Avalonia.Controls.Shapes.Path>("PathLeft")!;
             var right = loading.FindControl<Avalonia.Controls.Shapes.Path>("PathRight")!;
+            var pickaxe = loading.FindControl<Avalonia.Controls.Shapes.Path>("PathPickaxe")!;
+            var lineShape = loading.FindControl<Avalonia.Controls.Shapes.Rectangle>("RectLine")!;
+            var artGrid = Assert.IsType<Grid>(pickaxe.Parent);
+            var rotation = Assert.IsType<Avalonia.Media.RotateTransform>(pickaxe.RenderTransform);
+            Assert.Equal(30, rotation.CenterY, 0.1);
+            Assert.Equal(0, pickaxe.RenderTransformOrigin.Point.X, 0.001);
+            Assert.Equal(0, pickaxe.RenderTransformOrigin.Point.Y, 0.001);
+            Assert.True(pickaxe.Bounds.Y + rotation.CenterY < lineShape.Bounds.Center.Y,
+                "稿子的旋转中心应位于横线上方");
+            Assert.True(pickaxe.Bounds.X + rotation.CenterX > lineShape.Bounds.Right + 10,
+                "稿子应位于横线右侧并留出清楚的间距");
+            using (var restingFrame = window.CaptureRenderedFrame()) {
+                Assert.NotNull(restingFrame);
+                var restingLine = FindGroundLine(restingFrame!);
+                var restingTip = DeepestPickaxePixel(restingFrame!, restingLine.Row);
+                Assert.True(restingTip <= restingLine.Row + 2,
+                    $"静止镐尖穿过地面：镐尖 {restingTip}，地面 {restingLine.Row}");
+            }
             var sawParticles = false;
             var deepest = 0;
             var lineRow = 0;
@@ -384,9 +505,57 @@ public class CoreControlTests {
                 if (left.Opacity > 0.5 && right.Opacity > 0.5) sawParticles = true;
             }
             Assert.True(lineRow > 0, "未找到地面横线");
-            // 撞击瞬间镐刃会压在地面横线上，允许至多几像素的笔画重叠，但不能整个穿过
-            Assert.True(deepest <= lineRow + 6, $"镐子穿过了地面：镐尖 {deepest}，地面 {lineRow}");
+            // 粒子可落到地面线下方；静止镐尖的位置由上方断言单独校验。
+            Assert.True(deepest <= lineRow + 6, $"动画内容穿过了地面：像素 {deepest}，地面 {lineRow}");
             Assert.True(sawParticles, "撞击时没有出现左右溅开的粒子");
+        } finally {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Resource_item_title_has_room_for_text_metrics() {
+        var item = new global::PCL.MyResourceItem { Title = "Fabric API", Width = 500, Height = 64 };
+        var window = Show(item);
+        try {
+            var titlePanel = Assert.IsType<StackPanel>(item.LabTitle.Parent);
+            Assert.True(titlePanel.Bounds.Height >= item.LabTitle.DesiredSize.Height,
+                $"标题容器高度 {titlePanel.Bounds.Height} 小于文本所需高度 {item.LabTitle.DesiredSize.Height}");
+        } finally {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Local_mod_item_title_has_room_for_text_metrics() {
+        var item = new global::PCL.MyLocalModItem { Width = 500 };
+        var window = Show(item);
+        try {
+            item.LabTitle.Text = "Fabric API";
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(item.PanTitle.Bounds.Height >= item.LabTitle.DesiredSize.Height,
+                $"标题容器高度 {item.PanTitle.Bounds.Height} 小于文本所需高度 {item.LabTitle.DesiredSize.Height}");
+        } finally {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Slider_value_hint_uses_theme_aware_foreground_and_background() {
+        var slider = new global::PCL.MySlider { Width = 240, GetHintText = (Func<int, string>)(value => value.ToString()) };
+        var window = Show(slider);
+        try {
+            slider.RefreshPopup();
+            Dispatcher.UIThread.RunJobs();
+            var background = Assert.IsType<Border>(slider.Popup.Child);
+            var app = Application.Current!;
+            var expectedBackground = Assert.IsAssignableFrom<ISolidColorBrush>(app.FindResource("ColorBrush8"));
+            var expectedForeground = Assert.IsAssignableFrom<ISolidColorBrush>(app.FindResource("ColorBrush1"));
+            var actualBackground = Assert.IsAssignableFrom<ISolidColorBrush>(background.Background);
+            var actualForeground = Assert.IsAssignableFrom<ISolidColorBrush>(slider.TextHint.Foreground);
+
+            Assert.Equal(expectedBackground.Color, actualBackground.Color);
+            Assert.Equal(expectedForeground.Color, actualForeground.Color);
         } finally {
             window.Close();
         }
@@ -506,11 +675,76 @@ public class CoreControlTests {
             RunTicks(20);
             Assert.True(item.IsPointerOver, "未能模拟下拉项悬停");
             var brush = Assert.IsType<SolidColorBrush>(item.Background);
-            Assert.Equal(0, brush.Color.A);
+            var expected = Assert.IsType<SolidColorBrush>(Application.Current!.FindResource("ColorBrush8"));
+            Assert.Equal(expected.Color, brush.Color);
+            Assert.True(brush.Color.R < 80 && brush.Color.G < 80 && brush.Color.B < 80,
+                $"深色主题下拉项悬停底色过亮：{brush.Color}");
         } finally {
             global::PCL.Settings.Set("UiLauncherThemeMode", originalMode);
             Dispatcher.UIThread.RunJobs();
             window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Button_hover_does_not_flash_gray_in_dark_theme() {
+        var originalMode = global::PCL.Settings.Get<int>("UiLauncherThemeMode");
+        try {
+            global::PCL.Settings.Set("UiLauncherThemeMode", 2);
+            Dispatcher.UIThread.RunJobs();
+
+            var button = new global::PCL.MyButton {
+                Text = "按钮", Width = 120, Height = 32,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top
+            };
+            var window = Show(button);
+            try {
+                window.MouseMove(new Point(60, 16));
+                Dispatcher.UIThread.RunJobs();
+                Assert.True(button.IsPointerOver, "未能模拟按钮悬停");
+
+                global::PCL.ModAnimation.AniTimer(25);
+                var panFore = button.FindControl<Border>("PanFore")!;
+                var intermediate = Assert.IsType<SolidColorBrush>(panFore.Background).Color;
+                Assert.True(
+                    intermediate.R < 80 && intermediate.G < 80 && intermediate.B < 80,
+                    $"深色悬停动画的中间帧过亮：{intermediate}");
+
+                RunTicks(10);
+                var expected = Assert.IsType<SolidColorBrush>(
+                    Application.Current!.FindResource("ColorBrush7"));
+                Assert.Equal(expected.Color, Assert.IsType<SolidColorBrush>(panFore.Background).Color);
+            } finally {
+                window.Close();
+            }
+        } finally {
+            global::PCL.Settings.Set("UiLauncherThemeMode", originalMode);
+            Dispatcher.UIThread.RunJobs();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Text_box_caret_uses_theme_foreground() {
+        var originalMode = global::PCL.Settings.Get<int>("UiLauncherThemeMode");
+        try {
+            global::PCL.Settings.Set("UiLauncherThemeMode", 2);
+            Dispatcher.UIThread.RunJobs();
+
+            var textBox = new global::PCL.MyTextBox { Width = 180, Height = 30 };
+            var window = Show(textBox);
+            try {
+                var expected = Assert.IsType<SolidColorBrush>(
+                    Application.Current!.FindResource("ColorBrush1"));
+                var actual = Assert.IsType<SolidColorBrush>(textBox.CaretBrush);
+                Assert.Equal(expected.Color, actual.Color);
+                Assert.True(actual.Color.R > 180 && actual.Color.G > 180 && actual.Color.B > 180);
+            } finally {
+                window.Close();
+            }
+        } finally {
+            global::PCL.Settings.Set("UiLauncherThemeMode", originalMode);
+            Dispatcher.UIThread.RunJobs();
         }
     }
 

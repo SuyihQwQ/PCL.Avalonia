@@ -16,6 +16,7 @@ Public Class PageInstanceLeft
     Private FrmInstanceSetup As PageInstanceSetup
     Private FrmInstanceExport As PageInstanceExport
     Private FrmDownloadModify As PageDownloadModify
+    Private IsUpdatingSelection As Boolean
 
     Public Sub New()
         InitControls()
@@ -71,6 +72,7 @@ Public Class PageInstanceLeft
     ''' 勾选事件改变页面。
     ''' </summary>
     Private Sub PageCheck(sender As Object, e As RouteEventArgs) Handles ItemOverall.Check, ItemMod.Check, ItemModDisabled.Check, ItemSetup.Check, ItemModify.Check, ItemExport.Check
+        If IsUpdatingSelection Then Return
         '尚未初始化控件属性时，sender.Tag 为 Nothing，会导致切换到页面 0
         If sender.Tag IsNot Nothing Then PageChange(CInt(Val(sender.Tag)))
     End Sub
@@ -105,8 +107,12 @@ Public Class PageInstanceLeft
     ''' 切换现有页面。
     ''' </summary>
     Public Sub PageChange(ID As FormMain.PageSubType)
-        If PageID = ID Then Return
+        If PageID = ID Then
+            RefreshSelection(ID)
+            Return
+        End If
         If Instance IsNot Nothing AndAlso McInstanceLock.IsLocked(Instance) Then
+            RefreshSelection(PageID)
             Hint("该版本正在被修改，请稍后再切换页面！", HintType.Red)
             Return
         End If
@@ -118,6 +124,18 @@ Public Class PageInstanceLeft
             Logger.Error(ex, $"切换分页面失败（ID {ID}）")
         Finally
             AniControlEnabled -= 1
+            RefreshSelection(PageID)
+        End Try
+    End Sub
+
+    Private Sub RefreshSelection(ID As FormMain.PageSubType)
+        IsUpdatingSelection = True
+        Try
+            For Each Entry As MyListItem In {ItemOverall, ItemSetup, ItemModify, ItemMod, ItemModDisabled, ItemExport}
+                Entry.SetChecked(CInt(Val(Entry.Tag)) = CInt(ID), False, False)
+            Next
+        Finally
+            IsUpdatingSelection = False
         End Try
     End Sub
     Private Shared Sub PageChangeRun(Target As MyPageRight)

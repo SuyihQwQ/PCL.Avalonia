@@ -4,6 +4,9 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
+using System.IO.Compression;
+using System.Reflection;
 using Xunit;
 
 namespace PCL.Tests;
@@ -77,6 +80,10 @@ public class LaunchPageTests {
                 Assert.Equal("LaunchAdvanceDisableJLW", global::PCL.SettingService.GetKey(page.CheckAdvanceDisableJLW));
                 Assert.Equal("LaunchAdvanceDisableLUA", global::PCL.SettingService.GetKey(page.CheckAdvanceDisableLUA));
                 Assert.Equal("LaunchAdvanceGraphicCard", global::PCL.SettingService.GetKey(page.CheckAdvanceGraphicCard));
+                Assert.Equal(OperatingSystem.IsWindows(), page.CheckAdvanceDisableJLW.IsEnabled);
+                Assert.Equal(!OperatingSystem.IsWindows(), page.CheckAdvanceDisableJLW.Checked);
+                Assert.Equal(OperatingSystem.IsWindows() || OperatingSystem.IsLinux(), page.CheckAdvanceGraphicCard.IsEnabled);
+                Assert.Equal(OperatingSystem.IsWindows(), page.CheckArgumentRam.IsEnabled);
                 Assert.Equal("ToolDownloadCert", global::PCL.SettingService.GetKey(page.CheckDownloadCert));
 
                 Assert.Equal(5, page.ComboArgumentIndieV2.ItemCount);
@@ -94,7 +101,23 @@ public class LaunchPageTests {
                 Assert.Equal("16.0 GB", (string)page.SliderRamCustom.GetHintText.DynamicInvoke(33)!);
 
                 Assert.Equal(3, page.PanRamDisplay.ColumnDefinitions.Count);
-                Assert.Equal(global::PCL.ModJava.JavaList.Count, page.ComboAdvanceJava.ItemCount);
+                // 等待自动搜索结束，避免与后台 Java 刷新竞争
+                for (var i = 0; i < 300 && global::PCL.ModJava.IsRefreshing; i++) {
+                    Thread.Sleep(10);
+                    Dispatcher.UIThread.RunJobs();
+                }
+                page.UpdateJavaList();
+                // Java 项之后固定追加一个“导入电脑中已有的 Java…”项
+                Assert.Equal(global::PCL.ModJava.JavaList.Count + 1, page.ComboAdvanceJava.ItemCount);
+                var importItem = Assert.IsType<global::PCL.MyListItem>(page.ComboAdvanceJava.Items[^1]);
+                Assert.Contains("导入", importItem.Title);
+                // Java 项按扫描顺序排列，操作按钮位于菜单项内部
+                var javaEntries = global::PCL.ModJava.JavaList;
+                for (var i = 0; i < javaEntries.Count; i++) {
+                    var javaItem = Assert.IsType<global::PCL.MyListItem>(page.ComboAdvanceJava.Items[i]);
+                    Assert.Equal(javaEntries[i].ToString(), javaItem.Title);
+                    Assert.Equal(2, javaItem.Buttons!.Count());
+                }
 
                 Settle();
                 Assert.True(page.PanBack.Extent.Height > 0);
@@ -277,6 +300,43 @@ public class LaunchPageTests {
         }
     }
 
+    [AvaloniaFact]
+    public void Launch_page_java_dropdown_realizes_items_with_menu_buttons() {
+        WithoutMainWindow(() => {
+            var page = new global::PCL.PageSetupLaunch();
+            var window = Show(page);
+            try {
+                for (var i = 0; i < 300 && global::PCL.ModJava.IsRefreshing; i++) {
+                    Thread.Sleep(10);
+                    Dispatcher.UIThread.RunJobs();
+                }
+                page.UpdateJavaList();
+                var entries = global::PCL.ModJava.JavaList;
+                var card = page.PanAdvanceJava.FindAncestorOfType<global::PCL.MyCard>();
+                Assert.NotNull(card);
+                card!.IsSwapped = false;
+                Settle();
+
+                page.ComboAdvanceJava.IsDropDownOpen = true;
+                Settle();
+                Assert.True(page.ComboAdvanceJava.IsDropDownOpen);
+                Assert.NotNull(page.ComboAdvanceJava.ItemsPanelRoot);
+                var realized = page.ComboAdvanceJava.ItemsPanelRoot!.Children.OfType<ComboBoxItem>().ToList();
+                Assert.Equal(entries.Count + 1, realized.Count);
+                for (var i = 0; i < entries.Count; i++) {
+                    var item = Assert.IsType<global::PCL.MyListItem>(realized[i].Content);
+                    Assert.Equal(entries[i].ToString(), item.Title);
+                    Assert.Equal(2, item.Buttons!.Count());
+                    Assert.Equal(2, item.GetVisualDescendants().OfType<global::PCL.MyIconButton>().Count());
+                }
+                page.ComboAdvanceJava.IsDropDownOpen = false;
+                Settle();
+            } finally {
+                window.Close();
+            }
+        });
+    }
+
     [Fact]
     public void SystemInfo_reports_plausible_physical_memory() {
         var total = global::MeloongCore.SystemInfo.TotalPhysicalMemory;
@@ -299,11 +359,250 @@ public class LaunchPageTests {
     }
 
     [AvaloniaFact]
+    public void Launch_page_reentry_refreshes_stale_loading_button() {
+        WithoutMainWindow(() => {
+            var originalLoginType = global::PCL.Settings.Get<int>("LoginType");
+            var originalPageType = global::PCL.Settings.Get<int>("LoginPageType");
+            var page = new global::PCL.PageLaunchLeft();
+            var fields = BindingFlags.Instance | BindingFlags.NonPublic;
+            typeof(global::PCL.PageLaunchLeft).GetField("IsLoad", fields)!.SetValue(page, true);
+            typeof(global::PCL.PageLaunchLeft).GetField("IsLoadFinished", fields)!.SetValue(page, true);
+            var window = Show(page, 360, 500);
+            try {
+                Assert.True((bool)typeof(global::PCL.PageLaunchLeft).GetField("IsLoadFinished", fields)!.GetValue(page)!);
+                Assert.True(page.BtnLaunch.IsLoaded);
+                typeof(global::PCL.PageLaunchLeft).GetField("BtnLaunchState", fields)!.SetValue(page, 0);
+                page.BtnVersion.IsEnabled = false;
+                typeof(global::PCL.PageLaunchLeft)
+                    .GetMethod("RefreshAfterPageEnter", BindingFlags.Instance | BindingFlags.Public)!
+                    .Invoke(page, null);
+                Assert.NotEqual(0, typeof(global::PCL.PageLaunchLeft).GetField("BtnLaunchState", fields)!.GetValue(page));
+                Dispatcher.UIThread.RunJobs();
+                Assert.True(page.BtnVersion.IsEnabled);
+            } finally {
+                global::PCL.Settings.Set("LoginType", originalLoginType);
+                global::PCL.Settings.Set("LoginPageType", originalPageType);
+                window.Close();
+            }
+        });
+    }
+
+    [AvaloniaFact]
+    public void Launch_page_reentry_restores_button_text_after_dynamic_resource_reset() {
+        WithoutMainWindow(() => {
+            var temp = Path.Combine(Path.GetTempPath(), "pcl-reentry-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Path.Combine(temp, "versions", "KSNClient"));
+            var instanceField = typeof(global::PCL.ModMinecraft).GetField(
+                "_McInstanceSelected", BindingFlags.Static | BindingFlags.NonPublic)!;
+            var savedInstance = instanceField.GetValue(null);
+            try {
+                instanceField.SetValue(null, new global::PCL.ModMinecraft.McInstance(
+                    Path.Combine(temp, "versions", "KSNClient") + Path.DirectorySeparatorChar));
+                var page = new global::PCL.PageLaunchLeft();
+                var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+                typeof(global::PCL.PageLaunchLeft).GetField("IsLoad", flags)!.SetValue(page, true);
+                typeof(global::PCL.PageLaunchLeft).GetField("IsLoadFinished", flags)!.SetValue(page, true);
+                var window = Show(page, 360, 500);
+                try {
+                    Assert.Equal("启动游戏", page.BtnLaunch.Text);
+                    Assert.Equal("KSNClient", page.LabVersion.Text);
+                    // 模拟从版本选择/版本设置返回：页面被重新挂载时 DynamicResource 会覆盖代码设置的文字
+                    window.Content = null;
+                    Dispatcher.UIThread.RunJobs();
+                    window.Content = page;
+                    Dispatcher.UIThread.RunJobs();
+                    Assert.Equal("启动游戏", page.BtnLaunch.Text);
+                    Assert.Equal("KSNClient", page.LabVersion.Text);
+                } finally {
+                    window.Close();
+                }
+            } finally {
+                instanceField.SetValue(null, savedInstance);
+                Directory.Delete(temp, true);
+            }
+        });
+    }
+
+    [AvaloniaFact]
+    public void Launch_page_instance_label_scales_with_button_after_reentry() {
+        WithoutMainWindow(() => {
+            var temp = Path.Combine(Path.GetTempPath(), "pcl-scale-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(Path.Combine(temp, "versions", "KSNClient"));
+            var instanceField = typeof(global::PCL.ModMinecraft).GetField(
+                "_McInstanceSelected", BindingFlags.Static | BindingFlags.NonPublic)!;
+            var savedInstance = instanceField.GetValue(null);
+            try {
+                instanceField.SetValue(null, new global::PCL.ModMinecraft.McInstance(
+                    Path.Combine(temp, "versions", "KSNClient") + Path.DirectorySeparatorChar));
+                var page = new global::PCL.PageLaunchLeft();
+                var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+                typeof(global::PCL.PageLaunchLeft).GetField("IsLoad", flags)!.SetValue(page, true);
+                typeof(global::PCL.PageLaunchLeft).GetField("IsLoadFinished", flags)!.SetValue(page, true);
+                var window = Show(page, 360, 500);
+                try {
+                    Assert.Equal("启动游戏", page.BtnLaunch.Text);
+                    PressAndCheckScale();
+
+                    window.Content = null;
+                    Dispatcher.UIThread.RunJobs();
+                    window.Content = page;
+                    Dispatcher.UIThread.RunJobs();
+                    Assert.Equal("启动游戏", page.BtnLaunch.Text);
+                    PressAndCheckScale();
+                } finally {
+                    window.Close();
+                }
+
+                void PressAndCheckScale() {
+                    var center = page.BtnLaunch.TranslatePoint(
+                        new Point(page.BtnLaunch.Bounds.Width / 2, page.BtnLaunch.Bounds.Height / 2), window)!.Value;
+                    window.MouseDown(center, MouseButton.Left);
+                    for (var i = 0; i < 5; i++) {
+                        global::PCL.ModAnimation.AniTimer(30);
+                        Dispatcher.UIThread.RunJobs();
+                    }
+                    var buttonScale = page.BtnLaunch.RealScaleTransform.ScaleX;
+                    var labelScale = ((Avalonia.Media.ScaleTransform)page.LabVersion.RenderTransform!).ScaleX;
+                    Assert.InRange(buttonScale, 0.9, 0.99);
+                    Assert.InRange(labelScale, 0.9, 0.99);
+                    Assert.Equal(buttonScale, labelScale, 3);
+                    // 测试中没有主窗体，先禁用按钮再松开，避免触发启动点击
+                    page.BtnLaunch.IsEnabled = false;
+                    window.MouseUp(center, MouseButton.Left);
+                    for (var i = 0; i < 20; i++) {
+                        global::PCL.ModAnimation.AniTimer(50);
+                        Dispatcher.UIThread.RunJobs();
+                    }
+                    page.BtnLaunch.IsEnabled = true;
+                }
+            } finally {
+                instanceField.SetValue(null, savedInstance);
+                Directory.Delete(temp, true);
+            }
+        });
+    }
+
+    [AvaloniaFact]
+    public void Launch_page_reentry_restores_login_skin_text() {
+        WithoutMainWindow(() => {
+            var originalPageType = global::PCL.Settings.Get<int>("LoginPageType");
+            var originalAccess = global::PCL.Settings.Get<string>("CacheAuthAccess");
+            var originalName = global::PCL.Settings.Get<string>("CacheAuthName");
+            var originalUuid = global::PCL.Settings.Get<string>("CacheAuthUuid");
+            var instanceField = typeof(global::PCL.ModMinecraft).GetField(
+                "_McInstanceSelected", BindingFlags.Static | BindingFlags.NonPublic)!;
+            var savedInstance = instanceField.GetValue(null);
+            try {
+                instanceField.SetValue(null, null);
+                global::PCL.Settings.Set("LoginPageType", 4);
+                global::PCL.Settings.Set("CacheAuthAccess", "test");
+                global::PCL.Settings.Set("CacheAuthName", "");
+                global::PCL.Settings.Set("CacheAuthUuid", "");
+                var page = new global::PCL.PageLaunchLeft();
+                typeof(global::PCL.PageLaunchLeft)
+                    .GetField("IsLoad", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .SetValue(page, true);
+                var window = Show(page, 360, 500);
+                try {
+                    var login = global::PCL.ModMain.FrmLoginAuthSkin;
+                    Assert.NotNull(login);
+                    Assert.Equal("", login!.TextName.Text);
+                    window.Content = null;
+                    Dispatcher.UIThread.RunJobs();
+                    window.Content = page;
+                    Dispatcher.UIThread.RunJobs();
+                    Assert.Equal("", login.TextName.Text);
+                } finally {
+                    window.Close();
+                }
+            } finally {
+                instanceField.SetValue(null, savedInstance);
+                global::PCL.Settings.Set("LoginPageType", originalPageType);
+                global::PCL.Settings.Set("CacheAuthAccess", originalAccess);
+                global::PCL.Settings.Set("CacheAuthName", originalName);
+                global::PCL.Settings.Set("CacheAuthUuid", originalUuid);
+            }
+        });
+    }
+
+    [AvaloniaFact]
+    public void Instance_setup_shows_java_launch_wrapper_disabled_on_non_windows() {
+        var originalInstanceSetup = global::PCL.ModMain.FrmInstanceSetup;
+        var page = new global::PCL.PageInstanceSetup();
+        try {
+            typeof(global::PCL.PageInstanceSetup)
+                .GetMethod("RefreshJavaLaunchWrapperSetting", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .Invoke(page, null);
+
+            Assert.Equal(OperatingSystem.IsWindows(), page.CheckAdvanceDisableJLW.IsEnabled);
+            Assert.Equal(!OperatingSystem.IsWindows(), page.CheckAdvanceDisableJLW.Checked);
+        } finally {
+            global::PCL.ModMain.FrmInstanceSetup = originalInstanceSetup;
+        }
+    }
+
+    [AvaloniaFact]
+    public void Install_page_back_arrow_uses_light_icon_theme() {
+        var page = new global::PCL.PageDownloadInstall();
+        Assert.Equal(global::PCL.MyIconButton.Themes.White, page.BtnBack.Theme);
+    }
+
+    [AvaloniaFact]
+    public void Launch_page_reentry_keeps_selected_instance_authlib_login() {
+        var temp = Path.Combine(Path.GetTempPath(), "pcl-authlib-reentry-" + Guid.NewGuid().ToString("N"));
+        var instancePath = Path.Combine(temp, "versions", "AuthInstance") + Path.DirectorySeparatorChar;
+        Directory.CreateDirectory(Path.Combine(instancePath, "PCL"));
+
+        var originalFolder = global::PCL.ModMinecraft.McFolderSelected;
+        var originalInstance = global::PCL.ModMinecraft.McInstanceSelected;
+        var originalLoginType = global::PCL.Settings.Get<int>("LoginType");
+        var originalPageType = global::PCL.Settings.Get<int>("LoginPageType");
+        var originalAuthAccess = global::PCL.Settings.Get<string>("CacheAuthAccess");
+        var originalAuthServer = global::PCL.Settings.Get<string>("CacheAuthServerServer");
+        var originalAuthName = global::PCL.Settings.Get<string>("CacheAuthServerName");
+        var originalAuthRegister = global::PCL.Settings.Get<string>("CacheAuthServerRegister");
+        var originalInstanceSetup = global::PCL.ModMain.FrmInstanceSetup;
+
+        try {
+            global::PCL.ModMain.FrmInstanceSetup = null;
+            global::PCL.ModMinecraft.McFolderSelected = temp + Path.DirectorySeparatorChar;
+            global::PCL.Settings.Set("VersionServerLogin", 4, instancePath);
+            global::PCL.ModMinecraft.McInstanceSelected = new global::PCL.ModMinecraft.McInstance(instancePath);
+            global::PCL.Settings.Set("CacheAuthAccess", "");
+
+            var page = new global::PCL.PageLaunchLeft();
+            var fields = BindingFlags.Instance | BindingFlags.NonPublic;
+            typeof(global::PCL.PageLaunchLeft).GetField("IsLoad", fields)!.SetValue(page, true);
+            typeof(global::PCL.PageLaunchLeft).GetField("IsLoadFinished", fields)!.SetValue(page, true);
+            page.RefreshAfterPageEnter();
+
+            Assert.Equal(4, global::PCL.Settings.Get<int>("LoginPageType"));
+            Assert.Equal(global::PCL.ModLaunch.McLoginType.Auth,
+                global::PCL.Settings.Get<global::PCL.ModLaunch.McLoginType>("LoginType"));
+        } finally {
+            global::PCL.ModMinecraft.McInstanceSelected = originalInstance;
+            global::PCL.ModMinecraft.McFolderSelected = originalFolder;
+            global::PCL.Settings.Set("LoginType", originalLoginType);
+            global::PCL.Settings.Set("LoginPageType", originalPageType);
+            global::PCL.Settings.Set("CacheAuthAccess", originalAuthAccess);
+            global::PCL.Settings.Set("CacheAuthServerServer", originalAuthServer);
+            global::PCL.Settings.Set("CacheAuthServerName", originalAuthName);
+            global::PCL.Settings.Set("CacheAuthServerRegister", originalAuthRegister);
+            global::PCL.ModMain.FrmInstanceSetup = originalInstanceSetup;
+            foreach (var setting in global::PCL.Settings.Entries.Values)
+                setting.ValueCache.TryRemove(instancePath, out _);
+            Directory.Delete(temp, true);
+        }
+    }
+
+    [AvaloniaFact]
     public void Instance_login_setting_survives_instance_metadata_write() {
         var temp = Path.Combine(Path.GetTempPath(), "pcl-instance-settings-" + Guid.NewGuid().ToString("N"));
         var instancePath = Path.Combine(temp, "versions", "TestInstance") + Path.DirectorySeparatorChar;
         Directory.CreateDirectory(Path.Combine(instancePath, "PCL"));
+        var originalInstanceSetup = global::PCL.ModMain.FrmInstanceSetup;
         try {
+            global::PCL.ModMain.FrmInstanceSetup = null;
             // McInstance 使用 Windows 分隔符读写版本元数据
             var metadataPath = instancePath + "PCL\\Setup.ini";
             global::PCL.ModBase.WriteIni(metadataPath, "State", "9");
@@ -316,7 +615,116 @@ public class LaunchPageTests {
             Assert.Equal(4, global::PCL.Settings.Get<int>("VersionServerLogin", instancePath));
             Assert.Contains("VersionServerLogin:4", File.ReadAllLines(Path.Combine(instancePath, "PCL", "Setup.ini")));
         } finally {
-            try { Directory.Delete(temp, true); } catch { /* 忽略清理失败 */ }
+            global::PCL.ModMain.FrmInstanceSetup = originalInstanceSetup;
+            Directory.Delete(temp, true);
         }
     }
+
+    [AvaloniaFact]
+    public void Launch_natives_extraction_keeps_files_when_instance_path_uses_backslashes() {
+        var temp = Path.Combine(Path.GetTempPath(), "pcl-natives-" + Guid.NewGuid().ToString("N"));
+        const string instanceName = "NativesTest";
+        var instanceFolder = Path.Combine(temp, "versions", instanceName);
+        Directory.CreateDirectory(instanceFolder);
+        var platform = OperatingSystem.IsWindows() ? "natives-windows"
+            : OperatingSystem.IsMacOS() ? "natives-osx" : "natives-linux";
+        var libraryRelative = $"org/lwjgl/lwjgl/lwjgl-platform/2.9.0/lwjgl-platform-2.9.0-{platform}.jar";
+        var libraryPath = Path.Combine(temp, "libraries", libraryRelative.Replace('/', Path.DirectorySeparatorChar));
+        Directory.CreateDirectory(Path.GetDirectoryName(libraryPath)!);
+        using (var zip = ZipFile.Open(libraryPath, ZipArchiveMode.Create)) {
+            using var writer = new StreamWriter(zip.CreateEntry("liblwjgl.so").Open());
+            writer.Write("stub");
+        }
+        File.WriteAllText(Path.Combine(instanceFolder, instanceName + ".json"), $$"""
+            {
+              "id": "{{instanceName}}",
+              "type": "release",
+              "libraries": [
+                {
+                  "name": "org.lwjgl.lwjgl:lwjgl-platform:2.9.0",
+                  "natives": { "linux": "natives-linux", "windows": "natives-windows", "osx": "natives-osx" },
+                  "downloads": {
+                    "classifiers": {
+                      "{{platform}}": { "path": "{{libraryRelative}}", "url": "https://example.invalid/x.jar", "size": 4, "sha1": "0000000000000000000000000000000000000000" }
+                    }
+                  }
+                }
+              ]
+            }
+            """);
+
+        var originalFolder = global::PCL.ModMinecraft.McFolderSelected;
+        var originalInstance = global::PCL.ModMinecraft.McInstanceSelected;
+        try {
+            // 生产环境中版本路径使用 Windows 分隔符，非 Windows 平台上解压与清理必须能正确匹配
+            global::PCL.ModMinecraft.McFolderSelected = temp + "\\";
+            global::PCL.ModMinecraft.McInstanceSelected = new global::PCL.ModMinecraft.McInstance(
+                temp + "\\versions\\" + instanceName + "\\");
+            var method = typeof(global::PCL.ModLaunch).GetMethod(
+                "McLaunchNatives", BindingFlags.Static | BindingFlags.NonPublic);
+            Assert.NotNull(method);
+            method!.Invoke(null, new object?[] { null });
+
+            var extracted = Path.Combine(instanceFolder, instanceName + "-natives", "liblwjgl.so");
+            Assert.True(File.Exists(extracted), "解压后的 Natives 文件不应被清理步骤删除");
+        } finally {
+            global::PCL.ModMinecraft.McFolderSelected = originalFolder;
+            global::PCL.ModMinecraft.McInstanceSelected = originalInstance;
+            Directory.Delete(temp, true);
+        }
+    }
+
+    [AvaloniaFact]
+    public void Instance_custom_ram_radio_enables_slider_and_other_modes_disable_it() {
+        var originalInstanceSetup = global::PCL.ModMain.FrmInstanceSetup;
+        var page = new global::PCL.PageInstanceSetup();
+        try {
+            Assert.Same(page, global::PCL.ModMain.FrmInstanceSetup);
+            page.RadioRamType1.SetChecked(true, true);
+            Assert.True(page.SliderRamCustom.IsEnabled);
+
+            page.RadioRamType2.SetChecked(true, true);
+            Assert.False(page.SliderRamCustom.IsEnabled);
+        } finally {
+            global::PCL.ModMain.FrmInstanceSetup = originalInstanceSetup;
+        }
+    }
+
+    [Fact]
+    public void Legacy_versions_leave_window_wait_by_runtime_when_logs_lack_modern_markers() {
+        var method = typeof(global::PCL.ModWatcher.Watcher)
+            .GetMethod("IsLaunchReady", BindingFlags.Static | BindingFlags.NonPublic)!;
+        var legacy = new DateTime(2009, 5, 14);
+        var modern = new DateTime(2017, 6, 1);
+        bool Ready(int logProgress, double seconds, DateTime releaseTime) =>
+            (bool)method.Invoke(null, new object[] { logProgress, seconds, releaseTime })!;
+
+        Assert.True(Ready(2, 0, modern));
+        Assert.False(Ready(1, 100, modern));
+        Assert.False(Ready(1, 100, new DateTime(1970, 1, 1)));
+        Assert.False(Ready(1, 4.9, legacy));
+        Assert.True(Ready(1, 5, legacy));
+        Assert.False(Ready(0, 14.9, legacy));
+        Assert.True(Ready(0, 15, legacy));
+    }
+
+    [Fact]
+    public void X11_window_helper_enumerates_windows_when_display_available() {
+        if (!OperatingSystem.IsLinux() || string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAY"))) return;
+        var helper = typeof(global::PCL.ModWatcher).Assembly.GetType("PCL.X11WindowHelper")!;
+        var open = helper.GetMethod("XOpenDisplay", BindingFlags.Public | BindingFlags.Static)!;
+        var getList = helper.GetMethod("GetClientWindows", BindingFlags.Public | BindingFlags.Static)!;
+        var isGame = helper.GetMethod("IsGameWindow", BindingFlags.Public | BindingFlags.Static)!;
+        var close = helper.GetMethod("XCloseDisplay", BindingFlags.Public | BindingFlags.Static)!;
+        var display = (IntPtr)open.Invoke(null, new object?[] { null })!;
+        if (display == IntPtr.Zero) return;
+        try {
+            var windows = Assert.IsAssignableFrom<System.Collections.IEnumerable>(getList.Invoke(null, new object[] { display }));
+            foreach (var id in windows.Cast<long>().Take(5))
+                isGame.Invoke(null, new object[] { display, id, -1 });
+        } finally {
+            close.Invoke(null, new object[] { display });
+        }
+    }
+
 }

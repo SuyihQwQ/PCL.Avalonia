@@ -29,6 +29,29 @@ public class AppSmokeTests {
     }
 
     [AvaloniaFact]
+    public void Localization_switches_between_chinese_and_english() {
+        global::PCL.Localization.Initialize("zh-CN");
+        Assert.Equal("取消", global::PCL.Localization.GetText("LangDialogBtnCancel"));
+
+        var text = new TextBlock();
+        text.SetResourceReference(TextBlock.TextProperty, "LangDialogBtnCancel");
+        var window = new Window { Content = text };
+        window.Show();
+        Assert.Equal("取消", text.Text);
+
+        global::PCL.Localization.SetLanguage("en-US");
+        Assert.Equal("Cancel", global::PCL.Localization.GetText("LangDialogBtnCancel"));
+        Assert.Equal("Cancel", global::PCL.Localization.TranslateText("取消"));
+        Assert.Equal("龙腾猫跃 (Long Teng Maoyue)", global::PCL.Localization.TranslateText("龙腾猫跃"));
+        Assert.Equal("Cancel", text.Text);
+
+        global::PCL.Localization.SetLanguage("zh-CN");
+        Assert.Equal("取消", global::PCL.Localization.TranslateText("取消"));
+        Assert.Equal("取消", text.Text);
+        window.Close();
+    }
+
+    [AvaloniaFact]
     public void Default_font_family_resolves_glyphs() {
         // 部分系统上 Skia 的默认字体是无法渲染的位图字体，必须确保 $Default 能解析到可用字体
         var ok = FontManager.Current.TryGetGlyphTypeface(
@@ -56,6 +79,45 @@ public class AppSmokeTests {
         Assert.NotNull(window.FindControl<Grid>("PanTitle"));
         Assert.NotNull(window.FindControl<Grid>("PanMain"));
         Assert.NotNull(window.FindControl<TextBlock>("LabTitleLogo"));
+    }
+
+    [AvaloniaFact]
+    public void FormMain_has_window_icon_and_wayland_app_id() {
+        var window = new global::PCL.FormMain();
+        Assert.NotNull(window.Icon);
+        Assert.Equal("PCL", global::Avalonia.Controls.WaylandProperties.GetAppId(window));
+    }
+
+    [AvaloniaFact]
+    public void Splash_window_shows_icon_without_taskbar_entry() {
+        var splash = new global::PCL.FormSplash();
+        Assert.False(splash.ShowInTaskbar);
+        var image = Assert.IsType<Image>(splash.Content);
+        Assert.NotNull(image.Source);
+    }
+
+    [AvaloniaFact]
+    public void Linux_desktop_entry_installs_launcher_and_icon() {
+        if (!OperatingSystem.IsLinux()) return;
+        var oldDataHome = Environment.GetEnvironmentVariable("XDG_DATA_HOME");
+        var oldDataDirs = Environment.GetEnvironmentVariable("XDG_DATA_DIRS");
+        var root = Path.Combine(Path.GetTempPath(), "pcl-desktop-" + Guid.NewGuid().ToString("N"));
+        try {
+            Environment.SetEnvironmentVariable("XDG_DATA_HOME", Path.Combine(root, "data"));
+            Environment.SetEnvironmentVariable("XDG_DATA_DIRS", Path.Combine(root, "system"));
+            global::PCL.Program.EnsureLinuxDesktopEntry();
+            var desktop = Path.Combine(root, "data", "applications", "PCL.desktop");
+            Assert.True(File.Exists(desktop));
+            var text = File.ReadAllText(desktop);
+            var icon = Path.Combine(root, "data", "icons", "hicolor", "256x256", "apps", "PCL.png");
+            Assert.Contains("Icon=" + icon, text);
+            Assert.Contains("StartupWMClass=PCL", text);
+            Assert.True(File.Exists(icon));
+        } finally {
+            Environment.SetEnvironmentVariable("XDG_DATA_HOME", oldDataHome);
+            Environment.SetEnvironmentVariable("XDG_DATA_DIRS", oldDataDirs);
+            if (Directory.Exists(root)) Directory.Delete(root, true);
+        }
     }
 
 }

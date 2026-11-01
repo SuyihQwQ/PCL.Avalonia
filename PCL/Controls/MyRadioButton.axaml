@@ -3,7 +3,7 @@
         x:Class="PCL.MyRadioButton"
         x:Name="PanBack"
         HorizontalAlignment="Center" VerticalAlignment="Center"
-        Background="Transparent"
+        Background="{DynamicResource ColorBrushSemiTransparent}"
         CornerRadius="13.5" MinHeight="27" MaxHeight="27">
     <StackPanel Orientation="Horizontal">
         <Path x:Name="ShapeLogo"

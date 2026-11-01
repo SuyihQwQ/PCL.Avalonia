@@ -11,6 +11,39 @@ namespace PCL.Tests;
 public class Step14JavaPlatformTests {
 
     [Fact]
+    public void Java_launch_wrapper_is_never_used_or_config_read_on_non_windows() {
+        var configReads = 0;
+
+        var useWrapper = global::PCL.ModLaunch.ShouldUseJavaLaunchWrapper(
+            false,
+            false,
+            () => { configReads++; return false; },
+            () => { configReads++; return false; });
+
+        Assert.False(useWrapper);
+        Assert.Equal(0, configReads);
+    }
+
+    [Theory]
+    [InlineData(false, false, false, true)]
+    [InlineData(true, false, false, false)]
+    [InlineData(false, true, false, false)]
+    [InlineData(false, false, true, false)]
+    public void Java_launch_wrapper_respects_windows_configuration(
+        bool globalDisabled,
+        bool instanceDisabled,
+        bool isGbkEncoding,
+        bool expected) {
+        var useWrapper = global::PCL.ModLaunch.ShouldUseJavaLaunchWrapper(
+            true,
+            isGbkEncoding,
+            () => globalDisabled,
+            () => instanceDisabled);
+
+        Assert.Equal(expected, useWrapper);
+    }
+
+    [Fact]
     public void Java_executable_name_matches_platform() {
         Assert.Equal(OperatingSystem.IsWindows() ? "java.exe" : "java", global::PCLCS.Java.ExecutableName);
     }
@@ -25,6 +58,27 @@ public class Step14JavaPlatformTests {
             Assert.EndsWith(global::PCLCS.Java.ExecutableName, java.JavaExePath, StringComparison.Ordinal);
         } finally {
             Directory.Delete(folder, true);
+        }
+    }
+
+    [Fact]
+    public void Java_path_search_uses_the_platform_path_separator() {
+        var root = Path.Combine(Path.GetTempPath(), "pcl_java_path_search_" + Guid.NewGuid().ToString("N"));
+        var first = Path.Combine(root, "first");
+        var second = Path.Combine(root, "second");
+        Directory.CreateDirectory(first);
+        Directory.CreateDirectory(second);
+        File.WriteAllText(Path.Combine(first, global::PCLCS.Java.ExecutableName), "");
+        File.WriteAllText(Path.Combine(second, global::PCLCS.Java.ExecutableName), "");
+        try {
+            var path = string.Join(Path.PathSeparator, $"\"{first}\"", second);
+            var candidates = global::PCLCS.JavaUtils.GetPathJavaCandidates(path);
+
+            Assert.Equal(2, candidates.Count);
+            Assert.Contains(candidates, java => global::MeloongCore.PathUtils.IsSame(java.Folder, first));
+            Assert.Contains(candidates, java => global::MeloongCore.PathUtils.IsSame(java.Folder, second));
+        } finally {
+            Directory.Delete(root, true);
         }
     }
 
@@ -58,6 +112,120 @@ public class Step14JavaPlatformTests {
         } finally {
             Directory.Delete(root, true);
         }
+    }
+
+    [Fact]
+    public void Linux_gpu_offload_environment_selects_vendor_specific_variables() {
+        var root = Path.Combine(Path.GetTempPath(), "pcl_gpu_sysfs_" + Guid.NewGuid().ToString("N"));
+        var marker = Path.Combine(root, "nvidia-version");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(marker, "NVRM version: NVIDIA UNIX x86_64 Kernel Module");
+        try {
+            AddGpu(root, "0000:00:02.0", "0x030000", "0x8086", bootVga: true, vram: 128L * 1024 * 1024);
+            AddGpu(root, "0000:01:00.0", "0x030200", "0x10de", bootVga: false, vram: 8L * 1024 * 1024 * 1024);
+
+            var environment = global::PCL.ModLaunch.GetLinuxGpuOffloadEnvironment(root, marker);
+
+            Assert.Equal("1", environment["__NV_PRIME_RENDER_OFFLOAD"]);
+            Assert.Equal("nvidia", environment["__GLX_VENDOR_LIBRARY_NAME"]);
+            Assert.Equal("NVIDIA_only", environment["__VK_LAYER_NV_optimus"]);
+            Assert.DoesNotContain("DRI_PRIME", environment.Keys);
+        } finally {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void Linux_gpu_offload_environment_falls_back_to_dri_prime_without_nvidia_driver() {
+        var root = Path.Combine(Path.GetTempPath(), "pcl_gpu_sysfs_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            AddGpu(root, "0000:00:02.0", "0x030000", "0x8086", bootVga: true, vram: 128L * 1024 * 1024);
+            AddGpu(root, "0000:01:00.0", "0x030200", "0x10de", bootVga: false, vram: 8L * 1024 * 1024 * 1024);
+
+            var environment = global::PCL.ModLaunch.GetLinuxGpuOffloadEnvironment(
+                root, Path.Combine(root, "missing-nvidia-version"));
+
+            Assert.Equal("pci-0000_01_00_0", environment["DRI_PRIME"]);
+            Assert.DoesNotContain("__GLX_VENDOR_LIBRARY_NAME", environment.Keys);
+        } finally {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void Linux_gpu_offload_environment_uses_dri_prime_pci_address_for_non_nvidia_hybrid() {
+        var root = Path.Combine(Path.GetTempPath(), "pcl_gpu_sysfs_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            AddGpu(root, "0000:00:02.0", "0x030000", "0x8086", bootVga: true, vram: 128L * 1024 * 1024);
+            AddGpu(root, "0000:04:00.0", "0x030200", "0x1002", bootVga: false, vram: 8L * 1024 * 1024 * 1024);
+
+            var environment = global::PCL.ModLaunch.GetLinuxGpuOffloadEnvironment(root);
+
+            Assert.Equal("pci-0000_04_00_0", environment["DRI_PRIME"]);
+        } finally {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void Linux_gpu_offload_environment_ignores_integrated_gpu_even_if_it_has_more_memory_capability() {
+        var root = Path.Combine(Path.GetTempPath(), "pcl_gpu_sysfs_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            AddGpu(root, "0000:00:02.0", "0x030000", "0x8086", bootVga: true, vram: 16L * 1024 * 1024 * 1024);
+            AddGpu(root, "0000:03:00.0", "0x030200", "0x1002", bootVga: false, vram: 2L * 1024 * 1024 * 1024);
+
+            var environment = global::PCL.ModLaunch.GetLinuxGpuOffloadEnvironment(root);
+
+            Assert.Equal("pci-0000_03_00_0", environment["DRI_PRIME"]);
+        } finally {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void Linux_gpu_offload_environment_does_not_override_when_nvidia_driver_is_the_display_gpu() {
+        var root = Path.Combine(Path.GetTempPath(), "pcl_gpu_sysfs_" + Guid.NewGuid().ToString("N"));
+        var marker = Path.Combine(root, "nvidia-version");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(marker, "NVRM version: NVIDIA UNIX x86_64 Kernel Module");
+        try {
+            // NVIDIA 专有驱动的显卡是默认显示卡，游戏本就会使用它渲染
+            AddGpu(root, "0000:00:02.0", "0x030000", "0x10de", bootVga: true, vram: 8L * 1024 * 1024 * 1024);
+            AddGpu(root, "0000:01:00.0", "0x030200", "0x8086", bootVga: false, vram: 128L * 1024 * 1024);
+
+            var environment = global::PCL.ModLaunch.GetLinuxGpuOffloadEnvironment(root, marker);
+
+            Assert.Empty(environment);
+        } finally {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void Linux_gpu_offload_environment_does_not_override_single_gpu_systems() {
+        var root = Path.Combine(Path.GetTempPath(), "pcl_gpu_sysfs_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            AddGpu(root, "0000:00:02.0", "0x030000", "0x1002", bootVga: true);
+
+            var environment = global::PCL.ModLaunch.GetLinuxGpuOffloadEnvironment(root);
+
+            Assert.Empty(environment);
+        } finally {
+            Directory.Delete(root, true);
+        }
+    }
+
+    private static void AddGpu(string root, string address, string deviceClass, string vendor, bool? bootVga = null, long vram = 0) {
+        var device = Path.Combine(root, address);
+        Directory.CreateDirectory(device);
+        File.WriteAllText(Path.Combine(device, "class"), deviceClass);
+        File.WriteAllText(Path.Combine(device, "vendor"), vendor);
+        if (bootVga is not null) File.WriteAllText(Path.Combine(device, "boot_vga"), bootVga.Value ? "1" : "0");
+        if (vram > 0) File.WriteAllText(Path.Combine(device, "mem_info_vram_total"), vram.ToString());
     }
 }
 

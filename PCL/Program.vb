@@ -26,7 +26,9 @@ Public Module Program
         })
         'Wayland 下禁止协商服务端标题栏，避免启动时先闪出系统标题栏再被移除
         If OperatingSystem.IsLinux() Then
-            Builder = Builder.With(New WaylandPlatformOptions With {.ForceDrawnDecorations = True})
+            Builder = Builder _
+                .With(New WaylandPlatformOptions With {.ForceDrawnDecorations = True}) _
+                .With(New X11PlatformOptions With {.WmClass = "PCL"})
         End If
         Return Builder _
             .UseWaylandWithFallback() _
@@ -169,6 +171,105 @@ Public Module Program
         End Try
         Return Nothing
     End Function
+
+#End Region
+
+#Region "桌面集成"
+
+    ''' <summary>
+    ''' Wayland 下窗口不携带图标，合成器按 AppId 匹配已安装的 .desktop 文件来显示任务栏图标。
+    ''' 启动时在用户数据目录写入一份桌面项与图标，已有系统安装的桌面项时不覆盖。
+    ''' </summary>
+    Public Sub EnsureLinuxDesktopEntry()
+        If Not OperatingSystem.IsLinux() Then Return
+        Try
+            Dim DesktopFile = IO.Path.Combine(DataHome, "applications", "PCL.desktop")
+            Dim Existing = FindDesktopEntry("PCL.desktop")
+            If Existing IsNot Nothing AndAlso Not IO.File.ReadAllText(Existing).Contains("X-PCL-Generated=true") Then Return
+            Dim ExePath = Environment.ProcessPath
+            If String.IsNullOrWhiteSpace(ExePath) Then Return
+            '图标放入 hicolor 主题
+            Dim IconFile = IO.Path.Combine(DataHome, "icons", "hicolor", "256x256", "apps", "PCL.png")
+            Using Stream = Platform.AssetLoader.Open(New Uri("avares://PCL/Assets/Images/icon.png"))
+                Using Memory As New IO.MemoryStream()
+                    Stream.CopyTo(Memory)
+                    Dim Bytes = Memory.ToArray()
+                    If Not IO.File.Exists(IconFile) OrElse Not IO.File.ReadAllBytes(IconFile).SequenceEqual(Bytes) Then
+                        IO.Directory.CreateDirectory(IO.Path.GetDirectoryName(IconFile))
+                        IO.File.WriteAllBytes(IconFile, Bytes)
+                    End If
+                End Using
+            End Using
+            Dim ExecPath = """" & ExePath & """"
+            If IO.Path.GetFileNameWithoutExtension(ExePath).Equals("dotnet", StringComparison.OrdinalIgnoreCase) Then
+                Dim EntryAssembly = Reflection.Assembly.GetEntryAssembly()?.Location
+                If Not String.IsNullOrWhiteSpace(EntryAssembly) Then ExecPath &= " """ & EntryAssembly & """"
+            End If
+            '任务管理器会先用 QIcon::hasThemeIcon 查询图标名，而 plasmashell 的图标主题缓存可能早于图标写入；
+            '使用绝对路径可让 Plasma 直接加载文件，不受主题缓存影响
+            Dim Content = String.Join(vbLf, {
+                "[Desktop Entry]",
+                "Type=Application",
+                "Name=PCL",
+                "Comment=Plain Craft Launcher",
+                "Exec=" & ExecPath,
+                "Icon=" & IconFile,
+                "Terminal=false",
+                "Categories=Game;",
+                "StartupWMClass=PCL",
+                "X-PCL-Generated=true",
+                ""
+            })
+            If Not IO.File.Exists(DesktopFile) OrElse IO.File.ReadAllText(DesktopFile) <> Content Then
+                IO.Directory.CreateDirectory(IO.Path.GetDirectoryName(DesktopFile))
+                IO.File.WriteAllText(DesktopFile, Content)
+                Logger.Info($"已写入桌面图标项：{DesktopFile}")
+                RefreshKdeServiceCache()
+            End If
+        Catch ex As Exception
+            Logger.Warn(ex, "写入桌面图标项失败")
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' KDE 的服务数据库不会立即感知新写入的桌面项，后台重建一次缓存，让任务栏马上使用新图标。
+    ''' </summary>
+    Private Sub RefreshKdeServiceCache()
+        If TypeOf Application.Current?.ApplicationLifetime IsNot Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime Then Return
+        If Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")?.Contains("KDE", StringComparison.OrdinalIgnoreCase) <> True Then Return
+        Try
+            Dim FileName = If(IO.File.Exists("/usr/bin/kbuildsycoca6"), "/usr/bin/kbuildsycoca6",
+                If(IO.File.Exists("/usr/bin/kbuildsycoca5"), "/usr/bin/kbuildsycoca5", Nothing))
+            If FileName Is Nothing Then Return
+            Process.Start(New ProcessStartInfo(FileName) With {
+                .Arguments = "--noincremental",
+                .UseShellExecute = False,
+                .CreateNoWindow = True
+            })
+        Catch ex As Exception
+            Logger.Warn(ex, "刷新 KDE 桌面项缓存失败")
+        End Try
+    End Sub
+
+    Private Function FindDesktopEntry(FileName As String) As String
+        Dim Folders As New List(Of String) From {DataHome}
+        Dim DataDirs = Environment.GetEnvironmentVariable("XDG_DATA_DIRS")
+        If String.IsNullOrWhiteSpace(DataDirs) Then DataDirs = "/usr/local/share:/usr/share"
+        Folders.AddRange(DataDirs.Split(":"c, StringSplitOptions.RemoveEmptyEntries))
+        For Each Folder In Folders
+            Dim Candidate = IO.Path.Combine(Folder, "applications", FileName)
+            If IO.File.Exists(Candidate) Then Return Candidate
+        Next
+        Return Nothing
+    End Function
+
+    Private ReadOnly Property DataHome As String
+        Get
+            Dim Folder = Environment.GetEnvironmentVariable("XDG_DATA_HOME")
+            If String.IsNullOrWhiteSpace(Folder) Then Folder = IO.Path.Combine(UserProfile, ".local", "share")
+            Return Folder
+        End Get
+    End Property
 
 #End Region
 
