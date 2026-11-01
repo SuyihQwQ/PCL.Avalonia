@@ -342,3 +342,9 @@ ASALocalRun/
 healthchecksdb
 
 MaskFiles/
+
+# Reference source material
+reference/
+
+# Packaged build output
+dist/
