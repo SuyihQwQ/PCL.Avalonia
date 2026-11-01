@@ -128,6 +128,8 @@ Public Class MyIconButton
         }, "MyIconButton Scale " & Uuid)
         If WasDown AndAlso IsEnabled Then
             Logger.Info($"按下图标按钮{If(String.IsNullOrEmpty(Name), "", "：" & Name)}")
+            '提前释放隐式指针捕获，避免 Click 中打开的模态弹窗被本控件持续捕获指针
+            e.Pointer.Capture(Nothing)
             RaiseEvent Click(Me, EventArgs.Empty)
             RaiseCustomEvent()
             e.Handled = True
@@ -159,7 +161,7 @@ Public Class MyIconButton
                 If IsEnabled Then
                     Select Case Theme
                         Case Themes.Color : Path.SetResourceReference(Avalonia.Controls.Shapes.Shape.FillProperty, "ColorBrush4")
-                        Case Themes.White : Path.SetResourceReference(Avalonia.Controls.Shapes.Shape.FillProperty, "ColorBrush8")
+                        Case Themes.White : Path.SetResourceReference(Avalonia.Controls.Shapes.Shape.FillProperty, "ColorBrushWhite")
                         Case Themes.Red : Path.Fill = CType(New MyColor(160, 255, 76, 76), Brush)
                         Case Themes.Black : Path.Fill = CType(New MyColor(160, 0, 0, 0), Brush)
                         Case Themes.Custom : Path.Fill = CType(New MyColor(160, Foreground), Brush)
@@ -193,7 +195,7 @@ Public Class MyIconButton
                         AnimList.Add(AaColor(Path, Avalonia.Controls.Shapes.Shape.FillProperty, "ColorBrush4", AnimationColorOut))
                         PanBack.Background = CType(New MyColor(0, 255, 255, 255), Brush)
                     Case Themes.White
-                        AnimList.Add(AaColor(Path, Avalonia.Controls.Shapes.Shape.FillProperty, "ColorBrush8", AnimationColorOut))
+                        AnimList.Add(AaColor(Path, Avalonia.Controls.Shapes.Shape.FillProperty, "ColorBrushWhite", AnimationColorOut))
                         AnimList.Add(AaColor(PanBack, BackgroundProperty, New MyColor(0, 255, 255, 255) - New MyColor(PanBack.Background), AnimationColorOut))
                     Case Themes.Red
                         AnimList.Add(AaColor(Path, Avalonia.Controls.Shapes.Shape.FillProperty, New MyColor(160, 255, 76, 76) - New MyColor(Path.Fill), AnimationColorOut))

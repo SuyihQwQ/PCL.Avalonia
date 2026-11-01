@@ -57,24 +57,33 @@ Public Class MyScrollBar
     Private Sub RefreshColor()
         Try
             Dim NewOpacity As Double
+            Dim NewColor As String
             Dim Time As Integer
             If Not IsVisible Then
                 NewOpacity = 0
-                Time = 20
+                NewColor = "ColorBrush4"
+                Time = 20 '防止错误的尺寸判断导致闪烁
             ElseIf IsCaptured Then
                 NewOpacity = 1
+                NewColor = "ColorBrush4"
                 Time = 50
             ElseIf IsPointerOver Then
                 NewOpacity = 0.9
+                NewColor = "ColorBrush3"
                 Time = 130
             Else
                 NewOpacity = 0.5
+                NewColor = "ColorBrush4"
                 Time = 180
             End If
             If IsControlLoaded AndAlso AniControlEnabled = 0 Then
-                AniStart(AaOpacity(Me, NewOpacity - Opacity, Time), "MyScrollBar Color " & Uuid)
+                AniStart({
+                    AaColor(Me, ForegroundProperty, NewColor, Time),
+                    AaOpacity(Me, NewOpacity - Opacity, Time)
+                }, "MyScrollBar Color " & Uuid)
             Else
                 AniStop("MyScrollBar Color " & Uuid)
+                SetResourceReference(ForegroundProperty, NewColor)
                 Opacity = NewOpacity
             End If
         Catch ex As Exception

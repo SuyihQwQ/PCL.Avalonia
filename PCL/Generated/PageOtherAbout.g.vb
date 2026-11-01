@@ -17,11 +17,6 @@ Namespace Global.PCL
         Friend WithEvents PanBack As PCL.MyScrollViewer
         Friend WithEvents PanMain As Avalonia.Controls.StackPanel
         Friend WithEvents ItemAboutPcl As PCL.MyListItem
-        Friend WithEvents BtnAboutUpdate As PCL.MyButton
-        Friend WithEvents BtnDonateOutput As PCL.MyButton
-        Friend WithEvents BtnDonateDonate As PCL.MyButton
-        Friend WithEvents BtnDonateCopy As PCL.MyButton
-        Friend WithEvents BtnDonateInput As PCL.MyButton
 
         Private Sub InitControls()
             AvaloniaXamlLoader.Load(Me)
@@ -31,16 +26,6 @@ Namespace Global.PCL
             If PanMain Is Nothing Then Throw New InvalidOperationException("找不到控件：PanMain")
             ItemAboutPcl = FindControl(Of PCL.MyListItem)("ItemAboutPcl")
             If ItemAboutPcl Is Nothing Then Throw New InvalidOperationException("找不到控件：ItemAboutPcl")
-            BtnAboutUpdate = FindControl(Of PCL.MyButton)("BtnAboutUpdate")
-            If BtnAboutUpdate Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnAboutUpdate")
-            BtnDonateOutput = FindControl(Of PCL.MyButton)("BtnDonateOutput")
-            If BtnDonateOutput Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnDonateOutput")
-            BtnDonateDonate = FindControl(Of PCL.MyButton)("BtnDonateDonate")
-            If BtnDonateDonate Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnDonateDonate")
-            BtnDonateCopy = FindControl(Of PCL.MyButton)("BtnDonateCopy")
-            If BtnDonateCopy Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnDonateCopy")
-            BtnDonateInput = FindControl(Of PCL.MyButton)("BtnDonateInput")
-            If BtnDonateInput Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnDonateInput")
         End Sub
 
     End Class

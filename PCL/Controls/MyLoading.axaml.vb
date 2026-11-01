@@ -282,7 +282,7 @@ Public Class MyLoading
                 IsLooping = False
                 AniLoop()
             End Sub, , True)
-        }, "MyLoader Loop " & Uuid & "/" & GetUuid())
+        }, "MyLoader Loop " & Uuid)
     End Sub
 
     ''' <summary>
@@ -290,9 +290,24 @@ Public Class MyLoading
     ''' </summary>
     Private ErrorAnimationWaiting As Boolean = False
 
+    ''' <summary>
+    ''' 停止挥动循环，并让镐子回到静止姿态。错误或停止时不应继续播放敲击动画。
+    ''' </summary>
+    Private Sub StopLoop()
+        AniStop("MyLoader Loop " & Uuid)
+        IsLooping = False
+        ErrorAnimationWaiting = False
+        PathLeft.Opacity = 0
+        PathRight.Opacity = 0
+        If Math.Abs(AniAngle(PathPickaxe) - 55) > 0.5 Then
+            AniStart(AaRotateTransform(PathPickaxe, 55 - AniAngle(PathPickaxe), 150, , New AniEaseOutFluent), "MyLoader Loop " & Uuid)
+        End If
+    End Sub
+
     Private Sub ErrorAnimation(sender As Object, isError As Boolean)
         If isError Then
             Dim Wait As Integer = If(ErrorAnimationWaiting, 400, 0)
+            StopLoop()
             AniStart({
                 AaColor(Me, ForegroundProperty, "ColorBrushRedLight", 300),
                 AaOpacity(PathError, 1 - PathError.Opacity, 100, 300 + Wait),
@@ -312,6 +327,8 @@ Public Class MyLoading
 #Region "点击事件"
 
     Private Sub Button_MouseUp(sender As Object, e As PointerReleasedEventArgs)
+        '提前释放隐式指针捕获，避免 Click 中打开的模态弹窗被本控件持续捕获指针
+        e.Pointer.Capture(Nothing)
         RaiseEvent Click(sender, e)
     End Sub
 

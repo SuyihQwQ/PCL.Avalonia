@@ -56,18 +56,6 @@ Public Class PageSetupUI
         IsLoadedOnce = True
 
         SliderLoad()
-
-        PanLauncherHide.IsVisible = BuildType = BuildTypes.Release
-
-        '设置解锁
-        If Not RadioLauncherTheme8.IsEnabled Then
-            ToolTip.SetTip(LabLauncherTheme8Copy, $"累积赞助达到 ¥23.33 后，在爱发电私信发送【土豆 {Identify}】以解锁。" & vbCrLf & "右键打开赞助页面，如果觉得 PCL 做得还不错就支持一下吧 =w=！")
-        End If
-        ToolTip.SetTip(RadioLauncherTheme8, $"累积赞助达到 ¥23.33 后，在爱发电私信发送【土豆 {Identify}】以解锁")
-        If Not RadioLauncherTheme9.IsEnabled Then
-            ToolTip.SetTip(LabLauncherTheme9Copy, "· 反馈一个 Bug，在标记为 [完成] 后回复识别码要求解锁（右键打开反馈页面）" & vbCrLf & "· 提交一个 Pull Request 或主页预设，在标记为 [完成] 后回复识别码要求解锁")
-        End If
-        ToolTip.SetTip(RadioLauncherTheme9, "· 反馈一个 Bug，在标记为 [完成] 后回复识别码要求解锁" & vbCrLf & "· 提交一个 Pull Request 或主页预设，在标记为 [完成] 后回复识别码要求解锁")
     End Sub
 
     Public Sub Refresh()
@@ -373,65 +361,6 @@ Refresh:
 
     '主题
 
-    Private Sub LabLauncherTheme5Unlock_PointerReleased(sender As Object, e As PointerReleasedEventArgs) Handles LabLauncherTheme5Unlock.PointerReleased
-        If e.InitialPressMouseButton <> MouseButton.Left Then Return
-        RadioLauncherTheme5Gray.Opacity -= 0.7
-        RadioLauncherTheme5.Opacity += 0.7
-        AniStart({
-            AaOpacity(RadioLauncherTheme5Gray, 1 - RadioLauncherTheme5Gray.Opacity, 1000 * AniSpeed, 500 * AniSpeed, New AniEaseInFluent),
-            AaOpacity(RadioLauncherTheme5, -1 - RadioLauncherTheme5.Opacity, 1000 * AniSpeed, 500 * AniSpeed, New AniEaseInFluent)
-        }, "ThemeUnlock")
-        If RadioLauncherTheme5Gray.Opacity < 0.02 Then
-            ThemeUnlock(5, UnlockHint:="隐藏主题 玄素黑 已解锁！")
-            AniStop("ThemeUnlock")
-            RadioLauncherTheme5.Checked = True
-        End If
-    End Sub
-
-    Private Sub Theme11_PointerReleased(sender As Object, e As PointerReleasedEventArgs) Handles LabLauncherTheme11Click.PointerReleased, RadioLauncherTheme11.PointerReleased
-        If e.InitialPressMouseButton <> MouseButton.Right AndAlso sender Is RadioLauncherTheme11 Then Return
-        If e.InitialPressMouseButton <> MouseButton.Left AndAlso sender Is LabLauncherTheme11Click Then Return
-        If MyMsgBox(
-            "1. 不爬取或攻击相关服务或网站，不盗取相关账号，没有谜题可以或需要以此来解决。" & vbCrLf &
-            "2. 不得篡改或损毁相关公开信息，请尽量让它们保持原状。" & vbCrLf &
-            "3. 在你感到迷茫的时候，看看回声洞可能会给你带来惊喜。" & vbCrLf & vbCrLf &
-            "若违规，可能会被从任意相关群中踢出！",
-            "解密游戏的基本规则", "我知道了", "恕我拒绝") = 1 Then
-            MyMsgBox("你需要用自己的智慧来找到下一步的线索……" & vbCrLf &
-                     "初始线索：gnp.dorC61\60\20\0202\moc.x1xa.2s\\:sp" & "T".ToLower() & "th", "解密游戏") '防止触发病毒检测规则
-        End If
-    End Sub
-
-    Private Sub LabLauncherTheme8Copy_PointerReleased(sender As Object, e As PointerReleasedEventArgs) Handles LabLauncherTheme8Copy.PointerReleased, RadioLauncherTheme8.PointerReleased
-        If e.InitialPressMouseButton <> MouseButton.Right Then Return
-        OpenWebsite("https://meloong.com/afd/a/LTCat")
-    End Sub
-
-    Private Sub LabLauncherTheme9Copy_PointerReleased(sender As Object, e As PointerReleasedEventArgs) Handles LabLauncherTheme9Copy.PointerReleased, RadioLauncherTheme9.PointerReleased
-        If e.InitialPressMouseButton <> MouseButton.Right Then Return
-        PageOtherLeft.TryFeedback()
-    End Sub
-
-    '主题自定义
-
-    Private Sub RadioLauncherTheme14_Changed(sender As Object, e As RouteEventArgs) Handles RadioLauncherTheme14.Changed
-        Dim ShowCustom As Boolean = RadioLauncherTheme14.Checked
-        LabLauncherHue.IsVisible = ShowCustom
-        SliderLauncherHue.IsVisible = ShowCustom
-        LabLauncherSat.IsVisible = ShowCustom
-        SliderLauncherSat.IsVisible = ShowCustom
-        LabLauncherDelta.IsVisible = ShowCustom
-        SliderLauncherDelta.IsVisible = ShowCustom
-        LabLauncherLight.IsVisible = ShowCustom
-        SliderLauncherLight.IsVisible = ShowCustom
-        CardLauncher.TriggerForceResize()
-    End Sub
-
-    Private Sub HSL_Change(sender As Object, user As Boolean) Handles SliderLauncherHue.Change, SliderLauncherLight.Change, SliderLauncherSat.Change, SliderLauncherDelta.Change
-        If AniControlEnabled <> 0 OrElse SliderLauncherSat Is Nothing OrElse Not SliderLauncherSat.IsLoaded Then Return
-        ThemeRefresh()
-    End Sub
-
 #Region "功能隐藏"
 
     Private Shared _HiddenForceShow As Boolean = False
@@ -485,14 +414,14 @@ Refresh:
             End If
             If OtherAvaliableCount = 1 AndAlso Not HiddenForceShow Then
                 If Not Settings.Get(Of Boolean)("UiHiddenOtherHelp") Then
-                    FrmMain.BtnTitleSelect4.Content = "帮助"
+                    FrmMain.BtnTitleSelect4.Text = "帮助"
                 ElseIf Not Settings.Get(Of Boolean)("UiHiddenOtherAbout") Then
-                    FrmMain.BtnTitleSelect4.Content = "关于"
+                    FrmMain.BtnTitleSelect4.Text = "关于"
                 Else
-                    FrmMain.BtnTitleSelect4.Content = "百宝箱"
+                    FrmMain.BtnTitleSelect4.Text = "百宝箱"
                 End If
             Else
-                FrmMain.BtnTitleSelect4.Content = "更多"
+                FrmMain.BtnTitleSelect4.Text = "更多"
             End If
         Catch ex As Exception
             Logger.Error(ex, "刷新功能隐藏项目失败")
@@ -583,28 +512,6 @@ Refresh:
     Private Sub SliderLoad()
         SliderMusicVolume.GetHintText = Function(v As Integer) Math.Ceiling(v * 0.1) & "%"
         SliderLauncherTransparent.GetHintText = Function(v As Integer) Math.Round(40 + v * 0.1) & "%"
-        SliderLauncherHue.GetHintText = Function(v As Integer) v & "°"
-        SliderLauncherSat.GetHintText = Function(v As Integer) v & "%"
-        SliderLauncherDelta.GetHintText =
-        Function(Value As Integer) As String
-            If Value > 90 Then
-                Return "+" & (Value - 90)
-            ElseIf Value = 90 Then
-                Return "0"
-            Else
-                Return (Value - 90).ToString()
-            End If
-        End Function
-        SliderLauncherLight.GetHintText =
-        Function(Value As Integer) As String
-            If Value > 20 Then
-                Return "+" & (Value - 20)
-            ElseIf Value = 20 Then
-                Return "0"
-            Else
-                Return (Value - 20).ToString()
-            End If
-        End Function
         SliderBackgroundOpacity.GetHintText = Function(v As Integer) Math.Round(v * 0.1) & "%"
         SliderBackgroundBlur.GetHintText = Function(v As Integer) v & " 像素"
     End Sub

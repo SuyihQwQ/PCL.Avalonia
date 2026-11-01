@@ -53,6 +53,7 @@
     <SolidColorBrush x:Key="ColorBrushWhite" Color="#ffffff" />
     <SolidColorBrush x:Key="ColorBrushTransparent" Color="Transparent" />
     <SolidColorBrush x:Key="ColorBrushSemiTransparent" Color="#01eaf2fe" />
+    <SolidColorBrush x:Key="ColorBrushCard" Color="#f5ffffff" />
     <SolidColorBrush x:Key="ColorBrushBackgroundTransparentSidebar" Color="#F1FFFFFF" />
 
 </ResourceDictionary>

@@ -22,6 +22,7 @@ public class WindowShellTests {
     public void Shell_contains_all_named_parts() {
         var window = CreateShownWindow();
         try {
+            Assert.Equal("PCL.Avalonia", window.Title);
             Assert.NotNull(window.FindControl<Grid>("PanBack"));
             Assert.NotNull(window.FindControl<Border>("BorderForm"));
             Assert.NotNull(window.FindControl<Grid>("PanForm"));
@@ -33,13 +34,30 @@ public class WindowShellTests {
             Assert.NotNull(window.FindControl<Button>("BtnTitleClose"));
             Assert.NotNull(window.FindControl<Button>("BtnTitleMin"));
             for (var i = 0; i < 5; i++) {
-                Assert.NotNull(window.FindControl<Button>($"BtnTitleSelect{i}"));
+                Assert.NotNull(window.FindControl<global::PCL.MyRadioButton>($"BtnTitleSelect{i}"));
             }
             foreach (var name in new[] { "ResizerT", "ResizerB", "ResizerL", "ResizerR", "ResizerLT", "ResizerRT", "ResizerLB", "ResizerRB" }) {
                 Assert.NotNull(window.FindControl<Avalonia.Controls.Shapes.Rectangle>(name));
             }
             Assert.IsType<TransformGroup>(window.FindControl<Grid>("PanBack")!.RenderTransform);
         } finally {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Inner_title_text_stays_white_in_dark_theme() {
+        var originalMode = global::PCL.Settings.Get<int>("UiLauncherThemeMode");
+        var window = CreateShownWindow();
+        try {
+            global::PCL.Settings.Set("UiLauncherThemeMode", 2);
+            Dispatcher.UIThread.RunJobs();
+            var lab = window.FindControl<TextBlock>("LabTitleInner")!;
+            var brush = Assert.IsAssignableFrom<ISolidColorBrush>(lab.Foreground);
+            Assert.Equal(Colors.White, brush.Color);
+        } finally {
+            global::PCL.Settings.Set("UiLauncherThemeMode", originalMode);
+            Dispatcher.UIThread.RunJobs();
             window.Close();
         }
     }

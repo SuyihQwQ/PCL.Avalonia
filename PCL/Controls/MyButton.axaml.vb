@@ -28,6 +28,18 @@ Public Class MyButton
         End Set
     End Property
 
+    ''' <summary>
+    ''' 文本的内边距。只会撑宽按钮，不影响按钮内部的其它留白。
+    ''' </summary>
+    Public Property TextPadding As Thickness
+        Get
+            Return LabText.Padding
+        End Get
+        Set(value As Thickness)
+            If LabText IsNot Nothing Then LabText.Padding = value
+        End Set
+    End Property
+
     Public Enum ColorState
         Normal = 0
         Highlight = 1
@@ -74,6 +86,9 @@ Public Class MyButton
         AniStop("MyButton Color " & Uuid)
         AniStop("MyButton Background " & Uuid)
         AniStop("MyButton Scale " & Uuid)
+        '动画被打断时可能停留在按下缩放状态，离开可视树时复位
+        IsMouseDown = False
+        PanFore.RenderTransform = Nothing
     End Sub
 
     Protected Overrides Sub OnPropertyChanged(change As AvaloniaPropertyChangedEventArgs)
@@ -144,6 +159,8 @@ Public Class MyButton
         AniStart(AaScaleTransform(PanFore, 1 - AniScaleX(PanFore), 300, 10, New AniEaseOutFluent(AniEasePower.Middle)), "MyButton Scale " & Uuid)
         If Not IsEnabled Then Return
         Logger.Info($"按下按钮：{Text}")
+        'Avalonia 默认在事件处理结束后才释放隐式指针捕获；提前释放，避免 Click 中打开的模态弹窗被本按钮持续捕获指针
+        e.Pointer.Capture(Nothing)
         RaiseEvent Click(Me, e)
         RaiseCustomEvent()
         e.Handled = True
@@ -163,6 +180,14 @@ Public Class MyButton
             IsMouseDown = False
             AniStart(AaScaleTransform(PanFore, 1 - AniScaleX(PanFore), 800, , New AniEaseOutFluent(AniEasePower.Strong)), "MyButton Scale " & Uuid)
         End If
+    End Sub
+
+    Protected Overrides Sub OnPointerCaptureLost(e As PointerCaptureLostEventArgs)
+        MyBase.OnPointerCaptureLost(e)
+        '指针捕获被系统或弹窗夺走时不会收到 PointerReleased，需在这里恢复按下的缩放
+        If Not IsMouseDown Then Return
+        IsMouseDown = False
+        AniStart(AaScaleTransform(PanFore, 1 - AniScaleX(PanFore), 800, , New AniEaseOutFluent(AniEasePower.Strong)), "MyButton Scale " & Uuid)
     End Sub
 
 End Class

@@ -1,120 +1,103 @@
-Imports Avalonia.Layout
+Imports Avalonia.Controls.Primitives
 Imports Newtonsoft.Json.Linq
 
 ''' <summary>
-''' 微软账户设备代码登录弹窗。与原版 MyMsgLogin.xaml 的行为一致，但以独立窗口形式显示。
+''' 微软账户设备代码登录弹窗，显示在 FormMain.PanMsg 内。
 ''' </summary>
 Public Class MyMsgLogin
-    Inherits Window
+    Inherits MyMsgBoxBase
 
     Private ReadOnly Data As JObject
     Private ReadOnly UserCode As String
     Private ReadOnly DeviceCode As String
     Private ReadOnly Website As String
-
-    Private ReadOnly MyConverter As MyMsgBoxConverter
-    Private ReadOnly LabCaption As TextBlock
     Private IsLoginStarted As Boolean = False
 
     Public Sub New(Converter As MyMsgBoxConverter)
-        MyConverter = Converter
+        MyBase.New(Converter)
         Data = CType(Converter.Content, JObject)
         UserCode = Data("user_code").ToString()
         DeviceCode = Data("device_code").ToString()
         Website = Data("verification_uri").ToString()
 
-        Title = "登录 Minecraft"
-        Width = 460
-        SizeToContent = SizeToContent.Height
-        CanResize = False
-        ShowInTaskbar = False
-        WindowStartupLocation = WindowStartupLocation.CenterOwner
-        Background = New SolidColorBrush(Color.Parse("#F7F9FC"))
+        LabTitle.Text = "登录 Minecraft"
+        Btn1.Text = "重新打开网页"
+        Btn1.IsVisible = True
+        Btn2.Text = "复制代码"
+        Btn2.IsVisible = True
+        Btn3.Text = "取消"
+        Btn3.IsVisible = True
 
-        Dim TitleText As New TextBlock With {
-            .Text = "登录 Minecraft",
-            .FontSize = 17,
-            .FontWeight = FontWeight.SemiBold,
-            .Foreground = New SolidColorBrush(Color.Parse("#343D4A"))
-        }
-        LabCaption = New TextBlock With {
-            .FontSize = 13,
+        Dim PanCaption As New MyScrollViewer With {
+            .Margin = New Thickness(0, 0, 0, 17),
+            .Padding = New Thickness(7, 0, 15, 0),
+            .HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            .VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            .DeltaMult = 0.7,
+            .VerticalAlignment = VerticalAlignment.Top}
+        Dim Caption As New TextBlock With {
+            .FontSize = 15,
+            .LineHeight = 18,
             .TextWrapping = TextWrapping.Wrap,
-            .Foreground = New SolidColorBrush(Color.Parse("#5C5C5C")),
+            .TextTrimming = TextTrimming.None,
+            .Padding = New Thickness(1),
+            .VerticalAlignment = VerticalAlignment.Top,
             .Text =
                 $"登录网页将自动开启，请在网页中输入 {UserCode}（已自动复制）。" & vbCrLf & vbCrLf &
                 $"如果网络环境不佳，网页可能一直加载不出来，届时请使用加速器或 VPN 改善网络环境。" & vbCrLf &
-                $"你也可以用其他设备打开 {Website} 并输入上述代码。"
-        }
-        Dim ButtonPanel As New StackPanel With {
-            .Orientation = Orientation.Horizontal,
-            .HorizontalAlignment = HorizontalAlignment.Right,
-            .Spacing = 10
-        }
-        ButtonPanel.Children.Add(CreateButton("重新打开网页", Sub() OpenWebsite(Website)))
-        ButtonPanel.Children.Add(CreateButton("复制代码", Sub() ClipboardSet(UserCode)))
-        ButtonPanel.Children.Add(CreateButton("取消", Sub() Finished(New OperationCanceledException)))
-
-        Dim Stack As New StackPanel With {.Spacing = 18}
-        Stack.Children.Add(TitleText)
-        Stack.Children.Add(LabCaption)
-        Stack.Children.Add(ButtonPanel)
-        Content = New Border With {
-            .Padding = New Thickness(26, 22, 26, 22),
-            .Child = Stack
-        }
-
-        AddHandler Closed, AddressOf OnDialogClosed
+                $"你也可以用其他设备打开 {Website} 并输入上述代码。"}
+        Caption.SetResourceReference(TextBlock.ForegroundProperty, "ColorBrushGray2")
+        PanCaption.Content = Caption
+        Grid.SetRow(PanCaption, 3)
+        PanMain.Children.Add(PanCaption)
     End Sub
 
-    Private Shared Function CreateButton(Text As String, Handler As Action) As Button
-        Dim Button As New Button With {
-            .Content = Text,
-            .MinWidth = 88,
-            .Padding = New Thickness(16, 6, 16, 6),
-            .HorizontalContentAlignment = HorizontalAlignment.Center
-        }
-        AddHandler Button.Click, Sub(sender, e) Handler()
-        Return Button
-    End Function
+    Protected Overrides Sub RefreshHighlight()
+        '登录弹窗的三个按钮都保持普通样式
+    End Sub
 
     ''' <summary>
-    ''' 在窗口显示后启动登录工作线程。
+    ''' 弹窗显示后启动登录工作线程。
     ''' </summary>
     Public Sub StartLogin()
         If IsLoginStarted Then Return
         IsLoginStarted = True
-        Logger.Info($"登录弹窗：登录 Minecraft{vbCrLf}{LabCaption.Text}")
+        Logger.Info($"登录弹窗：登录 Minecraft{vbCrLf}{Website}")
         RunInNewThread(AddressOf WorkThread, "MyMsgLogin")
     End Sub
 
+    Public Overrides Sub Btn1_Click()
+        If Converter.IsExited Then Return
+        OpenWebsite(Website)
+    End Sub
+
+    Public Overrides Sub Btn2_Click()
+        If Converter.IsExited Then Return
+        ClipboardSet(UserCode)
+    End Sub
+
+    Public Overrides Sub Btn3_Click()
+        Finished(New OperationCanceledException)
+    End Sub
+
     Private Sub Finished(Result As Object)
-        If MyConverter.IsExited Then Return
-        MyConverter.IsExited = True
-        MyConverter.Result = Result
+        If Converter.IsExited Then Return
+        Converter.IsExited = True
+        Converter.Result = Result
         RunInUi(AddressOf Close)
         Thread.Sleep(200)
         FrmMain?.ShowWindowToTop()
     End Sub
 
-    Private Sub OnDialogClosed(sender As Object, e As EventArgs)
-        If Not MyConverter.IsExited Then
-            MyConverter.IsExited = True
-            MyConverter.Result = New OperationCanceledException
-        End If
-        If ActiveMsgBoxWindow Is Me Then ActiveMsgBoxWindow = Nothing
-        MyMsgBoxTick()
-    End Sub
-
     Private Sub WorkThread()
         Thread.Sleep(2000)
-        If MyConverter.IsExited Then Return
+        If Converter.IsExited Then Return
         OpenWebsite(Website)
         ClipboardSet(UserCode)
         Thread.Sleep((Data("interval").ToObject(Of Integer)() - 1) * 1000)
         '轮询
         Dim UnknownFailureCount As Integer = 0
-        Do While Not MyConverter.IsExited
+        Do While Not Converter.IsExited
             Try
                 Dim Result = NetRequestByClient(
                     "https://login.microsoftonline.com/consumers/oauth2/v2.0/token", HttpMethod.Post,

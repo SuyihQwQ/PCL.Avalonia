@@ -3,6 +3,7 @@
 ''' </summary>
 Public Class PageLoginAuthSkin
     Inherits Grid
+    Implements ILoginPage
 
     Public Sub New()
         InitControls()
@@ -16,7 +17,7 @@ Public Class PageLoginAuthSkin
     ''' <summary>
     ''' 刷新页面显示的所有信息。
     ''' </summary>
-    Public Sub Reload(KeepInput As Boolean)
+    Public Sub Reload(KeepInput As Boolean) Implements ILoginPage.Reload
         TextName.Text = Settings.Get(Of String)("CacheAuthName")
         TextEmail.Text = Settings.Get(Of String)("CacheAuthUsername")
         TextEmail.IsVisible = Not Settings.Get(Of Boolean)("UiLauncherEmail")

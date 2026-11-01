@@ -1,5 +1,6 @@
 Imports Avalonia.Markup.Xaml
 Imports Avalonia.Platform
+Imports System.Text.RegularExpressions
 
 ''' <summary>
 ''' 帮助系统：帮助条目的加载、内置帮助的解压与帮助 XAML 的运行时加载。
@@ -350,8 +351,13 @@ Public Module ModHelp
         Do While Content.Contains("xmlns")
             Content = Content.RegexReplace("xmlns[^""']*(""|')[^""']*(""|')", "").Replace("xmlns", "")
         Loop
+        '设计时属性与代码后置
+        Content = Content.RegexReplace("\s(x:Class|d:[A-Za-z]+|mc:[A-Za-z]+)\s*=\s*[""'][^""']*[""']", "")
         '不支持的属性
-        Content = Content.RegexReplace("\s(SnapsToDevicePixels|UseLayoutRounding)\s*=\s*[""'][^""']*[""']", "")
+        Content = Content.RegexReplace("\s(SnapsToDevicePixels|UseLayoutRounding|ShowGridLines|CacheMode|BitmapEffect|BitmapEffectInput|Effect|LineStackingStrategy|TextOptions\.[A-Za-z]+|RenderOptions\.[A-Za-z]+)\s*=\s*[""'][^""']*[""']", "")
+        'WPF 的 Effect（阴影、模糊等）无法直接映射，连同属性元素一起去掉
+        Content = Content.RegexReplace("<\s*([A-Za-z]+:)?[A-Za-z]+\.Effect\s*>.*?<\s*/\s*([A-Za-z]+:)?[A-Za-z]+\.Effect\s*>", "", RegexOptions.Singleline)
+        Content = Content.RegexReplace("<\s*DropShadowEffect\b[^>]*/\s*>", "")
         'ToolTip 属性改为附加属性
         Content = Content.RegexReplace("(?<![.\w])ToolTip(\s*)=", "ToolTip.Tip$1=")
         '图片路径
@@ -360,7 +366,199 @@ Public Module ModHelp
         '可见性
         Content = Content.Replace("Visibility=""Collapsed""", "IsVisible=""False""")
         Content = Content.Replace("Visibility=""Visible""", "IsVisible=""True""")
+        'WPF 样式、文档与模板等结构转换
+        Content = ConvertWpfStyleMarkup(Content)
         Return Content
+    End Function
+
+    Private Const WpfXamlNs As String = "http://schemas.microsoft.com/winfx/2006/xaml"
+
+    ''' <summary>
+    ''' 将 WPF 特有的 Style、ControlTemplate、FlowDocument 等结构转换为 Avalonia 可加载的写法。
+    ''' 复杂样式会被展开为元素属性，无法映射的属性会被忽略。
+    ''' </summary>
+    Private Function ConvertWpfStyleMarkup(Content As String) As String
+        Try
+            Dim Doc = XDocument.Parse("<root xmlns:x=""http://schemas.microsoft.com/winfx/2006/xaml"" xmlns:local=""using:PCL"" xmlns:sys=""using:System"">" & Content & "</root>")
+            Dim Root = Doc.Root
+            '收集样式定义
+            Dim KeyedStyles As New Dictionary(Of String, List(Of KeyValuePair(Of String, String)))
+            Dim ImplicitStyles As New List(Of Tuple(Of String, List(Of KeyValuePair(Of String, String))))
+            For Each StyleEl In Root.Descendants().Where(Function(e) e.Name.LocalName = "Style").ToList()
+                Dim TargetType As String = If(CStr(StyleEl.Attribute("TargetType")), "")
+                Dim Key As String = CStr(StyleEl.Attribute(XName.Get("Key", WpfXamlNs)))
+                Dim Setters As New List(Of KeyValuePair(Of String, String))
+                For Each SetterEl In StyleEl.Elements().Where(Function(e) e.Name.LocalName = "Setter")
+                    Dim Prop As String = CStr(SetterEl.Attribute("Property"))
+                    Dim Val As String = CStr(SetterEl.Attribute("Value"))
+                    If String.IsNullOrEmpty(Prop) OrElse Val Is Nothing Then Continue For
+                    Dim Mapped As String = MapWpfStyleProperty(Prop)
+                    If Mapped Is Nothing Then Continue For
+                    Setters.Add(New KeyValuePair(Of String, String)(Mapped, Val))
+                Next
+                If String.IsNullOrEmpty(Key) Then
+                    ImplicitStyles.Add(Tuple.Create(TargetType, Setters))
+                Else
+                    KeyedStyles(Key) = Setters
+                End If
+                StyleEl.Remove()
+            Next
+            '移除模板与触发器
+            For Each El In Root.Descendants().Where(Function(e) e.Name.LocalName.EndsWith(".Triggers") OrElse e.Name.LocalName = "ControlTemplate").ToList()
+                El.Remove()
+            Next
+            '元素类型映射
+            For Each El In Root.Descendants().ToList()
+                Select Case El.Name.LocalName
+                    Case "FlowDocumentScrollViewer"
+                        El.Name = XName.Get("ScrollViewer")
+                    Case "FlowDocument"
+                        El.Name = XName.Get("StackPanel")
+                    Case "Paragraph"
+                        El.Name = XName.Get("TextBlock")
+                    Case "ContentControl"
+                        If El.Attribute("Template") IsNot Nothing Then
+                            Dim RawText As String = If(CStr(El.Attribute("Content")), "")
+                            For Each Attr In El.Attributes().Where(Function(a) a.Name.LocalName = "Content" OrElse a.Name.LocalName = "Template").ToList()
+                                Attr.Remove()
+                            Next
+                            El.Name = XName.Get("TextBlock")
+                            El.SetAttributeValue("Text", RawText)
+                            El.SetAttributeValue("HorizontalAlignment", "Center")
+                            El.SetAttributeValue("VerticalAlignment", "Center")
+                            El.SetAttributeValue("FontSize", "15")
+                            El.SetAttributeValue("Margin", "0,10")
+                            If El.Attribute("Foreground") Is Nothing Then El.SetAttributeValue("Foreground", "{DynamicResource ColorBrush4}")
+                        End If
+                    Case "Line"
+                        Dim AttrX1 = El.Attribute("X1"), AttrY1 = El.Attribute("Y1"), AttrX2 = El.Attribute("X2"), AttrY2 = El.Attribute("Y2")
+                        If AttrX1 IsNot Nothing AndAlso AttrX2 IsNot Nothing Then
+                            El.SetAttributeValue("StartPoint", If(CStr(AttrX1), "0") & "," & If(CStr(AttrY1), "0"))
+                            El.SetAttributeValue("EndPoint", CStr(AttrX2) & "," & If(CStr(AttrY2), "0"))
+                            For Each Attr In {AttrX1, AttrY1, AttrX2, AttrY2}.Where(Function(a) a IsNot Nothing).ToList()
+                                Attr.Remove()
+                            Next
+                        End If
+                End Select
+            Next
+            '文本块内的自定义按钮无法作为内联元素，退化为纯文本
+            For Each El In Root.Descendants().Where(Function(e) e.Name.LocalName = "MyTextButton" AndAlso e.Name.NamespaceName = "using:PCL").ToList()
+                If El.Ancestors().Any(Function(a) a.Name.LocalName = "TextBlock") Then
+                    El.ReplaceWith(New XElement(XName.Get("Run"), El.Value))
+                End If
+            Next
+            '展开显式引用的样式
+            For Each El In Root.Descendants().ToList()
+                Dim StyleAttr = El.Attribute("Style")
+                If StyleAttr Is Nothing Then Continue For
+                Dim Ref As String = StyleAttr.Value.Trim()
+                If Ref.StartsWith("{StaticResource ") AndAlso Ref.EndsWith("}") Then
+                    Dim Key As String = Ref.Substring(16).TrimEnd("}"c).Trim()
+                    Dim Setters As List(Of KeyValuePair(Of String, String)) = Nothing
+                    If KeyedStyles.TryGetValue(Key, Setters) Then
+                        For Each Setter In Setters
+                            If El.Attribute(Setter.Key) Is Nothing AndAlso IsWpfStylePropertySupported(El.Name.LocalName, Setter.Key) Then
+                                El.SetAttributeValue(Setter.Key, Setter.Value)
+                            End If
+                        Next
+                    End If
+                End If
+                StyleAttr.Remove()
+            Next
+            '移除不可用属性
+            For Each El In Root.Descendants().ToList()
+                For Each Attr In El.Attributes().ToList()
+                    Select Case Attr.Name.LocalName
+                        Case "TextIndent", "IsSelectionEnabled", "MarkerStyle", "PagePadding", "SnapsToDevicePixels", "UseLayoutRounding", "ShowGridLines", "CacheMode", "BitmapEffect", "BitmapEffectInput", "FontStretch", "ContentStringFormat"
+                            Attr.Remove()
+                        Case Else
+                            If Attr.Name.LocalName.StartsWith("TextOptions.") OrElse Attr.Name.LocalName.StartsWith("RenderOptions.") Then Attr.Remove()
+                    End Select
+                Next
+            Next
+            '隐式样式改为作用域样式
+            Dim StyleXml As New Text.StringBuilder
+            For Each Entry In ImplicitStyles
+                Dim Selector As String = MapWpfImplicitSelector(Entry.Item1)
+                If Selector Is Nothing Then Continue For
+                Dim SettersXml As New Text.StringBuilder
+                For Each Setter In Entry.Item2
+                    If IsWpfStylePropertySupported(Selector, Setter.Key) Then
+                        SettersXml.Append("<Setter Property=""").Append(Setter.Key).Append(""" Value=""").Append(Setter.Value.Replace("&", "&amp;").Replace("""", "&quot;")).Append("""/>")
+                    End If
+                Next
+                If SettersXml.Length > 0 Then
+                    StyleXml.Append("<Style Selector=""").Append(Selector).Append(""">").Append(SettersXml).Append("</Style>")
+                End If
+            Next
+            Dim Result As New Text.StringBuilder
+            If StyleXml.Length > 0 Then Result.Append("<StackPanel.Styles>").Append(StyleXml).Append("</StackPanel.Styles>")
+            For Each Node In Root.Nodes()
+                Result.Append(Node.ToString(SaveOptions.DisableFormatting))
+            Next
+            '命名空间由外层包装统一声明，XamlX 不允许在子元素上重复声明
+            Return Result.ToString().RegexReplace("\sxmlns(:[A-Za-z0-9]+)?\s*=\s*[""'][^""']*[""']", "")
+        Catch ex As Exception
+            Logger.Warn(ex, "转换 WPF 样式失败")
+            Return Content
+        End Try
+    End Function
+
+    ''' <summary>
+    ''' 将 WPF 样式属性转换为 Avalonia 属性名，不支持时返回 Nothing。
+    ''' </summary>
+    Private Function MapWpfStyleProperty(Prop As String) As String
+        Select Case Prop
+            Case "ToolTip"
+                Return "ToolTip.Tip"
+            Case "Template", "MarkerStyle", "TextIndent", "IsSelectionEnabled", "PagePadding", "FontStretch", "ContentStringFormat", "Blocks"
+                Return Nothing
+            Case Else
+                If Prop.StartsWith("TextOptions.") OrElse Prop.StartsWith("RenderOptions.") Then Return Nothing
+                Return Prop
+        End Select
+    End Function
+
+    Private Function MapWpfImplicitSelector(TargetType As String) As String
+        Select Case TargetType
+            Case "TextBlock", "Paragraph"
+                Return "TextBlock"
+            Case "FlowDocument"
+                Return "StackPanel"
+            Case "FlowDocumentScrollViewer"
+                Return "ScrollViewer"
+            Case Else
+                Return Nothing
+        End Select
+    End Function
+
+    ''' <summary>
+    ''' 判断样式属性是否可以安全地应用到对应元素上。
+    ''' </summary>
+    Private Function IsWpfStylePropertySupported(ElementType As String, Prop As String) As Boolean
+        Dim TypeName As String = ElementType
+        Dim ColonIndex As Integer = TypeName.LastIndexOf(":"c)
+        If ColonIndex >= 0 Then TypeName = TypeName.Substring(ColonIndex + 1)
+        Select Case Prop
+            Case "Margin", "Width", "Height", "MinWidth", "MinHeight", "MaxWidth", "MaxHeight", "HorizontalAlignment", "VerticalAlignment", "Opacity", "IsVisible", "IsEnabled", "ToolTip.Tip", "EventType", "EventData", "LogoScale", "Logo", "IsReadOnly"
+                Return True
+            Case "Padding"
+                Return TypeName = "Border" OrElse TypeName = "TextBox" OrElse TypeName = "TextBlock" OrElse TypeName = "ScrollViewer" OrElse TypeName = "MyCard"
+            Case "Background"
+                Return TypeName = "StackPanel" OrElse TypeName = "Border" OrElse TypeName = "Grid" OrElse TypeName = "TextBox" OrElse TypeName = "ScrollViewer" OrElse TypeName = "MyCard" OrElse TypeName = "WrapPanel" OrElse TypeName = "ContentControl"
+            Case "BorderThickness", "BorderBrush", "CornerRadius"
+                Return TypeName = "Border" OrElse TypeName = "TextBox" OrElse TypeName = "MyCard"
+            Case "FontSize", "FontWeight", "FontStyle", "FontFamily", "Foreground", "TextWrapping", "TextAlignment", "LineHeight", "Text", "TextTrimming"
+                Return TypeName = "TextBlock" OrElse TypeName = "MyIconTextButton" OrElse TypeName = "MyTextButton" OrElse TypeName = "MyListItem" OrElse TypeName = "ContentControl"
+            Case "Stretch"
+                Return TypeName = "MyImage" OrElse TypeName = "Image"
+            Case "VerticalScrollBarVisibility", "HorizontalScrollBarVisibility"
+                Return TypeName = "ScrollViewer" OrElse TypeName = "FlowDocumentScrollViewer"
+            Case "HorizontalContentAlignment", "VerticalContentAlignment"
+                Return True
+            Case Else
+                Return False
+        End Select
     End Function
 
     ''' <summary>
@@ -371,7 +569,7 @@ Public Module ModHelp
         Content = ArgumentReplace(Content, AddressOf StringUtils.XmlEscape)
         Content = ConvertLegacyXaml(Content)
         '外面套一层 StackPanel
-        Content = "<StackPanel xmlns=""https://github.com/avaloniaui"" xmlns:x=""http://schemas.microsoft.com/winfx/2006/xaml"" xmlns:local=""using:PCL"">" & Content & "</StackPanel>"
+        Content = "<StackPanel xmlns=""https://github.com/avaloniaui"" xmlns:x=""http://schemas.microsoft.com/winfx/2006/xaml"" xmlns:local=""using:PCL"" xmlns:sys=""using:System"">" & Content & "</StackPanel>"
         Return CType(GetObjectFromXML(Content), Control)
     End Function
 

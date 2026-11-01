@@ -576,6 +576,10 @@ Public Module ModBase
         If OperatingSystem.IsWindows() Then
             StartInfo.FileName = PathUtils.ToShortPath(StartInfo.FileName)
             If Not String.IsNullOrEmpty(StartInfo.WorkingDirectory) Then StartInfo.WorkingDirectory = PathUtils.ToShortPath(StartInfo.WorkingDirectory)
+        Else
+            'PCL 的内部路径按 Windows 习惯使用 \，非 Windows 平台创建进程时不会被当作分隔符
+            StartInfo.FileName = PathUtils.ForApi(StartInfo.FileName)
+            If Not String.IsNullOrEmpty(StartInfo.WorkingDirectory) Then StartInfo.WorkingDirectory = PathUtils.ForApi(StartInfo.WorkingDirectory)
         End If
         Logger.Info($"启动进程：{StartInfo.FileName} {StartInfo.Arguments}")
         Return Process.Start(StartInfo)
@@ -701,6 +705,7 @@ Public Module ModBase
                     StartProcess("explorer", $"/select,""{Location}""")
                 End If
             Else
+                Location = Location.Replace("\"c, "/"c)
                 Dim Target As String = If(Directory.Exists(Location), Location, Path.GetDirectoryName(Location))
                 Process.Start(New ProcessStartInfo(Target) With {.UseShellExecute = True})
             End If
@@ -835,7 +840,12 @@ Public Module ModBase
     ''' 将简写的 ini 文件名转换为完整路径。
     ''' </summary>
     Private Function IniResolvePath(FileName As String) As String
-        If Path.IsPathRooted(FileName) Then Return FileName
+        If Path.IsPathRooted(FileName) Then
+            '非 Windows 下 '\' 不是分隔符，需先统一，否则同一文件会因写法不同产生两份缓存，
+            '导致版本设置被 McInstance 写入的元数据覆盖
+            If Not OperatingSystem.IsWindows() Then Return FileName.Replace("\"c, "/"c)
+            Return FileName
+        End If
         Return Path.Combine(PathData, FileName & ".ini")
     End Function
 
@@ -1004,14 +1014,19 @@ Public Module ModBase
     ''' </summary>
     Public PathPure As New Lazy(Of String)(
     Function()
-        If Paths.Base.IsAsciiOnly() Then
+        '非 Windows 下程序目录里的可执行文件本身就叫 PCL，不能把 Paths.Base\PCL 当作文件夹使用
+        If OperatingSystem.IsWindows() AndAlso Paths.Base.IsAsciiOnly() Then
             Return PathUtils.AddSlashSuffix(Path.Combine(Paths.Base, "PCL"))
+        ElseIf PathData.IsAsciiOnly() Then
+            Return PathData
         ElseIf Paths.AppDataThenName.IsAsciiOnly() Then
             Return Paths.AppDataThenName
         ElseIf PathTemp.IsAsciiOnly() Then
             Return PathTemp
-        Else
+        ElseIf OperatingSystem.IsWindows() Then
             Return PathUtils.AddSlashSuffix(Path.Combine(OsDrive, "ProgramData", "PCL"))
+        Else
+            Return PathTemp
         End If
     End Function)
 

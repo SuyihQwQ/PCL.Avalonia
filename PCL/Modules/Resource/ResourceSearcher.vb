@@ -172,6 +172,14 @@ Public Class ResourceSearcher
     Private Shared Sub Run(Task As LoaderTask(Of SearchRequest, Integer))
         Dim Request As SearchRequest = Task.Input
         Dim Storage = Request.Storage '避免其他线程对 Request.Storage 重新进行了赋值
+        'CurseForge 资源暂未开放（需要自行申请 API 权限），统一只使用 Modrinth
+        If Not CurseForgeEnabled AndAlso Request.Sources.HasFlagF(ResourcePlatforms.CurseForge) Then
+            If Request.Sources = ResourcePlatforms.CurseForge Then
+                Request.Sources = ResourcePlatforms.Modrinth
+            Else
+                Request.Sources = Request.Sources And Not ResourcePlatforms.CurseForge
+            End If
+        End If
 
 #Region "前置检查"
 
@@ -446,8 +454,10 @@ NextPage:
                 '有结果但是有错误
                 If Errors.Any(Function(e) e.Source = ResourcePlatforms.CurseForge) Then
                     Storage.ErrorMessage = $"无法连接到 CurseForge，所以目前仅显示了来自 Modrinth 的内容，搜索结果可能不全。{vbCrLf}请稍后再试，或使用 VPN 改善网络环境。"
-                Else
+                ElseIf CurseForgeEnabled Then
                     Storage.ErrorMessage = $"无法连接到 Modrinth，所以目前仅显示了来自 CurseForge 的内容，搜索结果可能不全。{vbCrLf}请稍后再试，或使用 VPN 改善网络环境。"
+                Else
+                    Storage.ErrorMessage = $"无法连接到 Modrinth，搜索结果可能不全。{vbCrLf}请稍后再试，或使用 VPN 改善网络环境。"
                 End If
             End If
 

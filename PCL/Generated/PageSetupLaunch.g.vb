@@ -42,6 +42,18 @@ Namespace Global.PCL
         Friend WithEvents LabRamTotal As Avalonia.Controls.TextBlock
         Friend WithEvents LabRamGame As Avalonia.Controls.TextBlock
         Friend WithEvents CardSkin As PCL.MyCard
+        Friend WithEvents RadioSkinType0 As PCL.MyRadioBox
+        Friend WithEvents RadioSkinType1 As PCL.MyRadioBox
+        Friend WithEvents RadioSkinType2 As PCL.MyRadioBox
+        Friend WithEvents RadioSkinType3 As PCL.MyRadioBox
+        Friend WithEvents RadioSkinType4 As PCL.MyRadioBox
+        Friend WithEvents PanSkinID As Avalonia.Controls.Grid
+        Friend WithEvents TextSkinID As PCL.MyTextBox
+        Friend WithEvents BtnSkinSave As PCL.MyButton
+        Friend WithEvents BtnSkinCache As PCL.MyButton
+        Friend WithEvents PanSkinChange As Avalonia.Controls.Grid
+        Friend WithEvents BtnSkinChange As PCL.MyButton
+        Friend WithEvents BtnSkinDelete As PCL.MyButton
         Friend WithEvents BtnAdvanceJvmReset As PCL.MyIconButton
         Friend WithEvents TextAdvanceJvm As PCL.MyTextBox
         Friend WithEvents TextAdvanceGame As PCL.MyTextBox
@@ -61,6 +73,7 @@ Namespace Global.PCL
         Friend WithEvents CheckAdvanceGraphicCard As PCL.MyCheckBox
         Friend WithEvents CheckDownloadCert As PCL.MyCheckBox
         Friend WithEvents HintMoreAdvancedSetup As PCL.MyHint
+        Friend WithEvents BtnSwitch As PCL.MyExtraTextButton
 
         Private Sub InitControls()
             AvaloniaXamlLoader.Load(Me)
@@ -120,6 +133,30 @@ Namespace Global.PCL
             If LabRamGame Is Nothing Then Throw New InvalidOperationException("找不到控件：LabRamGame")
             CardSkin = FindControl(Of PCL.MyCard)("CardSkin")
             If CardSkin Is Nothing Then Throw New InvalidOperationException("找不到控件：CardSkin")
+            RadioSkinType0 = FindControl(Of PCL.MyRadioBox)("RadioSkinType0")
+            If RadioSkinType0 Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioSkinType0")
+            RadioSkinType1 = FindControl(Of PCL.MyRadioBox)("RadioSkinType1")
+            If RadioSkinType1 Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioSkinType1")
+            RadioSkinType2 = FindControl(Of PCL.MyRadioBox)("RadioSkinType2")
+            If RadioSkinType2 Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioSkinType2")
+            RadioSkinType3 = FindControl(Of PCL.MyRadioBox)("RadioSkinType3")
+            If RadioSkinType3 Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioSkinType3")
+            RadioSkinType4 = FindControl(Of PCL.MyRadioBox)("RadioSkinType4")
+            If RadioSkinType4 Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioSkinType4")
+            PanSkinID = FindControl(Of Avalonia.Controls.Grid)("PanSkinID")
+            If PanSkinID Is Nothing Then Throw New InvalidOperationException("找不到控件：PanSkinID")
+            TextSkinID = FindControl(Of PCL.MyTextBox)("TextSkinID")
+            If TextSkinID Is Nothing Then Throw New InvalidOperationException("找不到控件：TextSkinID")
+            BtnSkinSave = FindControl(Of PCL.MyButton)("BtnSkinSave")
+            If BtnSkinSave Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnSkinSave")
+            BtnSkinCache = FindControl(Of PCL.MyButton)("BtnSkinCache")
+            If BtnSkinCache Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnSkinCache")
+            PanSkinChange = FindControl(Of Avalonia.Controls.Grid)("PanSkinChange")
+            If PanSkinChange Is Nothing Then Throw New InvalidOperationException("找不到控件：PanSkinChange")
+            BtnSkinChange = FindControl(Of PCL.MyButton)("BtnSkinChange")
+            If BtnSkinChange Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnSkinChange")
+            BtnSkinDelete = FindControl(Of PCL.MyButton)("BtnSkinDelete")
+            If BtnSkinDelete Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnSkinDelete")
             BtnAdvanceJvmReset = FindControl(Of PCL.MyIconButton)("BtnAdvanceJvmReset")
             If BtnAdvanceJvmReset Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnAdvanceJvmReset")
             TextAdvanceJvm = FindControl(Of PCL.MyTextBox)("TextAdvanceJvm")
@@ -158,6 +195,8 @@ Namespace Global.PCL
             If CheckDownloadCert Is Nothing Then Throw New InvalidOperationException("找不到控件：CheckDownloadCert")
             HintMoreAdvancedSetup = FindControl(Of PCL.MyHint)("HintMoreAdvancedSetup")
             If HintMoreAdvancedSetup Is Nothing Then Throw New InvalidOperationException("找不到控件：HintMoreAdvancedSetup")
+            BtnSwitch = FindControl(Of PCL.MyExtraTextButton)("BtnSwitch")
+            If BtnSwitch Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnSwitch")
         End Sub
 
     End Class

@@ -105,7 +105,8 @@ Public Class MyBitmap
                     End Function)
             Else
                 ' 一次性读入内存，避免长期占用文件
-                Pic = SKBitmap.Decode(File.ReadAllBytes(FilePathOrResourceName))
+                ' File.ReadAllBytes 不会转换 Windows 分隔符，非 Windows 上会找不到文件
+                Pic = SKBitmap.Decode(FileUtils.ReadAsBytes(FilePathOrResourceName))
             End If
             If Pic Is Nothing Then Throw New ArgumentException("图片格式不支持，或图片文件损坏")
         Catch ex As Exception
@@ -202,9 +203,7 @@ Public Class MyBitmap
     ''' 将图像保存到文件。
     ''' </summary>
     Public Sub Save(FilePath As String)
-        Dim Directory = Path.GetDirectoryName(FilePath)
-        If Not String.IsNullOrEmpty(Directory) Then IO.Directory.CreateDirectory(Directory)
-        Using Stream = File.Create(FilePath)
+        Using Stream = FileUtils.CreateAsStream(FilePath)
             Pic.Encode(Stream, SKEncodedImageFormat.Png, 100)
         End Using
     End Sub

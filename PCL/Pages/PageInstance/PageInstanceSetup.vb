@@ -69,8 +69,15 @@ Public Class PageInstanceSetup
             UpdateJavaList()
 
             '服务器
-            ComboServerLogin.SelectedIndex = Settings.Get(Of Integer)("VersionServerLogin", Instance:=PageInstanceLeft.Instance)
-            ComboServerLoginLast = ComboServerLogin.SelectedIndex
+            '微软登录暂未开放，下拉框中前两项（正版相关）直接移除
+            If Not MsLoginEnabled AndAlso ComboServerLogin.ItemCount > 3 Then
+                ComboServerLogin.Items.RemoveAt(1)
+                ComboServerLogin.Items.RemoveAt(0)
+            End If
+            Dim LoginStored As Integer = Settings.Get(Of Integer)("VersionServerLogin", Instance:=PageInstanceLeft.Instance)
+            If Not MsLoginEnabled AndAlso LoginStored <= 1 Then LoginStored = 2
+            ComboServerLoginLast = LoginStored
+            ComboServerLogin.SelectedIndex = ServerLoginStoredToIndex(LoginStored)
             UpdateServerLoginUI()
 
             '高级设置
@@ -343,21 +350,31 @@ Public Class PageInstanceSetup
 
     '全局
     Private ComboServerLoginLast As Integer
+    Private Shared Function ServerLoginStoredToIndex(Value As Integer) As Integer
+        If MsLoginEnabled Then Return Value
+        Return Math.Max(Value - 2, 0)
+    End Function
+    Private Shared Function ServerLoginIndexToStored(Index As Integer) As Integer
+        If MsLoginEnabled Then Return Index
+        Return Index + 2
+    End Function
     Private Sub ComboServerLogin_Changed() Handles ComboServerLogin.SelectionChanged, TextServerNide.ValidatedTextChanged, TextServerAuthServer.ValidatedTextChanged, TextServerAuthRegister.ValidatedTextChanged
         If AniControlEnabled <> 0 Then Return
+        If ComboServerLogin.SelectedIndex < 0 Then Return
         UpdateServerLoginUI()
+        Dim Type As Integer = ServerLoginIndexToStored(ComboServerLogin.SelectedIndex)
         '检查是否输入正确，正确才触发设置改变
-        If ComboServerLogin.SelectedIndex = 3 AndAlso Not TextServerNide.IsValidated Then Return
-        If ComboServerLogin.SelectedIndex = 4 AndAlso Not TextServerAuthServer.IsValidated Then Return
+        If Type = 3 AndAlso Not TextServerNide.IsValidated Then Return
+        If Type = 4 AndAlso Not TextServerAuthServer.IsValidated Then Return
         '检查结果是否发生改变，未改变则不触发设置改变
-        If ComboServerLoginLast = ComboServerLogin.SelectedIndex Then Return
+        If ComboServerLoginLast = Type Then Return
         '触发
-        ComboServerLoginLast = ComboServerLogin.SelectedIndex
-        Settings.Set("VersionServerLogin", ComboServerLogin.SelectedIndex, Instance:=PageInstanceLeft.Instance)
+        ComboServerLoginLast = Type
+        Settings.Set("VersionServerLogin", Type, Instance:=PageInstanceLeft.Instance)
     End Sub
     Private Sub UpdateServerLoginUI()
-        If LabServerNide Is Nothing Then Return
-        Dim Type = ComboServerLogin.SelectedIndex
+        If LabServerNide Is Nothing OrElse ComboServerLogin.SelectedIndex < 0 Then Return
+        Dim Type = ServerLoginIndexToStored(ComboServerLogin.SelectedIndex)
         LabServerNide.IsVisible = Type = 3
         TextServerNide.IsVisible = Type = 3
         PanServerNide.IsVisible = Type = 3

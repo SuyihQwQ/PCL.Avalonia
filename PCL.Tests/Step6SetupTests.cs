@@ -93,25 +93,15 @@ public class SetupPageTests {
             Assert.NotNull(page.CheckUpdateRelease);
             Assert.NotNull(page.CheckUpdateSnapshot);
             Assert.NotNull(page.CheckHelpChinese);
-            Assert.NotNull(page.ComboSystemUpdate);
-            Assert.NotNull(page.ItemSystemUpdateDownload);
-            Assert.NotNull(page.ComboSystemActivity);
             Assert.NotNull(page.TextSystemCache);
-            Assert.NotNull(page.CheckSystemTelemetry);
-            Assert.NotNull(page.BtnSystemUpdate);
             Assert.NotNull(page.BtnSystemSettingExp);
             Assert.NotNull(page.BtnSystemSettingImp);
-            Assert.NotNull(page.PanDonate);
-            Assert.NotNull(page.BtnSystemIdentify);
-            Assert.NotNull(page.BtnSystemUnlock);
             Assert.NotNull(page.CardDebug);
             Assert.NotNull(page.SliderDebugAnim);
 
             Assert.Equal("ToolDownloadThread", global::PCL.SettingService.GetKey(page.SliderDownloadThread));
             Assert.Equal("ToolDownloadSpeed", global::PCL.SettingService.GetKey(page.SliderDownloadSpeed));
             Assert.Equal("ToolUpdateRelease", global::PCL.SettingService.GetKey(page.CheckUpdateRelease));
-            Assert.Equal("SystemSystemUpdate", global::PCL.SettingService.GetKey(page.ComboSystemUpdate));
-            Assert.Equal("SystemSystemActivity", global::PCL.SettingService.GetKey(page.ComboSystemActivity));
 
             Assert.NotNull(page.SliderDownloadThread.GetHintText);
             Assert.NotNull(page.SliderDownloadSpeed.GetHintText);
@@ -243,7 +233,7 @@ public class SetupPageTests {
         Dispatcher.UIThread.RunJobs();
         try {
             Settle();
-            Click(window, window.FindControl<Button>("BtnTitleSelect3")!);
+            Click(window, window.FindControl<global::PCL.MyRadioButton>("BtnTitleSelect3")!);
             Settle();
 
             var left = Assert.IsType<global::PCL.PageSetupLeft>(window.PageLeft);
@@ -260,7 +250,7 @@ public class SetupPageTests {
             Assert.True(left.ItemSystem.Checked);
             Assert.False(left.ItemLaunch.Checked);
 
-            Click(window, window.FindControl<Button>("BtnTitleSelect4")!);
+            Click(window, window.FindControl<global::PCL.MyRadioButton>("BtnTitleSelect4")!);
             Settle();
             Assert.IsType<global::PCL.PageOtherLeft>(window.PageLeft);
             Assert.IsType<global::PCL.PageOtherHelp>(window.PageRight);

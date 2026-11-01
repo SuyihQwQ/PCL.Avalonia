@@ -1,6 +1,8 @@
 Imports Avalonia.Controls
 Imports Avalonia.Input
+Imports Avalonia.Media
 Imports Avalonia.Media.Imaging
+Imports Avalonia.Platform.Storage
 Imports Avalonia.VisualTree
 
 Public Class FormMain
@@ -338,7 +340,7 @@ Public Class FormMain
                 Case PageType.HelpDetail '帮助详情
                     PageChangeAnim(New MyPageLeft, CType(Stack.Additional(1), MyPageRight), CurrentTab)
                 Case Else
-                    Hint("该页面尚未移植到 Avalonia 版本。")
+                    Logger.Error($"未知的页面类型：{Stack.Page}")
                     Return
             End Select
 
@@ -389,7 +391,15 @@ Public Class FormMain
     Public Sub New()
         InitControls()
         FrmMain = Me
+        'Skia 在 Linux 上默认用轻度 hinting，13px 汉字最后一行抗锯齿会被压掉，字形底部看起来像被裁平了；
+        '改用完整 hinting 并固定灰度抗锯齿（窗口透明时子像素渲染会导致彩色边缘）
+        TextOptions.SetTextHintingMode(Me, TextHintingMode.Strong)
+        TextOptions.SetTextRenderingMode(Me, TextRenderingMode.Antialias)
         EnsurePanBackTransform()
+        DragDrop.SetAllowDrop(Me, True)
+        DragDrop.AddDragEnterHandler(Me, AddressOf FormMain_HandleDrag)
+        DragDrop.AddDragOverHandler(Me, AddressOf FormMain_HandleDrag)
+        DragDrop.AddDropHandler(Me, AddressOf FormMain_Drop)
         Opacity = 0
     End Sub
 
@@ -407,6 +417,8 @@ Public Class FormMain
         BtnExtraShutdown.ShowCheck = AddressOf BtnExtraShutdown_ShowCheck
         BtnExtraApril.ShowRefresh()
         InitPages()
+        '尽早执行的加载池：下载的已存在文件检测与版本选择页都依赖该列表
+        McFolderListLoader.Start(0)
         AniStart()
         AniStart({
             AaOpacity(Me, Settings.Get(Of Integer)("UiLauncherTransparent") / 1000 + 0.4, 250, 100),
@@ -467,7 +479,7 @@ Public Class FormMain
                     FeedbackInfo()
                     Logger.Info("请在 https://github.com/Meloong-Git/PCL/issues 提交错误报告，以便于作者解决此问题！")
                     IsLogShown = True
-                    StartProcess(Paths.Base & "PCL\Log1.txt")
+                    StartProcess(PathData & "Log1.txt")
                 End If
                 Thread.Sleep(500) '防止 PCL 在记事本打开前就被掐掉
             End If
@@ -494,8 +506,8 @@ Public Class FormMain
     '移动窗口
     Private Sub FormDragMove(sender As Object, e As PointerPressedEventArgs) Handles PanTitle.PointerPressed, PanMsg.PointerPressed
         If Not e.GetCurrentPoint(Me).Properties.IsLeftButtonPressed Then Return
-        Dim SourceVisual = TryCast(e.Source, Visual)
-        If SourceVisual IsNot Nothing AndAlso SourceVisual.FindAncestorOfType(Of Button)(True) IsNot Nothing Then Return
+        '对应原版的 sender.IsMouseDirectlyOver：仅当按在标题栏/消息层本身而不是其子控件上时才拖动窗口
+        If e.Source IsNot sender Then Return
         BeginMoveDrag(e)
     End Sub
 
@@ -556,10 +568,38 @@ Public Class FormMain
         End If
     End Sub
 
-    Private Sub BtnTitleSelect_Click(sender As Object, e As RoutedEventArgs) Handles BtnTitleSelect0.Click, BtnTitleSelect1.Click,
-            BtnTitleSelect2.Click, BtnTitleSelect3.Click, BtnTitleSelect4.Click
+    '左边栏背景
+    Private Sub PanMainLeft_SizeChanged(sender As Object, e As SizeChangedEventArgs) Handles PanMainLeft.SizeChanged
+        If e.WidthChanged Then PanMainLeft_Resize(e.NewSize.Width)
+    End Sub
+    Private Sub PanMainLeft_Resize(NewWidth As Double)
+        Dim Delta As Double = NewWidth - RectLeftBackground.Width
+        If Math.Abs(Delta) > 0.1 AndAlso AniControlEnabled = 0 AndAlso IsLoaded Then
+            AniStop("FrmMain LeftChange")
+            If NewWidth > 0 Then
+                '宽度足够，显示
+                AniStart({
+                    AaWidth(RectLeftBackground, Delta, 180,, New AniEaseOutFluent(AniEasePower.ExtraStrong)),
+                    AaOpacity(RectLeftShadow, 1 - RectLeftShadow.Opacity, 180)
+                }, "FrmMain LeftChange", True)
+            Else
+                '宽度不足，隐藏
+                AniStart({
+                    AaWidth(RectLeftBackground, -RectLeftBackground.Width, 180,, New AniEaseOutFluent),
+                    AaOpacity(RectLeftShadow, -RectLeftShadow.Opacity, 180)
+                }, "FrmMain LeftChange", True)
+            End If
+        Else
+            AniStop("FrmMain LeftChange")
+            RectLeftBackground.Width = NewWidth
+            RectLeftShadow.Opacity = If(NewWidth > 0, 1, 0)
+        End If
+    End Sub
+
+    Private Sub BtnTitleSelect_Check(sender As Object, raiseByMouse As Boolean) Handles BtnTitleSelect0.Check, BtnTitleSelect1.Check,
+            BtnTitleSelect2.Check, BtnTitleSelect3.Check, BtnTitleSelect4.Check
         If IsChangingPage Then Return
-        Dim TargetId As Integer = Val(sender.Tag)
+        Dim TargetId As Integer = Val(DirectCast(sender, MyRadioButton).Tag)
         If TargetId < 0 OrElse TargetId > 4 Then Return
         PageChangeActual(TargetId, CType(-1, PageSubType))
     End Sub
@@ -614,13 +654,10 @@ Public Class FormMain
 
     Private Sub RefreshTitleTabs()
         Dim Buttons = {BtnTitleSelect0, BtnTitleSelect1, BtnTitleSelect2, BtnTitleSelect3, BtnTitleSelect4}
-        For i = 0 To Buttons.Length - 1
-            If i = CurrentTab Then
-                If Not Buttons(i).Classes.Contains("active") Then Buttons(i).Classes.Add("active")
-            Else
-                Buttons(i).Classes.Remove("active")
-            End If
-        Next
+        Dim RawIsChanging = IsChangingPage
+        IsChangingPage = True '防止勾选触发 PageChangeActual 造成递归
+        Buttons(CurrentTab).SetChecked(True, False, True)
+        IsChangingPage = RawIsChanging
     End Sub
 
     '次级页面
@@ -758,6 +795,27 @@ Public Class FormMain
 
     '功能隐藏
     Protected Overrides Sub OnKeyDown(e As KeyEventArgs)
+        '在有弹窗时：回车选择第一个，Esc 选择最后一个
+        If PanMsg.Children.Count > 0 Then
+            Dim Msg = TryCast(PanMsg.Children(0), MyMsgBoxBase)
+            If Msg IsNot Nothing Then
+                If e.Key = Key.Enter Then
+                    Msg.Btn1_Click()
+                    e.Handled = True
+                    Return
+                ElseIf e.Key = Key.Escape Then
+                    If TypeOf Msg IsNot MyMsgInput AndAlso TypeOf Msg IsNot MyMsgSelect AndAlso Msg.Btn3.IsVisible Then
+                        Msg.Btn3_Click()
+                    ElseIf Msg.Btn2.IsVisible Then
+                        Msg.Btn2_Click()
+                    Else
+                        Msg.Btn1_Click()
+                    End If
+                    e.Handled = True
+                    Return
+                End If
+            End If
+        End If
         MyBase.OnKeyDown(e)
         '按 ESC 取消启动，或返回上一级
         If e.Key = Key.Escape Then
@@ -913,12 +971,11 @@ Public Class FormMain
                 ImgBack.Background = Nothing
                 ImgBack.IsVisible = False
             End If
-            '标题栏显示类型
+            '标题栏显示类型（默认的 PCL 标识使用 PCL English 字体渲染）
             Dim LogoType As Integer = Settings.Get(Of Integer)("UiLogoType")
-            ShapeTitleLogo.IsVisible = LogoType = 1
-            LabTitleLogo.IsVisible = LogoType = 2
+            LabTitleLogo.IsVisible = LogoType = 1 OrElse LogoType = 2
+            LabTitleLogo.Text = If(LogoType = 1, "PCL", If(LogoType = 2, Settings.Get(Of String)("UiLogoText"), ""))
             ImageTitleLogo.IsVisible = LogoType = 3
-            If LogoType = 2 Then LabTitleLogo.Text = Settings.Get(Of String)("UiLogoText")
             If LogoType = 3 Then RefreshTitleLogo()
             '标题栏文本是否居左
             PanTitleMain.ColumnDefinitions(0).Width = New GridLength(If(Settings.Get(Of Boolean)("UiLogoLeft") AndAlso LogoType = 0, 0, 1), GridUnitType.Star)            '个性化设置页联动
@@ -1033,6 +1090,206 @@ Public Class FormMain
     Private Function BtnExtraShutdown_ShowCheck() As Boolean
         Return HasRunningMinecraft
     End Function
+
+#End Region
+
+#Region "文件拖放"
+
+    Private Sub FormMain_HandleDrag(sender As Object, e As DragEventArgs)
+        Try
+            If e.Handled AndAlso e.DragEffects <> DragDropEffects.None Then Return
+            e.Handled = True
+            e.DragEffects = DragDropEffects.None
+            If e.DataTransfer.Formats.Contains(DataFormat.Text) Then
+                Dim Str As String = Nothing
+                Try
+                    Str = e.DataTransfer.TryGetText()
+                Catch
+                End Try
+                If Not String.IsNullOrEmpty(Str) Then
+                    If Str.StartsWithF("authlib-injector:yggdrasil-server:") OrElse
+                       Str.StartsWithF("http://") OrElse Str.StartsWithF("https://") OrElse
+                       Str.StartsWithF("file:///") Then
+                        e.DragEffects = DragDropEffects.Copy
+                    End If
+                End If
+            ElseIf e.DataTransfer.Formats.Contains(DataFormat.File) Then
+                e.DragEffects = DragDropEffects.Link
+            End If
+        Catch ex As Exception
+            Logger.Error(ex, "处理拖放时出错")
+        End Try
+    End Sub
+
+    Private Sub FormMain_Drop(sender As Object, e As DragEventArgs)
+        Try
+            ShowWindowToTop()
+            If e.DataTransfer.Formats.Contains(DataFormat.Text) Then
+                Dim Str As String = ""
+                Try
+                    Str = e.DataTransfer.TryGetText()
+                    Logger.Info($"接受文本拖拽：{Str}")
+                    If Str.StartsWithF("authlib-injector:yggdrasil-server:") Then
+                        e.Handled = True
+                        e.DragEffects = DragDropEffects.Copy
+                        ApplyAuthlibServer(WebUtility.UrlDecode(Str.Substring("authlib-injector:yggdrasil-server:".Length)))
+                    ElseIf Str.StartsWithF("http://") OrElse Str.StartsWithF("https://") Then
+                        '直接拖入网址时也按第三方登录服务器处理
+                        e.Handled = True
+                        e.DragEffects = DragDropEffects.Copy
+                        ApplyAuthlibServer(Str)
+                    ElseIf Str.StartsWithF("file:///") Then
+                        e.Handled = True
+                        e.DragEffects = DragDropEffects.Copy
+                        Dim FileUri As Uri = Nothing
+                        Dim FilePath As String = If(Uri.TryCreate(Str, UriKind.Absolute, FileUri) AndAlso FileUri.IsFile,
+                                                     FileUri.LocalPath,
+                                                     Uri.UnescapeDataString(Str.Substring("file:///".Length)))
+                        FileDrag(New List(Of String) From {FilePath})
+                    End If
+                Catch ex As Exception
+                    Logger.Warn(ex, "无法接取文本拖拽事件")
+                End Try
+            ElseIf e.DataTransfer.Formats.Contains(DataFormat.File) Then
+                e.Handled = True
+                e.DragEffects = DragDropEffects.Link
+                Dim Files = e.DataTransfer.TryGetFiles()
+                If Files Is Nothing Then
+                    Hint("请将文件解压后再拖入！", HintType.Red)
+                    Return
+                End If
+                Dim PathList As New List(Of String)
+                For Each FileItem In Files
+                    Dim LocalPath = FileItem.TryGetLocalPath()
+                    If Not String.IsNullOrEmpty(LocalPath) Then PathList.Add(LocalPath)
+                Next
+                If PathList.Count = 0 Then
+                    Hint("请将文件解压后再拖入！", HintType.Red)
+                    Return
+                End If
+                FileDrag(PathList)
+            End If
+        Catch ex As Exception
+            Logger.Error(ex, "接取拖拽事件失败")
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' 将拖入的 Authlib 链接应用到当前版本。
+    ''' </summary>
+    Private Sub ApplyAuthlibServer(AuthlibServer As String)
+        Logger.Info($"Authlib 拖拽：{AuthlibServer}")
+        If String.IsNullOrWhiteSpace(AuthlibServer) Then Return
+        If Not String.IsNullOrEmpty(New ValidateHttp().Validate(AuthlibServer)) Then
+            Hint($"输入的 Authlib 验证服务器不符合网址格式（{AuthlibServer}）！", HintType.Red)
+            Return
+        End If
+        Dim Target As McInstance = If(PageCurrent = PageType.InstanceSetup, PageInstanceLeft.Instance, McInstanceSelected)
+        If Target Is Nothing Then
+            Hint("请先下载游戏，再设置第三方登录！", HintType.Red)
+            Return
+        End If
+        If AuthlibServer = "https://littleskin.cn/api/yggdrasil" Then
+            If MyMsgBox($"是否要在版本 {Target.Name} 中开启 LittleSkin 登录？" & vbCrLf &
+                        "你可以在 版本设置 → 设置 → 服务器选项 中修改登录方式。", "第三方登录开启确认", "确定", "取消") = 2 Then Return
+            Settings.Set("VersionServerLogin", 4, Instance:=Target)
+            Settings.Set("VersionServerAuthServer", "https://littleskin.cn/api/yggdrasil", Instance:=Target)
+            Settings.Set("VersionServerAuthRegister", "https://littleskin.cn/auth/register", Instance:=Target)
+            Settings.Set("VersionServerAuthName", "LittleSkin 登录", Instance:=Target)
+        Else
+            If MyMsgBox($"是否要在版本 {Target.Name} 中开启第三方登录？" & vbCrLf &
+                        $"登录服务器：{AuthlibServer}" & vbCrLf & vbCrLf &
+                        "你可以在 版本设置 → 设置 → 服务器选项 中修改登录方式。", "第三方登录开启确认", "确定", "取消") = 2 Then Return
+            Settings.Set("VersionServerLogin", 4, Instance:=Target)
+            Settings.Set("VersionServerAuthServer", AuthlibServer, Instance:=Target)
+            Settings.Set("VersionServerAuthRegister", AuthlibServer.Replace("api/yggdrasil", "auth/register"), Instance:=Target)
+            Settings.Set("VersionServerAuthName", "", Instance:=Target)
+        End If
+        If PageCurrent = PageType.InstanceSetup AndAlso PageCurrentSub = PageSubType.InstanceSetup Then
+            Dim SetupPage = TryCast(PageRight, PageInstanceSetup)
+            SetupPage?.Reload()
+        ElseIf PageCurrent = PageType.Launch Then
+            FrmLaunchLeft.RefreshPage(True, False)
+        End If
+    End Sub
+
+    Private Sub FileDrag(FilePathList As IEnumerable(Of String))
+        RunInNewThread(
+        Sub()
+            Try
+                Dim Files As List(Of String) = FilePathList.ToList()
+                Dim FilePath As String = Files.First
+                Logger.Info($"接受文件拖拽：{FilePath}{If(Files.Count > 1, $" 等 {Files.Count} 个文件", "")}")
+                '基础检查
+                If DirectoryUtils.Exists(FilePath) AndAlso Not FileUtils.Exists(FilePath) Then
+                    Hint("请拖入一个文件，而非文件夹！", HintType.Red)
+                    Return
+                ElseIf Not FileUtils.Exists(FilePath) Then
+                    Hint("拖入的文件不存在：" & FilePath, HintType.Red)
+                    Return
+                End If
+                '多文件拖拽
+                If Files.Count > 1 Then
+                    For Each File In Files
+                        If Not {"jar", "litemod", "disabled", "old"}.Contains(PathUtils.GetExtension(File)) Then
+                            Hint("一次请只拖入一个文件！", HintType.Red)
+                            Return
+                        End If
+                    Next
+                End If
+                '主页
+                Dim Extension As String = PathUtils.GetExtension(FilePath)
+                If Extension = "xaml" Then
+                    Logger.Info("文件后缀为 XAML，作为主页加载")
+                    If FileUtils.Exists(PathData & "Custom.xaml") Then
+                        If MyMsgBox("已存在一个主页文件，是否要将它覆盖？", "覆盖确认", "覆盖", "取消") = 2 Then Return
+                    End If
+                    FileUtils.Copy(FilePath, PathData & "Custom.xaml")
+                    RunInUi(
+                    Sub()
+                        Settings.Set("UiCustomType", 1)
+                        FrmLaunchRight.ForceRefresh()
+                        Hint("已加载主页自定义文件！", HintType.Green)
+                    End Sub)
+                    Return
+                End If
+                '安装 Mod
+                If PageInstanceMod.InstallMods(Files) Then Return
+                '安装整合包
+                If {"zip", "rar", "mrpack"}.Contains(Extension) Then
+                    Hint("正在读取压缩包……")
+                    Try
+                        Logger.Info("文件为压缩包，尝试作为整合包安装")
+                        ModpackInstall(FilePath)
+                        RunInUi(Sub() FrmMain.PageChange(FormMain.PageType.TaskManager))
+                        Return
+                    Catch ex As Exception
+                        ex.ThrowIfCanceled()
+                    End Try
+                End If
+                'RAR 处理
+                If Extension = "rar" Then
+                    Hint("PCL 无法处理 rar 格式的压缩包，请在解压后重新压缩为 zip 格式再试！", HintType.Red)
+                    Return
+                End If
+                '错误报告分析
+                Try
+                    Logger.Info("尝试进行错误报告分析")
+                    Dim Analyzer As New CrashAnalyzer
+                    Analyzer.Import(FilePath)
+                    If Not Analyzer.Prepare() Then Return
+                    Analyzer.Analyze()
+                    Analyzer.Output(True, New List(Of String))
+                    Return
+                Catch ex As Exception
+                    Logger.Error(ex, "自主错误报告分析失败")
+                End Try
+                Hint("PCL 无法确定适合的操作……", HintType.Red)
+            Catch ex As Exception
+                Logger.Error(ex, "处理拖入文件失败", LogBehavior.Toast)
+            End Try
+        End Sub, "文件拖拽")
+    End Sub
 
 #End Region
 

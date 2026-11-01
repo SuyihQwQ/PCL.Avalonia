@@ -50,6 +50,12 @@ Public Class PageDownloadLeft
         If sender.Tag IsNot Nothing Then PageChange(CInt(Val(sender.Tag)))
     End Sub
 
+    '再次点击“安装”时返回安装初始页面
+    Private Sub ItemInstall_Click(sender As Object, e As PointerReleasedEventArgs) Handles ItemInstall.Click
+        If Not ItemInstall.Checked Then Return
+        FrmDownloadInstall?.ExitSelectPage()
+    End Sub
+
     ''' <summary>
     ''' 获取指定编号的子页面，未指定时使用当前页面。
     ''' </summary>

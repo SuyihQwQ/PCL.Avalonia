@@ -1,3 +1,6 @@
+Imports Avalonia.Controls.Presenters
+Imports Avalonia.Controls.Primitives
+
 Public Class MyScrollViewer
     Inherits ScrollViewer
 
@@ -46,8 +49,32 @@ Public Class MyScrollViewer
         If e.OffsetDelta.Y <> 0 OrElse e.ViewportDelta.Y <> 0 Then RefreshExtraBack()
     End Sub
 
+    Private RealContentPresenter As ScrollContentPresenter
+
+    Protected Overrides Sub OnApplyTemplate(e As TemplateAppliedEventArgs)
+        MyBase.OnApplyTemplate(e)
+        RealContentPresenter = e.NameScope.Find(Of ScrollContentPresenter)("PART_ContentPresenter")
+        UpdateScrollCapability()
+    End Sub
+
+    ''' <summary>
+    ''' 自定义模板没有绑定滚动能力标志，需要手动同步，否则内容会按视口高度裁剪而无法滚动。
+    ''' </summary>
+    Private Sub UpdateScrollCapability()
+        If RealContentPresenter Is Nothing Then Return
+        RealContentPresenter.CanVerticallyScroll = VerticalScrollBarVisibility <> ScrollBarVisibility.Disabled
+        RealContentPresenter.CanHorizontallyScroll = HorizontalScrollBarVisibility <> ScrollBarVisibility.Disabled
+    End Sub
+
+    Protected Overrides Function MeasureOverride(availableSize As Size) As Size
+        'ScrollViewer 会在模板应用后按自身状态重写这两个标志，测量前再同步一次
+        UpdateScrollCapability()
+        Return MyBase.MeasureOverride(availableSize)
+    End Function
+
     Protected Overrides Sub OnPropertyChanged(change As AvaloniaPropertyChangedEventArgs)
         MyBase.OnPropertyChanged(change)
+        If change.Property.Name = "CanVerticallyScroll" OrElse change.Property.Name = "CanHorizontallyScroll" Then UpdateScrollCapability()
         If change.Property Is IsVisibleProperty Then RefreshExtraBack()
     End Sub
 

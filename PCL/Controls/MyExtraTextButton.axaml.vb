@@ -132,6 +132,8 @@ Public Class MyExtraTextButton
 
     Protected Overrides Sub OnPointerReleased(e As PointerReleasedEventArgs)
         MyBase.OnPointerReleased(e)
+        '提前释放隐式指针捕获，避免 Click 中打开的模态弹窗被本控件持续捕获指针
+        e.Pointer.Capture(Nothing)
         If e.InitialPressMouseButton = MouseButton.Left AndAlso IsLeftMouseHeld Then
             AniStart(AaScaleTransform(PanScale, 1 - AniScaleX(PanScale), 300,, New AniEaseOutBack), "MyExtraTextButton Scale " & Uuid)
             IsLeftMouseHeld = False

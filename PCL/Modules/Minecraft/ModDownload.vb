@@ -1163,7 +1163,14 @@ Public Module ModDownload
     ''' OptiFabric 列表，官方源。
     ''' </summary>
     Public DlOptiFabricLoader As New LoaderTask(Of Integer, List(Of ResourceVersion))("OptiFabric List Loader",
-        Sub(Task As LoaderTask(Of Integer, List(Of ResourceVersion))) Task.Output = ResourceVersion.FromProjectId("322385", ResourcePlatforms.CurseForge, LoadDependencies:=False))
+        Sub(Task As LoaderTask(Of Integer, List(Of ResourceVersion)))
+            'OptiFabric 仅在 CurseForge 上发布，暂未开放 CurseForge 时直接视为无可用版本
+            If Not CurseForgeEnabled Then
+                Task.Output = New List(Of ResourceVersion)
+                Return
+            End If
+            Task.Output = ResourceVersion.FromProjectId("322385", ResourcePlatforms.CurseForge, LoadDependencies:=False)
+        End Sub)
 
 #End Region
 

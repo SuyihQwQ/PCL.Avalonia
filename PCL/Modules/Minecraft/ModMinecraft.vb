@@ -88,7 +88,8 @@ Public Module ModMinecraft
             '格式：TMZ 12>C://xxx/xx/|Test>D://xxx/xx/|名称>路径
             For Each Folder As String In Settings.Get(Of String)("LaunchFolders").ToString.Split("|"c, True)
                 If Folder = "" Then Continue For
-                If Not Folder.Contains(">") OrElse Not Folder.EndsWithF("\") Then
+                '设置项可能来自 Windows 版本，也可能由当前平台写入，两种分隔符都要接受
+                If Not Folder.Contains(">") OrElse Not (Folder.EndsWithF("\") OrElse Folder.EndsWithF("/")) Then
                     Hint("无效的 Minecraft 文件夹：" & Folder, HintType.Red)
                     Continue For
                 End If
@@ -1563,18 +1564,24 @@ OnLoaded:
             Dim IsRightRule As Boolean = True '是否为正确的规则
             If Rule("os") IsNot Nothing Then '操作系统
                 If Rule("os")("name") IsNot Nothing Then '操作系统名称
-                    Dim OsName As String = Rule("os")("name").ToString
+                    Dim OsName As String = Rule("os")("name").ToString.ToLowerInvariant
                     If OsName = "unknown" Then
+                        '不限制操作系统
                     ElseIf OsName = "windows" Then
-                        If Rule("os")("version") IsNot Nothing Then '操作系统版本
-                            IsRightRule = IsRightRule AndAlso OSVersion.RegexCheck(Rule("os")("version").ToString)
+                        IsRightRule = IsRightRule AndAlso OperatingSystem.IsWindows()
+                        If IsRightRule AndAlso Rule("os")("version") IsNot Nothing Then '操作系统版本
+                            IsRightRule = OSVersion.RegexCheck(Rule("os")("version").ToString)
                         End If
+                    ElseIf OsName = "linux" Then
+                        IsRightRule = IsRightRule AndAlso OperatingSystem.IsLinux()
+                    ElseIf OsName = "osx" OrElse OsName = "macos" Then
+                        IsRightRule = IsRightRule AndAlso OperatingSystem.IsMacOS()
                     Else
                         IsRightRule = False
                     End If
                 End If
                 If Rule("os")("arch") IsNot Nothing Then '操作系统架构
-                    IsRightRule = IsRightRule AndAlso Rule("os")("arch").ToString <> "x86" AndAlso Not Rule("os")("arch").Contains("arm")
+                    IsRightRule = IsRightRule AndAlso McJsonRuleArchCheck(Rule("os")("arch").ToString)
                 End If
             End If
             If Not IsNothing(Rule("features")) Then '标签
@@ -1594,7 +1601,34 @@ OnLoaded:
         Next
         Return Required
     End Function
+    ''' <summary>
+    ''' 检查规则中的操作系统架构是否与当前平台一致。
+    ''' </summary>
+    Private Function McJsonRuleArchCheck(Arch As String) As Boolean
+        Dim Current = System.Runtime.InteropServices.RuntimeInformation.OSArchitecture
+        Select Case Arch.ToLowerInvariant
+            Case "x86", "i386", "i686"
+                Return Current = System.Runtime.InteropServices.Architecture.X86
+            Case "x86_64", "x64", "amd64"
+                Return Current = System.Runtime.InteropServices.Architecture.X64
+            Case "arm64", "aarch64"
+                Return Current = System.Runtime.InteropServices.Architecture.Arm64
+            Case "arm", "arm32"
+                Return Current = System.Runtime.InteropServices.Architecture.Arm
+            Case Else
+                Return False
+        End Select
+    End Function
     Private OSVersion As String = Environment.OSVersion.VersionString
+
+    ''' <summary>
+    ''' 当前平台在 Rules 与 Natives 列表中使用的名称。
+    ''' </summary>
+    Private Function McPlatformName() As String
+        If OperatingSystem.IsWindows() Then Return "windows"
+        If OperatingSystem.IsMacOS() Then Return "osx"
+        Return "linux"
+    End Function
 
     ''' <summary>
     ''' 递归获取 Minecraft 某一版本的完整支持库列表。
@@ -1693,8 +1727,8 @@ OnLoaded:
                     Logger.Warn(ex, $"处理实际支持库列表失败（无 Natives，{If(Library("name"), "Nothing")}）")
                     BasicArray.Add(New McLibEntry With {.OriginalName = Library("name"), .Url = RootUrl, .LocalPath = LocalPath, .Size = 0, .IsNatives = False, .SHA1 = Nothing})
                 End Try
-            ElseIf Library("natives")("windows") IsNot Nothing Then '有 Windows Natives
-                Dim NativeName As String = Library("natives")("windows")
+            ElseIf Library("natives")(McPlatformName()) IsNot Nothing Then '有当前平台的 Natives
+                Dim NativeName As String = Library("natives")(McPlatformName())
                 Try
                     If Library("downloads") IsNot Nothing AndAlso Library("downloads")("classifiers") IsNot Nothing AndAlso Library("downloads")("classifiers")(NativeName) IsNot Nothing Then
                         Dim NativeData = Library("downloads")("classifiers")(NativeName)

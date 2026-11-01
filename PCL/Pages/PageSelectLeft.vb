@@ -125,11 +125,20 @@ Public Class PageSelectLeft
 
     Private Sub AddMenuItem(Menu As ContextMenu, Header As String, Handler As Action)
         Dim Item As New MenuItem With {.Header = Header}
-        AddHandler Item.Click, Sub() Handler()
+        AddHandler Item.Click,
+            Sub()
+                'Avalonia 中通过 Open 手动打开的 ContextMenu 不会在点击项后自动关闭
+                Menu.Close()
+                Handler()
+            End Sub
         Menu.Items.Add(Item)
     End Sub
 
     '添加文件夹
+    ''' <summary>
+    ''' 添加流程是否正在进行。弹窗会泵消息，期间列表项仍可能响应点击，必须拦住重复触发。
+    ''' </summary>
+    Private IsAddingFolder As Boolean = False
     Public Sub Add_Click()
         Dim NewFolder As String = ""
         '下载或版本修改期间禁止更改游戏文件夹
@@ -137,6 +146,8 @@ Public Class PageSelectLeft
             Hint("请在其他任务完成后，再添加游戏文件夹！", HintType.Red)
             Return
         End If
+        If IsAddingFolder Then Return
+        IsAddingFolder = True
         Try
             '获取输入
             NewFolder = Dialogs.SelectFolder("选择 Minecraft 文件夹", False).FirstOrDefault
@@ -156,6 +167,8 @@ Public Class PageSelectLeft
             AddFolder(NewFolder, NewName, True)
         Catch ex As Exception
             Logger.Error(ex, $"添加文件夹失败（{NewFolder}）")
+        Finally
+            IsAddingFolder = False
         End Try
     End Sub
     ''' <summary>

@@ -72,6 +72,7 @@ Public Class MyPageRight
     Private PageLoader As LoaderBase
     Private PageLoaderUi As MyLoading
     Private PageLoaderAutoRun As Boolean
+    Private PageLoaderInputInvoke As Func(Of Object)
 
     ''' <summary>
     ''' 表明页面存在需要在后台执行的加载器。
@@ -94,6 +95,7 @@ Public Class MyPageRight
         PageLoader = RealLoader
         PageLoaderUi = LoaderUi
         PageLoaderAutoRun = AutoRun
+        PageLoaderInputInvoke = If(InputInvoke Is Nothing, Nothing, Function() InputInvoke())
         If FinishedInvoke IsNot Nothing Then
             AddHandler RealLoader.PreviewFinish,
             Sub()
@@ -128,6 +130,7 @@ Public Class MyPageRight
         PageLoader = RealLoader
         PageLoaderUi = LoaderUi
         PageLoaderAutoRun = AutoRun
+        PageLoaderInputInvoke = If(InputInvoke Is Nothing, Nothing, Function() InputInvoke())
         If FinishedInvoke IsNot Nothing Then
             AddHandler RealLoader.PreviewFinish,
             Sub()
@@ -159,6 +162,8 @@ Public Class MyPageRight
     ''' </summary>
     Public Sub PageLoaderRestart(Optional Input As Object = Nothing, Optional IsForceRestart As Boolean = True)
         If Not PageLoaderAutoRun OrElse PageLoader Is Nothing Then Return
+        '重试时也要重新获取输入，否则会把输入重置为 Nothing
+        If Input Is Nothing AndAlso PageLoaderInputInvoke IsNot Nothing Then Input = PageLoaderInputInvoke()
         PageLoader.Start(Input, IsForceRestart)
     End Sub
 

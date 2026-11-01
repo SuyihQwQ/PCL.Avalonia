@@ -232,16 +232,9 @@ Public Module ModMain
     End Function
 
     Private Function MyMsgBoxCore(Converter As MyMsgBoxConverter) As Integer
-        WaitingMyMsgBox.Enqueue(Converter)
-        Try
-            MyMsgBoxTick()
-            If Not Converter.IsExited Then ModalityHost.PumpUntil(Function() Converter.IsExited, Integer.MaxValue)
-        Catch ex As Exception
-            Logger.Error(ex, "等待弹窗结果失败")
-            Converter.IsExited = True
-        End Try
-        Logger.Info($"普通弹框返回：{If(Converter.Result, "null")}")
-        Return If(Converter.Result Is Nothing, 0, CInt(Converter.Result))
+        Dim Result As Object = MyMsgBoxWaitCore(Converter)
+        Logger.Info($"普通弹框返回：{If(Result, "null")}")
+        Return If(Result Is Nothing, 0, CInt(Result))
     End Function
 
     ''' <summary>
@@ -281,10 +274,24 @@ Public Module ModMain
         WaitingMyMsgBox.Enqueue(Converter)
         Try
             MyMsgBoxTick()
-            If Not Converter.IsExited Then ModalityHost.PumpUntil(Function() Converter.IsExited, Integer.MaxValue)
+            If Not Converter.IsExited Then
+                If FrmMain IsNot Nothing AndAlso FrmMain.PanMsg IsNot Nothing Then
+                    ModalityHost.PumpUntil(Function() Converter.IsExited, Integer.MaxValue)
+                Else
+                    Logger.Warn("主窗体尚未加载，弹窗无法显示")
+                    Converter.IsExited = True
+                End If
+            End If
         Catch ex As Exception
             Logger.Error(ex, "等待弹窗结果失败")
             Converter.IsExited = True
+            '弹窗可能已经加入界面但没能正常关闭（例如布局时出错），必须手动清理，否则会一直阻塞后续弹窗
+            Dim Msg As MyMsgBoxBase = TryCast(ActiveMsgBoxControl, MyMsgBoxBase)
+            If Msg IsNot Nothing AndAlso Msg.Converter Is Converter Then
+                ActiveMsgBoxControl = Nothing
+                If FrmMain IsNot Nothing AndAlso FrmMain.PanMsg IsNot Nothing Then FrmMain.PanMsg.Children.Remove(Msg)
+                MyMsgBoxTick()
+            End If
         End Try
         Return Converter.Result
     End Function
@@ -295,40 +302,55 @@ Public Module ModMain
     Public WaitingMyMsgBox As New ConcurrentQueue(Of MyMsgBoxConverter)
 
     ''' <summary>
-    ''' 当前正在显示的弹窗窗口。同一时间只会显示一个弹窗。
+    ''' 当前正在显示的窗口内弹窗。同一时间只会显示一个弹窗。
     ''' </summary>
-    Public ActiveMsgBoxWindow As Window = Nothing
+    Public ActiveMsgBoxControl As Control = Nothing
 
     Public Sub MyMsgBoxTick()
+        Dim TargetMsgBox As MyMsgBoxConverter = Nothing
+        Dim Msg As Control = Nothing
         Try
             If Not RunInUi() Then
                 RunInUi(AddressOf MyMsgBoxTick)
                 Return
             End If
-            If ActiveMsgBoxWindow IsNot Nothing Then Return
-            Dim TargetMsgBox As MyMsgBoxConverter = Nothing
-            If Not WaitingMyMsgBox.TryDequeue(TargetMsgBox) Then Return
-            Dim Dialog As Window
+            If FrmMain Is Nothing OrElse FrmMain.PanMsg Is Nothing Then Return
+            If FrmMain.PanMsg.Children.Count > 0 Then
+                FrmMain.PanMsg.IsVisible = True
+                Return
+            End If
+            If Not WaitingMyMsgBox.TryDequeue(TargetMsgBox) Then
+                FrmMain.PanMsg.IsVisible = False
+                Return
+            End If
             Select Case TargetMsgBox.Type
-                Case MyMsgBoxType.Text, MyMsgBoxType.Input, MyMsgBoxType.Select
-                    Dialog = New MyMsgBoxDialog(TargetMsgBox)
+                Case MyMsgBoxType.Text
+                    Msg = New MyMsgText(TargetMsgBox)
+                Case MyMsgBoxType.Input
+                    Msg = New MyMsgInput(TargetMsgBox)
+                Case MyMsgBoxType.Select
+                    Msg = New MyMsgSelect(TargetMsgBox)
                 Case MyMsgBoxType.Login
-                    Dialog = New MyMsgLogin(TargetMsgBox)
+                    Msg = New MyMsgLogin(TargetMsgBox)
                 Case Else
                     Logger.Warn($"暂不支持的弹窗类型：{TargetMsgBox.Type}")
                     TargetMsgBox.IsExited = True
                     Return
             End Select
-            ActiveMsgBoxWindow = Dialog
-            Dim OwnerWindow As Window = TryCast(GetTopLevel(), Window)
-            If OwnerWindow IsNot Nothing AndAlso OwnerWindow.IsVisible Then
-                Dim Ignored = Dialog.ShowDialog(OwnerWindow)
-            Else
-                Dialog.Show()
-            End If
-            If TargetMsgBox.Type = MyMsgBoxType.Login Then DirectCast(Dialog, MyMsgLogin).StartLogin()
+            ActiveMsgBoxControl = Msg
+            FrmMain.PanMsg.IsVisible = True
+            FrmMain.PanMsg.Children.Add(Msg)
+            If TypeOf Msg Is MyMsgLogin Then DirectCast(Msg, MyMsgLogin).StartLogin()
         Catch ex As Exception
             Logger.Error(ex, "处理等待中的弹窗失败")
+            If Msg IsNot Nothing Then
+                If ActiveMsgBoxControl Is Msg Then ActiveMsgBoxControl = Nothing
+                If FrmMain IsNot Nothing AndAlso FrmMain.PanMsg IsNot Nothing Then FrmMain.PanMsg.Children.Remove(Msg)
+            End If
+            If TargetMsgBox IsNot Nothing Then
+                TargetMsgBox.IsExited = True
+                MyMsgBoxTick()
+            End If
         End Try
     End Sub
 
@@ -385,7 +407,7 @@ Public Module ModMain
         Try
             FeedbackInfo()
             If ForceOpenLog OrElse (ShowMsgbox AndAlso MyMsgBox("若你在汇报一个 Bug，请点击 打开文件夹 按钮，并上传 Log(1~5).txt 中包含错误信息的文件。" & vbCrLf & "游戏崩溃一般与启动器无关，请不要因为游戏崩溃而提交反馈。", "反馈提交提醒", "打开文件夹", "不需要") = 1) Then
-                OpenExplorer(Paths.Base & "PCL\Log1.txt")
+                OpenExplorer(PathData & "Log1.txt")
             End If
             OpenWebsite("https://github.com/Meloong-Git/PCL/issues/")
         Catch ex As Exception

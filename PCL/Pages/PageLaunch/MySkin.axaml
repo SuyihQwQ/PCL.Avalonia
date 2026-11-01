@@ -2,9 +2,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="PCL.MySkin"
         Height="64" Width="64"
-        RenderTransformOrigin="0.5,0.5"
-        Background="{DynamicResource ColorBrushSemiTransparent}"
-        BoxShadow="0 0 10 0 #33000000">
+        RenderTransformOrigin="50%,50%"
+        Background="{DynamicResource ColorBrushSemiTransparent}">
     <Border.ContextMenu>
         <ContextMenu>
             <MenuItem x:Name="BtnSkinSave" Header="另存为" />

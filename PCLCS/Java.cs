@@ -6,13 +6,19 @@ namespace PCLCS;
 [Serializable] public class Java(string folder, Version? version = null) : IEquatable<Java> {
 
     /// <summary>
-    /// java.exe 文件所在的文件夹路径，这通常是 bin 文件夹。以 \ 结尾。
+    /// Java 可执行文件所在的文件夹路径，这通常是 bin 文件夹。以 \ 结尾。
     /// </summary>
     public readonly string Folder = PathUtils.AddSlashSuffix(PathUtils.ForCompare(folder));
+
     /// <summary>
-    /// java.exe 文件的完整路径。
+    /// 当前平台上 Java 可执行文件的名称。Windows 下为 java.exe，其他平台为 java。
     /// </summary>
-    [JsonIgnore] public string JavaExePath => Path.Combine(Folder, "java.exe");
+    public static string ExecutableName => OperatingSystem.IsWindows() ? "java.exe" : "java";
+
+    /// <summary>
+    /// Java 可执行文件的完整路径。
+    /// </summary>
+    [JsonIgnore] public string JavaExePath => Path.Combine(Folder, ExecutableName);
 
     /// <summary>
     /// Java 的版本号（例如 16.0.1），保证 <see cref="Version.Major"/> 为其主版本。
@@ -35,7 +41,7 @@ namespace PCLCS;
         if (Interlocked.Exchange(ref isChecked, 1) == 1 && available != null) return available!.Value; // 已检查过
         string? output = null;
         try {
-            if (!FileUtils.Exists(JavaExePath)) throw new FileNotFoundException("未找到 java.exe 文件", JavaExePath);
+            if (!FileUtils.Exists(JavaExePath)) throw new FileNotFoundException($"未找到 {ExecutableName} 文件", JavaExePath);
 
             // 运行 -version
             output = (await TaskUtils.RunProgramAsync(JavaExePath, "-XshowSettings:properties -version", 15000, cancellationToken: cancellationToken).NoCapture()).Output.Lower();
@@ -134,29 +140,54 @@ public static class JavaUtils {
     /// 存在完整 Java 的文件夹列表。
     /// </summary>
     internal static readonly Lazy<List<string>> CandidateFolders = new(() => {
-        List<string> folders = [
-            Paths.AppData + @".minecraft\runtime\", // 这也是 PCL 下载 Java 的路径
-            Paths.AppData + @".hmcl\java\",
-            Paths.AppData + @"ATLauncher\runtimes\minecraft\",
-            Paths.AppData + @"ModrinthApp\meta\java_versions\",
-            Paths.AppData + @"PrismLauncher\java\",
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + @"\curseforge\minecraft\Install\runtime\",
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + @"\.jdks\",
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + @"\.sdkman\candidates\java\",
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\.ftba\bin\runtime\",
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Packages\Microsoft.4297127D64EC6_8wekyb3d8bbwe\LocalCache\Local\runtime\",
-            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) + @"\Minecraft Launcher\runtime\",
-            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) + @"\Minecraft\runtime\",
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\Curse\Minecraft\Install\runtime\",
-            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + @"\Java\",
-            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + @"\Eclipse Adoptium\",
-            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + @"\Amazon Corretto\",
-            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + @"\Zulu\",
-            ..DirectoryUtils.EnumerateDirectories(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + @"\Microsoft\", searchPattern: "jdk-*"),
-            // 环境变量
-            ..(Environment.GetEnvironmentVariable("JDK_HOME") + ";" + Environment.GetEnvironmentVariable("JAVA_HOME")).
-                Split(";", true).Select(path => path.Trim(' ', '"'))
-        ];
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        List<string> folders;
+        if (OperatingSystem.IsWindows()) {
+            folders = [
+                Paths.AppData + @".minecraft\runtime\", // 这也是 PCL 下载 Java 的路径
+                Paths.AppData + @".hmcl\java\",
+                Paths.AppData + @"ATLauncher\runtimes\minecraft\",
+                Paths.AppData + @"ModrinthApp\meta\java_versions\",
+                Paths.AppData + @"PrismLauncher\java\",
+                userProfile + @"\curseforge\minecraft\Install\runtime\",
+                userProfile + @"\.jdks\",
+                userProfile + @"\.sdkman\candidates\java\",
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\.ftba\bin\runtime\",
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData) + @"\Packages\Microsoft.4297127D64EC6_8wekyb3d8bbwe\LocalCache\Local\runtime\",
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) + @"\Minecraft Launcher\runtime\",
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) + @"\Minecraft\runtime\",
+                Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + @"\Curse\Minecraft\Install\runtime\",
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + @"\Java\",
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + @"\Eclipse Adoptium\",
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + @"\Amazon Corretto\",
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + @"\Zulu\",
+                ..DirectoryUtils.EnumerateDirectories(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles) + @"\Microsoft\", searchPattern: "jdk-*")
+            ];
+        } else {
+            folders = [
+                Path.Combine(userProfile, ".minecraft", "runtime"), // 官方启动器
+                Path.Combine(userProfile, ".hmcl", "java"),
+                Path.Combine(userProfile, ".jdks"), // IntelliJ IDEA 下载的 JDK
+                Path.Combine(userProfile, ".sdkman", "candidates", "java"),
+                Path.Combine(userProfile, ".gradle", "jdks"),
+                "/usr/lib/jvm",
+                "/usr/lib64/jvm",
+                "/usr/java",
+                "/opt/java",
+                "/opt/jdk"
+            ];
+            if (OperatingSystem.IsMacOS()) {
+                folders.Add("/Library/Java/JavaVirtualMachines");
+                folders.Add(Path.Combine(userProfile, "Library", "Java", "JavaVirtualMachines"));
+                folders.Add(Path.Combine(userProfile, "Library", "Application Support", "minecraft", "runtime"));
+            }
+        }
+        // 环境变量
+        foreach (var name in new[] { "JDK_HOME", "JAVA_HOME" }) {
+            var value = Environment.GetEnvironmentVariable(name);
+            if (string.IsNullOrWhiteSpace(value)) continue;
+            folders.AddRange(value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(path => path.Trim('"')));
+        }
         return folders.Select(f => {
             try {
                 return PathUtils.ForCompare(f);
@@ -197,7 +228,7 @@ public static class JavaUtils {
         await TaskUtils.ForEachAsync(folders.Distinct(StringComparer.OrdinalIgnoreCase), 4, async (folder, cp) => {
             await Task.Run(() => {
                 try {
-                    foreach (var file in DirectoryUtils.EnumerateFiles(folder, includeSubDirectories, "java.exe")) {
+                    foreach (var file in DirectoryUtils.EnumerateFiles(folder, includeSubDirectories, Java.ExecutableName)) {
                         cancellationToken.ThrowIfCancellationRequested();
                         string targetFolder = PathUtils.AddSlashSuffix(PathUtils.ForCompare(PathUtils.RemoveLastPart(file)));
                         // 判断文件夹是否包含重解析点（例如符号链接）
@@ -211,7 +242,7 @@ public static class JavaUtils {
                             return false;
                         }
                         // 结果
-                        var hasReparsePoint = HasReparsePoint(FileUtils.GetInfo(Path.Combine(targetFolder, "java.exe")));
+                        var hasReparsePoint = HasReparsePoint(FileUtils.GetInfo(Path.Combine(targetFolder, Java.ExecutableName)));
                         var isSpecialPath = targetFolder.ContainsIgnoreCase("java8path_target_") || targetFolder.ContainsIgnoreCase("javapath_target_") || targetFolder.ContainsIgnoreCase("javatmp") || targetFolder.ContainsIgnoreCase("system32");
                         results.Add((targetFolder, hasReparsePoint, isSpecialPath));
                     }

@@ -1,10 +1,15 @@
 using System;
 using System.IO;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
+using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
+using MeloongCore.Compat;
 using SkiaSharp;
 using Xunit;
 
@@ -91,10 +96,31 @@ public class AnimationTests {
 public class ModalityTests {
 
     [AvaloniaFact]
+    public void Input_dialog_renders_with_preset_caret_position() {
+        // 回归：输入弹窗附加时会立刻设置光标位置，若默认字体无法解析，首次模板排版会抛出 glyphTypeface 异常
+        var converter = new global::PCL.ModMain.MyMsgBoxConverter {
+            Type = global::PCL.ModMain.MyMsgBoxType.Input,
+            Title = "输入显示名称", Text = "输入该文件夹的名称。", Content = "1",
+        };
+        var dialog = new global::PCL.MyMsgInput(converter);
+        var window = new Window { Width = 700, Height = 400, Content = dialog };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        try {
+            var box = dialog.GetVisualDescendants().OfType<global::PCL.MyTextBox>().Single();
+            Assert.True(box.Bounds.Height > 0, $"文本框未完成排版：{box.Bounds}");
+            Assert.Equal("1", box.Text);
+        } finally {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
     public void MyMsgBox_returns_clicked_button_index() {
+        var window = new global::PCL.FormMain();
         var pressed = false;
         Dispatcher.UIThread.Post(() => {
-            var dialog = global::PCL.ModMain.ActiveMsgBoxWindow as global::PCL.MyMsgBoxDialog;
+            var dialog = global::PCL.ModMain.ActiveMsgBoxControl as global::PCL.MyMsgText;
             Assert.NotNull(dialog);
             dialog!.Respond(2);
             pressed = true;
@@ -104,7 +130,117 @@ public class ModalityTests {
 
         Assert.True(pressed);
         Assert.Equal(2, result);
-        Assert.Null(global::PCL.ModMain.ActiveMsgBoxWindow);
+        global::PCL.ModAnimation.AniTimer(400);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Null(global::PCL.ModMain.ActiveMsgBoxControl);
+        Assert.Empty(window.FindControl<Grid>("PanMsg")!.Children);
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Dialog_opened_from_list_item_click_is_clickable() {
+        // 回归：列表项的 Click 中打开模态弹窗时，同样必须提前释放指针捕获，否则弹窗第一下点击与悬停无效
+        var window = new global::PCL.FormMain();
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        global::PCL.ModAnimation.AniTimer(700);
+
+        var converter = new global::PCL.ModMain.MyMsgBoxConverter {
+            Type = global::PCL.ModMain.MyMsgBoxType.Text,
+            Text = "测试内容", Title = "测试标题", Button1 = "确定", Button2 = "取消",
+        };
+        var pumpStarted = false;
+        var item = new global::PCL.MyListItem {
+            Title = "添加已有文件夹", Width = 250, Height = 40,
+            Type = global::PCL.MyListItem.CheckType.Clickable,
+            Margin = new Thickness(40, 80, 0, 0),
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+        };
+        item.Click += (s, e) => {
+            if (pumpStarted) return;
+            pumpStarted = true;
+            global::PCL.ModMain.WaitingMyMsgBox.Enqueue(converter);
+            global::PCL.ModMain.MyMsgBoxTick();
+            Dispatcher.UIThread.Post(() => {
+                window.CaptureRenderedFrame();
+                var dialog = global::PCL.ModMain.ActiveMsgBoxControl as global::PCL.MyMsgText;
+                Assert.NotNull(dialog);
+                var btn = dialog!.Btn1;
+                var center = btn.TranslatePoint(new Point(btn.Bounds.Width / 2, btn.Bounds.Height / 2), window);
+                Assert.True(center.HasValue);
+                window.MouseDown(center!.Value, MouseButton.Left);
+                window.MouseUp(center.Value, MouseButton.Left);
+            });
+            ModalityHost.PumpUntil(() => converter.IsExited, 3000);
+        };
+        window.FindControl<Grid>("PanForm")!.Children.Add(item);
+        window.CaptureRenderedFrame();
+
+        var itemCenter = item.TranslatePoint(new Point(item.Bounds.Width / 2, item.Bounds.Height / 2), window);
+        Assert.True(itemCenter.HasValue);
+        window.MouseDown(itemCenter!.Value, MouseButton.Left);
+        window.MouseUp(itemCenter.Value, MouseButton.Left);
+
+        Assert.True(converter.IsExited, "弹窗未收到第一下点击");
+        Assert.Equal(1, converter.Result);
+        global::PCL.ModAnimation.AniTimer(400);
+        Dispatcher.UIThread.RunJobs();
+        window.Close();
+    }
+
+    [AvaloniaFact]
+    public void Dialog_opened_from_button_click_is_clickable() {
+        // 回归：按钮 Click 中打开模态弹窗时，MyButton 必须已释放指针捕获，否则弹窗收不到鼠标事件
+        var window = new global::PCL.FormMain();
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        global::PCL.ModAnimation.AniTimer(700);
+
+        var converter = new global::PCL.ModMain.MyMsgBoxConverter {
+            Type = global::PCL.ModMain.MyMsgBoxType.Text,
+            Text = "测试内容", Title = "测试标题", Button1 = "确定", Button2 = "取消",
+        };
+        var pumpStarted = false;
+        var triggerClicks = 0;
+        var trigger = new global::PCL.MyButton {
+            Text = "触发弹窗", Width = 120, Height = 30,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+            Margin = new Thickness(40, 80, 0, 0),
+        };
+        trigger.Click += (s, e) => {
+            triggerClicks++;
+            if (pumpStarted) return;
+            pumpStarted = true;
+            global::PCL.ModMain.WaitingMyMsgBox.Enqueue(converter);
+            global::PCL.ModMain.MyMsgBoxTick();
+            Dispatcher.UIThread.Post(() => {
+                window.CaptureRenderedFrame();
+                var dialog = global::PCL.ModMain.ActiveMsgBoxControl as global::PCL.MyMsgText;
+                Assert.NotNull(dialog);
+                var btn = dialog!.Btn1;
+                var center = btn.TranslatePoint(new Point(btn.Bounds.Width / 2, btn.Bounds.Height / 2), window);
+                Assert.True(center.HasValue);
+                window.MouseDown(center!.Value, MouseButton.Left);
+                window.MouseUp(center.Value, MouseButton.Left);
+            });
+            ModalityHost.PumpUntil(() => converter.IsExited, 3000);
+        };
+        window.FindControl<Grid>("PanForm")!.Children.Add(trigger);
+        window.CaptureRenderedFrame();
+
+        var triggerCenter = trigger.TranslatePoint(new Point(trigger.Bounds.Width / 2, trigger.Bounds.Height / 2), window);
+        Assert.True(triggerCenter.HasValue);
+        window.MouseDown(triggerCenter!.Value, MouseButton.Left);
+        window.MouseUp(triggerCenter.Value, MouseButton.Left);
+
+        Assert.True(converter.IsExited, "弹窗未收到点击");
+        Assert.Equal(1, converter.Result);
+        Assert.Equal(1, triggerClicks);
+        global::PCL.ModAnimation.AniTimer(400);
+        Dispatcher.UIThread.RunJobs();
+        window.Close();
     }
 }
 

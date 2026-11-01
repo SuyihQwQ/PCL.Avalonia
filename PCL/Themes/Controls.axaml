@@ -3,10 +3,79 @@
         xmlns:local="using:PCL">
 
     <Styles.Resources>
-        <ControlTheme x:Key="{x:Type local:MyScrollViewer}" TargetType="local:MyScrollViewer"
-                      BasedOn="{StaticResource {x:Type ScrollViewer}}" />
-        <ControlTheme x:Key="{x:Type local:MyScrollBar}" TargetType="local:MyScrollBar"
-                      BasedOn="{StaticResource {x:Type ScrollBar}}" />
+        <!-- 滚动条 -->
+        <ControlTheme x:Key="{x:Type local:MyScrollBar}" TargetType="local:MyScrollBar">
+            <Setter Property="Foreground" Value="{DynamicResource ColorBrush4}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Width" Value="8" />
+            <Setter Property="MinWidth" Value="8" />
+            <Setter Property="Opacity" Value="0.5" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}" CornerRadius="2">
+                        <Track Name="PART_Track"
+                               Minimum="{TemplateBinding Minimum}"
+                               Maximum="{TemplateBinding Maximum}"
+                               Value="{TemplateBinding Value, Mode=TwoWay}"
+                               ViewportSize="{TemplateBinding ViewportSize}"
+                               Orientation="{TemplateBinding Orientation}"
+                               IsDirectionReversed="True">
+                            <Track.DecreaseButton>
+                                <RepeatButton Name="PART_PageUpButton" Focusable="False" Opacity="0">
+                                    <RepeatButton.Template>
+                                        <ControlTemplate>
+                                            <Border Background="Transparent" />
+                                        </ControlTemplate>
+                                    </RepeatButton.Template>
+                                </RepeatButton>
+                            </Track.DecreaseButton>
+                            <Track.IncreaseButton>
+                                <RepeatButton Name="PART_PageDownButton" Focusable="False" Opacity="0">
+                                    <RepeatButton.Template>
+                                        <ControlTemplate>
+                                            <Border Background="Transparent" />
+                                        </ControlTemplate>
+                                    </RepeatButton.Template>
+                                </RepeatButton>
+                            </Track.IncreaseButton>
+                            <Thumb Foreground="{TemplateBinding Foreground}" MinHeight="8">
+                                <Thumb.Template>
+                                    <ControlTemplate>
+                                        <Border Background="{DynamicResource ColorBrushSemiTransparent}" CornerRadius="2">
+                                            <Border Background="{TemplateBinding Foreground}" CornerRadius="3" Margin="2" />
+                                        </Border>
+                                    </ControlTemplate>
+                                </Thumb.Template>
+                            </Thumb>
+                        </Track>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </ControlTheme>
+        <ControlTheme x:Key="{x:Type local:MyScrollViewer}" TargetType="local:MyScrollViewer">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <ScrollContentPresenter Name="PART_ContentPresenter" Grid.Column="0"
+                                                Background="{TemplateBinding Background}"
+                                                Padding="{TemplateBinding Padding}"
+                                                ScrollViewer.IsScrollInertiaEnabled="{TemplateBinding IsScrollInertiaEnabled}">
+                            <ScrollContentPresenter.GestureRecognizers>
+                                <ScrollGestureRecognizer CanHorizontallyScroll="{Binding CanHorizontallyScroll, ElementName=PART_ContentPresenter}"
+                                                         CanVerticallyScroll="{Binding CanVerticallyScroll, ElementName=PART_ContentPresenter}"
+                                                         IsScrollInertiaEnabled="{Binding (ScrollViewer.IsScrollInertiaEnabled), ElementName=PART_ContentPresenter}"
+                                                         Offset="{Binding Offset, ElementName=PART_ContentPresenter}"
+                                                         Viewport="{Binding Viewport, ElementName=PART_ContentPresenter}"
+                                                         Extent="{Binding Extent, ElementName=PART_ContentPresenter}" />
+                            </ScrollContentPresenter.GestureRecognizers>
+                        </ScrollContentPresenter>
+                        <local:MyScrollBar Name="PART_VerticalScrollBar" Grid.Column="1"
+                                           Orientation="Vertical" Margin="2,1,0,1" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter>
+        </ControlTheme>
 
         <!-- 文本框 -->
         <ControlTheme x:Key="{x:Type local:MyTextBox}" TargetType="local:MyTextBox">
@@ -17,6 +86,7 @@
             <Setter Property="Background" Value="{DynamicResource ColorBrushHalfWhite}" />
             <Setter Property="Foreground" Value="{DynamicResource ColorBrush1}" />
             <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontFamily" Value="{DynamicResource PCLFont}" />
             <Setter Property="SelectionBrush" Value="{DynamicResource ColorBrush3}" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="HorizontalContentAlignment" Value="Left" />
@@ -33,13 +103,12 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 Background="{TemplateBinding Background}"
                                 CornerRadius="3">
-                            <ScrollViewer Name="PART_ScrollViewer"
-                                          Margin="{TemplateBinding Padding}"
-                                          HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"
-                                          VerticalScrollBarVisibility="{TemplateBinding (ScrollViewer.VerticalScrollBarVisibility)}"
-                                          IsScrollChainingEnabled="{TemplateBinding (ScrollViewer.IsScrollChainingEnabled)}"
-                                          AllowAutoHide="{TemplateBinding (ScrollViewer.AllowAutoHide)}"
-                                          BringIntoViewOnFocusChange="{TemplateBinding (ScrollViewer.BringIntoViewOnFocusChange)}">
+                            <local:MyScrollViewer Name="PART_ScrollViewer"
+                                                  Margin="{TemplateBinding Padding}"
+                                                  HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"
+                                                  VerticalScrollBarVisibility="{TemplateBinding (ScrollViewer.VerticalScrollBarVisibility)}"
+                                                  IsScrollChainingEnabled="{TemplateBinding (ScrollViewer.IsScrollChainingEnabled)}"
+                                                  BringIntoViewOnFocusChange="{TemplateBinding (ScrollViewer.BringIntoViewOnFocusChange)}">
                                 <Panel>
                                     <TextBlock Name="labHint"
                                                Text="{TemplateBinding PlaceholderText}"
@@ -67,7 +136,7 @@
                                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
                                 </Panel>
-                            </ScrollViewer>
+                            </local:MyScrollViewer>
                         </Border>
                         <TextBlock Grid.Row="1"
                                    Name="labWrong"
@@ -110,7 +179,7 @@
                                          Text="{Binding Text, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
                                          BorderThickness="0"
                                          Margin="1.5,0,21.5,0"
-                                         Padding="0"
+                                         Padding="7,0,0,0"
                                          Background="Transparent" />
                         <Path Name="PART_Arrow"
                               Width="9" Height="6"
@@ -129,26 +198,24 @@
                         </Path>
                         <Popup Name="PART_Popup"
                                IsOpen="{TemplateBinding IsDropDownOpen, Mode=TwoWay}"
+                               IsLightDismissEnabled="True"
                                Placement="Bottom"
                                VerticalOffset="2"
                                MinWidth="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}">
-                            <Border Background="White"
+                            <Border Background="{DynamicResource ColorBrushCard}"
                                     CornerRadius="3"
                                     BorderBrush="{TemplateBinding Foreground}"
                                     BorderThickness="1"
                                     MaxHeight="{TemplateBinding MaxDropDownHeight}">
-                                <ScrollViewer HorizontalScrollBarVisibility="Disabled"
-                                              VerticalScrollBarVisibility="Auto">
+                                <local:MyScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                                      VerticalScrollBarVisibility="Auto">
                                     <ItemsPresenter />
-                                </ScrollViewer>
+                                </local:MyScrollViewer>
                             </Border>
                         </Popup>
                     </Grid>
                 </ControlTemplate>
             </Setter>
-            <Style Selector="^:dropdownopen /template/ Path#PART_Arrow">
-                <Setter Property="RenderTransform" Value="rotate(180deg)" />
-            </Style>
             <Style Selector="^:disabled">
                 <Setter Property="Opacity" Value="0.6" />
             </Style>
@@ -202,28 +269,6 @@
     </Style>
     <Style Selector="Button.TitleButton:pressed /template/ ContentPresenter#PART_ContentPresenter">
         <Setter Property="Background" Value="#55FFFFFF" />
-    </Style>
-
-    <!-- 标题栏页面切换按钮 -->
-    <Style Selector="Button.TitleSelect">
-        <Setter Property="Height" Value="27" />
-        <Setter Property="Padding" Value="11,0" />
-        <Setter Property="FontSize" Value="13" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="CornerRadius" Value="4" />
-        <Setter Property="Foreground" Value="White" />
-        <Setter Property="HorizontalContentAlignment" Value="Center" />
-        <Setter Property="VerticalContentAlignment" Value="Center" />
-    </Style>
-    <Style Selector="Button.TitleSelect:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-        <Setter Property="Background" Value="#26FFFFFF" />
-    </Style>
-    <Style Selector="Button.TitleSelect:pressed /template/ ContentPresenter#PART_ContentPresenter">
-        <Setter Property="Background" Value="#40FFFFFF" />
-    </Style>
-    <Style Selector="Button.TitleSelect.active /template/ ContentPresenter#PART_ContentPresenter">
-        <Setter Property="Background" Value="#38FFFFFF" />
     </Style>
 
 </Styles>

@@ -82,6 +82,8 @@ Public Class MyLocalModItem
     Public Event Click(sender As Object, e As PointerReleasedEventArgs)
     Private Sub Button_MouseUp(sender As Object, e As PointerReleasedEventArgs)
         If Not IsMouseDown Then Return
+        '提前释放隐式指针捕获，避免 Click 中打开的模态弹窗被本控件持续捕获指针
+        e.Pointer.Capture(Nothing)
         '先触发点击，再重置按下状态，以保持与按下时一致的配色动画顺序
         RaiseEvent Click(sender, e)
         IsMouseDown = False
@@ -532,14 +534,14 @@ Public Class MyLocalModItem
                 AaOpacity(RectBack, 1 - RectBack.Opacity, Time,, New AniEaseOutFluent)
             })
             If IsMouseDown Then
-                Ani.Add(AaScaleTransform(RectBack, 0.996 - CType(RectBack.RenderTransform, ScaleTransform).ScaleX, Time * 1.2,, New AniEaseOutFluent))
+                Ani.Add(AaScaleTransform(RectBack, 0.996 - AniScaleX(RectBack), Time * 1.2,, New AniEaseOutFluent))
             Else
-                Ani.Add(AaScaleTransform(RectBack, 1 - CType(RectBack.RenderTransform, ScaleTransform).ScaleX, Time * 1.2,, New AniEaseOutFluent))
+                Ani.Add(AaScaleTransform(RectBack, 1 - AniScaleX(RectBack), Time * 1.2,, New AniEaseOutFluent))
             End If
         Else
             Ani.AddRange({
                 AaOpacity(RectBack, -RectBack.Opacity, Time),
-                AaScaleTransform(RectBack, 0.996 - CType(RectBack.RenderTransform, ScaleTransform).ScaleX, Time,, New AniEaseOutFluent),
+                AaScaleTransform(RectBack, 0.996 - AniScaleX(RectBack), Time,, New AniEaseOutFluent),
                 AaScaleTransform(RectBack, -0.196, 1,,, True)
             })
         End If

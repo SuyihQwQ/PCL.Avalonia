@@ -47,9 +47,10 @@ Public Class PageLaunchLeft
         PanLaunchBox.RenderTransformOrigin = New RelativePoint(0.5, 0.5, RelativeUnit.Relative)
         ProgressLaunchingFinished = PanProgress.ColumnDefinitions(0)
         ProgressLaunchingUnfinished = PanProgress.ColumnDefinitions(1)
-        '初始化登录方式页面选择
-        RadioLoginType5.SetChecked(Settings.Get(Of McLoginType)("LoginType") = McLoginType.Ms, False, False)
-        RadioLoginType0.SetChecked(Settings.Get(Of McLoginType)("LoginType") <> McLoginType.Ms, False, False)
+        '初始化登录方式页面选择（微软登录暂未开放）
+        RadioLoginType5.IsVisible = MsLoginEnabled
+        RadioLoginType5.SetChecked(MsLoginEnabled AndAlso Settings.Get(Of McLoginType)("LoginType") = McLoginType.Ms, False, False)
+        RadioLoginType0.SetChecked(Not MsLoginEnabled OrElse Settings.Get(Of McLoginType)("LoginType") <> McLoginType.Ms, False, False)
     End Sub
 
 #End Region
@@ -217,9 +218,9 @@ Public Class PageLaunchLeft
         AniStart({
                 AaOpacity(PanInput, 0, 50), '略作延迟，这样如果预检测失败，不会出现奇怪的弹一下的动画
                 AaOpacity(PanInput, -PanInput.Opacity, 110,, New AniEaseInFluent, True),
-                AaScaleTransform(PanInput, 1.2 - CType(PanInput.RenderTransform, ScaleTransform).ScaleX, 160),
+                AaScaleTransform(PanInput, 1.2 - AniScaleX(PanInput), 160),
                 AaOpacity(PanLaunching, 1 - PanLaunching.Opacity, 150, 100),
-                AaScaleTransform(PanLaunching, 1 - CType(PanLaunching.RenderTransform, ScaleTransform).ScaleX, 500, 100, New AniEaseOutBack(AniEasePower.Weak)),
+                AaScaleTransform(PanLaunching, 1 - AniScaleX(PanLaunching), 500, 100, New AniEaseOutBack(AniEasePower.Weak)),
                 AaCode(Sub() PanLaunching.IsHitTestVisible = True, 150)
             }, "Launch State Page")
     End Sub
@@ -234,9 +235,9 @@ Public Class PageLaunchLeft
         PanInput.IsVisible = True
         AniStart({
             AaOpacity(PanLaunching, -PanLaunching.Opacity, 150),
-            AaScaleTransform(PanLaunching, 0.8 - CType(PanLaunching.RenderTransform, ScaleTransform).ScaleX, 150,, New AniEaseOutFluent(AniEasePower.Weak)),
+            AaScaleTransform(PanLaunching, 0.8 - AniScaleX(PanLaunching), 150,, New AniEaseOutFluent(AniEasePower.Weak)),
             AaOpacity(PanInput, 1 - PanInput.Opacity, 250, 50),
-            AaScaleTransform(PanInput, 1 - CType(PanInput.RenderTransform, ScaleTransform).ScaleX, 300, 50, New AniEaseOutBack(AniEasePower.Weak)),
+            AaScaleTransform(PanInput, 1 - AniScaleX(PanInput), 300, 50, New AniEaseOutBack(AniEasePower.Weak)),
             AaCode(Sub() PanInput.IsHitTestVisible = True, 200)
         }, "Launch State Page", True)
     End Sub
@@ -344,6 +345,8 @@ Public Class PageLaunchLeft
         Else
             LoginPageType = Settings.Get(Of Integer)("LoginPageType")
         End If
+        '微软登录暂未开放，相关页面统一按仅离线处理
+        If Not MsLoginEnabled AndAlso LoginPageType <= 1 Then LoginPageType = 2
         Select Case LoginPageType
             Case 0 '正版或离线
 UnknownType:
@@ -680,7 +683,7 @@ Finish:
     End Sub
     Private BtnLaunchState As Integer = 0
     Private BtnLaunchInstance As McInstance = Nothing
-    Public Sub RefreshButtonsUI()
+    Public Sub RefreshButtonsUI() Handles BtnLaunch.Loaded
         If BtnLaunch Is Nothing OrElse Not BtnLaunch.IsLoaded Then Return
         '获取当前状态
         Dim CurrentState As Integer
@@ -755,6 +758,7 @@ ExitRefresh:
     '版本设置按钮
     Private Sub BtnMore_Click(sender As Object, e As PointerReleasedEventArgs) Handles BtnMore.Click
         If McLaunchLoader.State = LoadState.Loading Then Return
+        If McInstanceSelected Is Nothing Then Return
         If McInstanceLock.IsLocked(McInstanceSelected) Then
             Hint("该版本正在被修改，暂时无法进入版本设置！", HintType.Red)
             Return
@@ -846,5 +850,34 @@ ExitRefresh:
         End Try
     End Sub
     Private ShowProgress As Double = 0
+    '尺寸改变动画
+    Private IsWidthAnimating As Boolean = False
+    Private Sub PanLaunchingInfo_SizeChangedW(sender As Object, e As SizeChangedEventArgs) Handles PanLaunchingInfo.SizeChanged
+        Dim DeltaWidth As Double = e.NewSize.Width - e.PreviousSize.Width
+        If e.PreviousSize.Width = 0 OrElse IsWidthAnimating OrElse Math.Abs(DeltaWidth) < 1 OrElse PanLaunchingInfo.Bounds.Width = 0 Then Return
+        AniStart({
+            AaWidth(PanLaunchingInfo, DeltaWidth, 180,, New AniEaseOutFluent),
+            AaCode(Sub()
+                       IsWidthAnimating = False
+                       PanLaunchingInfo.Width = Double.NaN '恢复自动宽度
+                   End Sub,, True)
+        }, "Launching Info Width")
+        IsWidthAnimating = True
+        PanLaunchingInfo.Width = e.PreviousSize.Width
+    End Sub
+    Private IsHeightAnimating As Boolean = False
+    Private Sub PanLaunchingInfo_SizeChangedH(sender As Object, e As SizeChangedEventArgs) Handles PanLaunchingInfo.SizeChanged
+        Dim DeltaHeight As Double = e.NewSize.Height - e.PreviousSize.Height
+        If e.PreviousSize.Height = 0 OrElse IsHeightAnimating OrElse Math.Abs(DeltaHeight) < 1 OrElse PanLaunchingInfo.Bounds.Height = 0 Then Return
+        AniStart({
+            AaHeight(PanLaunchingInfo, DeltaHeight, 180,, New AniEaseOutFluent),
+            AaCode(Sub()
+                       IsHeightAnimating = False
+                       PanLaunchingInfo.Height = Double.NaN '恢复自动高度
+                   End Sub,, True)
+        }, "Launching Info Height")
+        IsHeightAnimating = True
+        PanLaunchingInfo.Height = e.PreviousSize.Height
+    End Sub
 
 End Class

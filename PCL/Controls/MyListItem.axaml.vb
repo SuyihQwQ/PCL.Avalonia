@@ -406,7 +406,8 @@ Public Class MyListItem
             End If
 
             '更改动画
-            If IsControlLoaded AndAlso AniControlEnabled = 0 AndAlso anime Then
+            '控件刚加入列表、尚未完成首次布局时 Bounds 为 0，此时按实际高度计算会得到负增量，直接把勾选条压成 0 高
+            If IsControlLoaded AndAlso AniControlEnabled = 0 AndAlso anime AndAlso Bounds.Height > 0 Then
                 Dim Anim As New List(Of AniData)
                 If Checked Then
                     If RectCheck IsNot Nothing Then
@@ -523,6 +524,8 @@ Public Class MyListItem
         If Not IsMouseDown Then Return
         IsMouseDown = False
         If ButtonStack IsNot Nothing Then ButtonStack.IsHitTestVisible = True
+        'Avalonia 默认在事件处理结束后才释放隐式指针捕获；提前释放，避免 Click 中打开的模态弹窗被本控件持续捕获指针
+        e.Pointer.Capture(Nothing)
         RaiseEvent Click(sender, e)
         If e.Handled Then Return
         If CustomEventService.GetEventType(Me) <> CustomEvent.EventType.None OrElse

@@ -94,6 +94,8 @@ Public Class MyResourceItem
     Private Sub Button_MouseUp(sender As Object, e As PointerReleasedEventArgs)
         If Not IsMouseDown Then Return
         IsMouseDown = False
+        '提前释放隐式指针捕获，避免 Click 中打开的模态弹窗被本控件持续捕获指针
+        e.Pointer.Capture(Nothing)
         RaiseEvent Click(sender, e)
         If e.Handled Then Return
         Logger.Info($"按下资源工程列表项：{LabTitle.Text}")

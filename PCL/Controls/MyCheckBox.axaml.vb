@@ -122,6 +122,8 @@ Public Class MyCheckBox
         If Not MouseDowned Then Return
         Logger.Info($"按下复选框（{Not Checked}）：{Text}")
         MouseDowned = False
+        '提前释放隐式指针捕获，避免勾选回调中打开的模态弹窗被本控件持续捕获指针
+        e.Pointer.Capture(Nothing)
         SetChecked(Not Checked, True)
         AniStart(AaColor(ShapeBorder, Border.BackgroundProperty, "ColorBrushHalfWhite", 100), "MyCheckBox Background " & Uuid)
     End Sub
@@ -186,10 +188,10 @@ Public Class MyCheckBox
                 Checkbox_MouseLeaveAnimation()
             Else
                 AniStart({
-                         AaColor(ShapeBorder, Border.BorderBrushProperty, ColorGray5 - New MyColor(ShapeBorder.BorderBrush), AnimationTimeOfMouseOut)
+                         AaColor(ShapeBorder, Border.BorderBrushProperty, "ColorBrushGray5", AnimationTimeOfMouseOut)
                  }, "MyCheckBox BorderColor " & Uuid)
                 AniStart({
-                         AaColor(LabText, TextBlock.ForegroundProperty, ColorGray5 - New MyColor(LabText.Foreground), AnimationTimeOfMouseOut)
+                         AaColor(LabText, TextBlock.ForegroundProperty, "ColorBrushGray5", AnimationTimeOfMouseOut)
                  }, "MyCheckBox TextColor " & Uuid)
             End If
         Else

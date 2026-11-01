@@ -248,48 +248,6 @@ NextInner:
         Dim CheckResult As String = ""
         RunInUiWait(Sub() CheckResult = McLoginAble(McLoginInput()))
         If CheckResult <> "" Then Throw New ArgumentException(CheckResult)
-        '求赞助
-        If BuildType = BuildTypes.Release AndAlso CurrentLaunchOptions?.SaveBatch Is Nothing Then '保存脚本时不提示
-            RunInNewThread(
-            Sub()
-                Select Case Settings.Get(Of Integer)("SystemLaunchCount")
-                    Case 10, 20, 40, 60, 80, 100, 120, 150, 200, 250, 300, 350, 400, 500, 600, 700, 800, 900, 1000, 1200, 1400, 1600, 1800, 2000
-                        If MyMsgBox("PCL 已经为你启动了 " & Settings.Get(Of Integer)("SystemLaunchCount") & " 次游戏啦！" & vbCrLf &
-                                    "如果 PCL 还算好用的话，能不能考虑赞助一下 PCL……" & vbCrLf &
-                                    "如果没有大家的支持，PCL 很难在免费、无任何广告的情况下维持数年的更新（磕头）……！",
-                                    Settings.Get(Of Integer)("SystemLaunchCount") & " 次启动！", "支持 PCL！", "但是我拒绝") = 1 Then
-                            OpenWebsite("https://meloong.com/afd/a/LTCat")
-                        End If
-                End Select
-            End Sub, "Donate")
-        End If
-        '正版购买提示
-        If CurrentLaunchOptions?.SaveBatch Is Nothing AndAlso '保存脚本时不提示
-           Not Settings.Get(Of Boolean)("HintBuy") AndAlso Settings.Get(Of McLoginType)("LoginType") <> McLoginType.Ms Then
-            If Globalization.CultureInfo.CurrentCulture.Name.StartsWithF("zh") OrElse Globalization.CultureInfo.CurrentUICulture.Name.StartsWithF("zh") Then '中文？
-                RunInNewThread(
-                Sub()
-                    Select Case Settings.Get(Of Integer)("SystemLaunchCount")
-                        Case 3, 8, 15, 30, 50, 70, 90, 110, 130, 180, 220, 280, 330, 380, 450, 550, 660, 750, 880, 950, 1100, 1300, 1500, 1700, 1900
-                            If MyMsgBox("你已经启动了 " & Settings.Get(Of Integer)("SystemLaunchCount") & " 次 Minecraft 啦！" & vbCrLf &
-                                "如果觉得 Minecraft 还不错，可以购买正版支持一下，毕竟开发游戏也真的很不容易……不要一直白嫖啦。" & vbCrLf & vbCrLf &
-                                "在登录一次正版账号后，就不会再出现这个提示了！",
-                                "考虑一下正版？", "支持正版游戏！", "下次一定") = 1 Then
-                                OpenWebsite("https://www.xbox.com/zh-cn/games/store/minecraft-java-bedrock-edition-for-pc/9nxp44l49shj")
-                            End If
-                    End Select
-                End Sub, "Buy Minecraft")
-            ElseIf Settings.Get(Of McLoginType)("LoginType") = McLoginType.Legacy Then
-                Select Case MyMsgBox("你必须先登录正版账号，才能进行离线登录！", "正版验证", "购买正版", "试玩", "返回",
-                    Button1Action:=Sub() OpenWebsite("https://www.xbox.com/zh-cn/games/store/minecraft-java-bedrock-edition-for-pc/9nxp44l49shj"))
-                    Case 2
-                        Hint("游戏将以试玩模式启动！", HintType.Red)
-                        CurrentLaunchOptions.ExtraGameArgs.Add("--demo")
-                    Case 3
-                        Throw New OperationCanceledException
-                End Select
-            End If
-        End If
     End Sub
 
 #End Region
@@ -1278,16 +1236,17 @@ NextInstance:
 
         '统一通行证
         If McLoginLoader.Output.Type = "Nide" Then
-            Args.Add("-javaagent:""${pure_directory}\nide8auth.jar""=""" & Settings.Get(Of String)("VersionServerNide", Instance:=McInstanceSelected) & """")
+            Args.Add("-javaagent:""${pure_directory}${path_separator}nide8auth.jar""=""" & Settings.Get(Of String)("VersionServerNide", Instance:=McInstanceSelected) & """")
         End If
         'Authlib-Injector
         If McLoginLoader.Output.Type = "Auth" Then
-            If McLaunchJavaSelected.Version.Major >= 6 Then Args.Add("-Djavax.net.ssl.trustStoreType=WINDOWS-ROOT") '信任系统根证书（5252#）
+            'WINDOWS-ROOT 密钥库类型只在 Windows 上存在，其他平台沿用 Java 自带的 cacerts
+            If OperatingSystem.IsWindows() AndAlso McLaunchJavaSelected.Version.Major >= 6 Then Args.Add("-Djavax.net.ssl.trustStoreType=WINDOWS-ROOT") '信任系统根证书（5252#）
             Dim Server As String = Settings.Get(Of String)("VersionServerAuthServer", Instance:=McInstanceSelected)
             Try
                 McLaunchLog($"开始 Authlib Injector Prefetch")
                 Dim Response As String = NetRequestByClientRetry(Server, Encoding:=Encoding.UTF8)
-                Args.Add("-javaagent:""${pure_directory}\authlib-injector.jar""=""" & Server & """")
+                Args.Add("-javaagent:""${pure_directory}${path_separator}authlib-injector.jar""=""" & Server & """")
                 Args.Add("-Dauthlibinjector.side=client")
                 Args.Add("-Dauthlibinjector.yggdrasil.prefetched=" & Convert.ToBase64String(Encoding.UTF8.GetBytes(Response)))
             Catch ex As Exception
@@ -1296,8 +1255,9 @@ NextInstance:
         End If
 
         'JLW
-        '非 GBK 编码下命令行参数乱码的问题（JDK-8272352）
+        '非 GBK 编码下命令行参数乱码的问题（JDK-8272352）；其原生库只有 Windows DLL，其他平台不能启用
         Dim UseJLW As Boolean =
+            OperatingSystem.IsWindows() AndAlso
             Not Settings.Get(Of Boolean)("LaunchAdvanceDisableJLW") AndAlso Not Settings.Get(Of Boolean)("VersionAdvanceDisableJLW", McInstanceSelected) AndAlso
             Not IsGBKEncoding '即使游戏文件夹名称不含非 ASCII 字符，但玩家名等也可能出现中文，因此依然需要 JLW（#8739）
         If UseJLW AndAlso CustomArg.Contains("-javaagent") Then
@@ -1512,18 +1472,26 @@ NextInstance:
         Return DeduplicateJavaArguments(Args, False)
     End Function
     '获取替换标记
+    ''' <summary>
+    ''' 非 Windows 平台的 Java 只把 / 当作路径分隔符，PCL 内部路径里的 \ 需要先转换。
+    ''' </summary>
+    Private Function McLaunchPathForApi(Path As String) As String
+        Return If(OperatingSystem.IsWindows(), Path, PathUtils.ForApi(Path))
+    End Function
+
     Private Iterator Function McLaunchArgumentsReplace(Arguments As List(Of String)) As IEnumerable(Of (Key As String, Value As String))
         '基础参数
         Yield ("${classpath_separator}", Path.PathSeparator.ToString)
-        Yield ("${natives_directory}", PathUtils.RemoveSlashSuffix(GetNativesFolder()))
-        Yield ("${library_directory}", PathUtils.ToShortPath(Path.Combine(McFolderSelected, "libraries")))
-        Yield ("${libraries_directory}", PathUtils.ToShortPath(Path.Combine(McFolderSelected, "libraries")))
-        Yield ("${pure_directory}", PathUtils.RemoveSlashSuffix(PathPure.Value)) '由 PCL 添加，这会允许在分割参数并去重后再替换路径，防止路径中的特殊字符影响参数分割和去重
+        Yield ("${path_separator}", Path.DirectorySeparatorChar.ToString)
+        Yield ("${natives_directory}", McLaunchPathForApi(PathUtils.RemoveSlashSuffix(GetNativesFolder())))
+        Yield ("${library_directory}", McLaunchPathForApi(PathUtils.ToShortPath(Path.Combine(McFolderSelected, "libraries"))))
+        Yield ("${libraries_directory}", McLaunchPathForApi(PathUtils.ToShortPath(Path.Combine(McFolderSelected, "libraries"))))
+        Yield ("${pure_directory}", McLaunchPathForApi(PathUtils.RemoveSlashSuffix(PathPure.Value))) '由 PCL 添加，这会允许在分割参数并去重后再替换路径，防止路径中的特殊字符影响参数分割和去重
         Yield ("${launcher_name}", "PCL")
         Yield ("${launcher_version}", VersionCode)
         Yield ("${version_name}", McInstanceSelected.Name)
-        Yield ("${game_directory}", PathUtils.ToShortPath(PathUtils.RemoveSlashSuffix(McInstanceSelected.PathIndie)))
-        Yield ("${assets_root}", PathUtils.ToShortPath(Path.Combine(McFolderSelected, "assets")))
+        Yield ("${game_directory}", McLaunchPathForApi(PathUtils.ToShortPath(PathUtils.RemoveSlashSuffix(McInstanceSelected.PathIndie))))
+        Yield ("${assets_root}", McLaunchPathForApi(PathUtils.ToShortPath(Path.Combine(McFolderSelected, "assets"))))
         Yield ("${user_properties}", "{}")
         Yield ("${auth_player_name}", McLoginLoader.Output.Name)
         Yield ("${auth_uuid}", McLoginLoader.Output.Uuid)
@@ -1531,8 +1499,8 @@ NextInstance:
         Yield ("${access_token}", McLoginLoader.Output.AccessToken)
         Yield ("${auth_session}", McLoginLoader.Output.AccessToken)
         Yield ("${user_type}", "msa") '#1221
-        Yield ("${primary_jar}", PathUtils.ToShortPath(Path.Combine(McInstanceSelected.PathVersion, McInstanceSelected.Name & ".jar"))) '#6942
-        Yield ("${game_assets}", PathUtils.ToShortPath(Path.Combine(McFolderSelected, "assets", "virtual", "legacy"))) '1.5.2 的 pre-1.6 资源索引应与 legacy 合并
+        Yield ("${primary_jar}", McLaunchPathForApi(PathUtils.ToShortPath(Path.Combine(McInstanceSelected.PathVersion, McInstanceSelected.Name & ".jar")))) '#6942
+        Yield ("${game_assets}", McLaunchPathForApi(PathUtils.ToShortPath(Path.Combine(McFolderSelected, "assets", "virtual", "legacy")))) '1.5.2 的 pre-1.6 资源索引应与 legacy 合并
         Yield ("${assets_index_name}", McAssetsGetIndexName(McInstanceSelected))
 
         '自定义信息
@@ -1586,7 +1554,7 @@ NextInstance:
             End If
         Next
         If OptiFineCp IsNot Nothing Then Cps.Insert(Cps.Count - 2, OptiFineCp) 'OptiFine 的总是需要放到倒数第二位
-        Yield ("${classpath}", Cps.Select(Function(c) PathUtils.ToShortPath(c)).Join(Path.PathSeparator))
+        Yield ("${classpath}", Cps.Select(Function(c) McLaunchPathForApi(PathUtils.ToShortPath(c))).Join(Path.PathSeparator))
     End Function
 
     ''' <summary>
@@ -1930,8 +1898,8 @@ NextInstance:
                 End If
                 McLaunchLog($"正在构建自定义皮肤资源包，版本号 {PackVersion}，MC 版本 {McInstanceSelected.Version.Vanilla}")
                 '准备文件
-                Dim ClipedSkinPath As String = Path.Combine(Paths.Base, "PCL", "CustomSkin_Cliped.png")
-                DirectoryUtils.Create(Path.Combine(Paths.Base, "PCL"))
+                Dim ClipedSkinPath As String = Path.Combine(PathData, "CustomSkin_Cliped.png")
+                DirectoryUtils.Create(PathData)
                 Dim Bit As New MyBitmap(PathImage & "Heads/Logo.png")
                 Bit.Save(PackPicAddress)
                 FileUtils.Write(MetaFileAddress, "{""pack"":{""pack_format"":" & PackVersion & ",""description"":""PCL 自定义离线皮肤资源包""}}")
@@ -2028,8 +1996,8 @@ IgnoreCustomSkin:
                 $"""{McLaunchJavaSelected.JavaExePath}"" {McLaunchArgument}" & vbCrLf &
                 "echo 游戏已退出。" & vbCrLf &
                 "pause"
-            Dim LatestLaunchPath As String = Path.Combine(Paths.Base, "PCL", "LatestLaunch.bat")
-            DirectoryUtils.Create(Path.Combine(Paths.Base, "PCL"))
+            Dim LatestLaunchPath As String = Path.Combine(PathData, "LatestLaunch.bat")
+            DirectoryUtils.Create(PathData)
             FileUtils.Write(
                 filePath:=If(CurrentLaunchOptions.SaveBatch, LatestLaunchPath),
                 text:=FilterAccessToken(CmdString, "F"c).Replace("%", "%%"),
@@ -2104,7 +2072,6 @@ IgnoreCustomSkin:
 
         '启动信息
         Dim JavaExe As String = McLaunchJavaSelected.JavaExePath
-        If Not OperatingSystem.IsWindows() AndAlso Not FileUtils.Exists(JavaExe) Then JavaExe = Path.Combine(McLaunchJavaSelected.Folder, "java")
         Dim StartInfo As New ProcessStartInfo(JavaExe) '使用 javaw.exe 会导致 #6263
 
         '设置环境变量

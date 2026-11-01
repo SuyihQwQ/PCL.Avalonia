@@ -43,7 +43,8 @@ Public Class MyComboBoxItem
             NewFontOpacity = 1
             Time = AnimationTimeIn
         ElseIf IsPointerOver Then
-            NewBackColorName = "ColorBrush8"
+            '深色模式下 ColorBrush8 会变成一块灰白色底，悬停不改变背景
+            NewBackColorName = "ColorBrushTransparent"
             NewFontOpacity = 1
             Time = AnimationTimeIn
         ElseIf IsEnabled Then

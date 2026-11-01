@@ -140,6 +140,8 @@ Public Class MyIconTextButton
         IsMouseDown = False
         If IsEnabled Then
             Logger.Info($"按下带图标按钮：{Text}")
+            '提前释放隐式指针捕获，避免 Click 中打开的模态弹窗被本控件持续捕获指针
+            e.Pointer.Capture(Nothing)
             RaiseEvent Click(Me, e)
             RaiseCustomEvent()
         End If
@@ -168,7 +170,7 @@ Public Class MyIconTextButton
             Dim BackName As String
             If Not IsEnabled Then
                 ForeName = "ColorBrushGray5"
-                BackName = "ColorSemiTransparent"
+                BackName = "ColorBrushSemiTransparent"
             ElseIf IsMouseDown Then
                 ForeName = If(ColorType = ColorState.Highlight, "ColorBrush3", "ColorBrush1")
                 BackName = "ColorBrush6"
@@ -177,10 +179,10 @@ Public Class MyIconTextButton
                 BackName = "ColorBrushBg1"
             ElseIf ColorType = ColorState.Highlight Then
                 ForeName = "ColorBrush3"
-                BackName = "ColorSemiTransparent"
+                BackName = "ColorBrushSemiTransparent"
             Else
                 ForeName = "ColorBrush1"
-                BackName = "ColorSemiTransparent"
+                BackName = "ColorBrushSemiTransparent"
             End If
             If ColorName = ForeName & "|" & BackName Then Return
             ColorName = ForeName & "|" & BackName

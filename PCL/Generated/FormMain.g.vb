@@ -21,20 +21,22 @@ Namespace Global.PCL
         Friend WithEvents PanTitle As Avalonia.Controls.Grid
         Friend WithEvents ImgTitle As PCL.MyImage
         Friend WithEvents PanTitleMain As Avalonia.Controls.Grid
-        Friend WithEvents ShapeTitleLogo As Avalonia.Controls.Shapes.Path
         Friend WithEvents LabTitleLogo As Avalonia.Controls.TextBlock
         Friend WithEvents ImageTitleLogo As PCL.MyImage
         Friend WithEvents PanTitleSelect As Avalonia.Controls.StackPanel
-        Friend WithEvents BtnTitleSelect0 As Avalonia.Controls.Button
-        Friend WithEvents BtnTitleSelect1 As Avalonia.Controls.Button
-        Friend WithEvents BtnTitleSelect2 As Avalonia.Controls.Button
-        Friend WithEvents BtnTitleSelect3 As Avalonia.Controls.Button
-        Friend WithEvents BtnTitleSelect4 As Avalonia.Controls.Button
+        Friend WithEvents BtnTitleSelect0 As PCL.MyRadioButton
+        Friend WithEvents BtnTitleSelect1 As PCL.MyRadioButton
+        Friend WithEvents BtnTitleSelect2 As PCL.MyRadioButton
+        Friend WithEvents BtnTitleSelect3 As PCL.MyRadioButton
+        Friend WithEvents BtnTitleSelect4 As PCL.MyRadioButton
         Friend WithEvents PanTitleInner As Avalonia.Controls.Grid
         Friend WithEvents BtnTitleInner As PCL.MyIconButton
         Friend WithEvents LabTitleInner As Avalonia.Controls.TextBlock
         Friend WithEvents BtnTitleClose As Avalonia.Controls.Button
         Friend WithEvents BtnTitleMin As Avalonia.Controls.Button
+        Friend WithEvents PanLeft As Avalonia.Controls.Grid
+        Friend WithEvents RectLeftBackground As Avalonia.Controls.Shapes.Rectangle
+        Friend WithEvents RectLeftShadow As Avalonia.Controls.Shapes.Rectangle
         Friend WithEvents PanMain As Avalonia.Controls.Grid
         Friend WithEvents PanMainLeft As Avalonia.Controls.Border
         Friend WithEvents PanMainRight As Avalonia.Controls.Border
@@ -71,23 +73,21 @@ Namespace Global.PCL
             If ImgTitle Is Nothing Then Throw New InvalidOperationException("找不到控件：ImgTitle")
             PanTitleMain = FindControl(Of Avalonia.Controls.Grid)("PanTitleMain")
             If PanTitleMain Is Nothing Then Throw New InvalidOperationException("找不到控件：PanTitleMain")
-            ShapeTitleLogo = FindControl(Of Avalonia.Controls.Shapes.Path)("ShapeTitleLogo")
-            If ShapeTitleLogo Is Nothing Then Throw New InvalidOperationException("找不到控件：ShapeTitleLogo")
             LabTitleLogo = FindControl(Of Avalonia.Controls.TextBlock)("LabTitleLogo")
             If LabTitleLogo Is Nothing Then Throw New InvalidOperationException("找不到控件：LabTitleLogo")
             ImageTitleLogo = FindControl(Of PCL.MyImage)("ImageTitleLogo")
             If ImageTitleLogo Is Nothing Then Throw New InvalidOperationException("找不到控件：ImageTitleLogo")
             PanTitleSelect = FindControl(Of Avalonia.Controls.StackPanel)("PanTitleSelect")
             If PanTitleSelect Is Nothing Then Throw New InvalidOperationException("找不到控件：PanTitleSelect")
-            BtnTitleSelect0 = FindControl(Of Avalonia.Controls.Button)("BtnTitleSelect0")
+            BtnTitleSelect0 = FindControl(Of PCL.MyRadioButton)("BtnTitleSelect0")
             If BtnTitleSelect0 Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnTitleSelect0")
-            BtnTitleSelect1 = FindControl(Of Avalonia.Controls.Button)("BtnTitleSelect1")
+            BtnTitleSelect1 = FindControl(Of PCL.MyRadioButton)("BtnTitleSelect1")
             If BtnTitleSelect1 Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnTitleSelect1")
-            BtnTitleSelect2 = FindControl(Of Avalonia.Controls.Button)("BtnTitleSelect2")
+            BtnTitleSelect2 = FindControl(Of PCL.MyRadioButton)("BtnTitleSelect2")
             If BtnTitleSelect2 Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnTitleSelect2")
-            BtnTitleSelect3 = FindControl(Of Avalonia.Controls.Button)("BtnTitleSelect3")
+            BtnTitleSelect3 = FindControl(Of PCL.MyRadioButton)("BtnTitleSelect3")
             If BtnTitleSelect3 Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnTitleSelect3")
-            BtnTitleSelect4 = FindControl(Of Avalonia.Controls.Button)("BtnTitleSelect4")
+            BtnTitleSelect4 = FindControl(Of PCL.MyRadioButton)("BtnTitleSelect4")
             If BtnTitleSelect4 Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnTitleSelect4")
             PanTitleInner = FindControl(Of Avalonia.Controls.Grid)("PanTitleInner")
             If PanTitleInner Is Nothing Then Throw New InvalidOperationException("找不到控件：PanTitleInner")
@@ -99,6 +99,12 @@ Namespace Global.PCL
             If BtnTitleClose Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnTitleClose")
             BtnTitleMin = FindControl(Of Avalonia.Controls.Button)("BtnTitleMin")
             If BtnTitleMin Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnTitleMin")
+            PanLeft = FindControl(Of Avalonia.Controls.Grid)("PanLeft")
+            If PanLeft Is Nothing Then Throw New InvalidOperationException("找不到控件：PanLeft")
+            RectLeftBackground = FindControl(Of Avalonia.Controls.Shapes.Rectangle)("RectLeftBackground")
+            If RectLeftBackground Is Nothing Then Throw New InvalidOperationException("找不到控件：RectLeftBackground")
+            RectLeftShadow = FindControl(Of Avalonia.Controls.Shapes.Rectangle)("RectLeftShadow")
+            If RectLeftShadow Is Nothing Then Throw New InvalidOperationException("找不到控件：RectLeftShadow")
             PanMain = FindControl(Of Avalonia.Controls.Grid)("PanMain")
             If PanMain Is Nothing Then Throw New InvalidOperationException("找不到控件：PanMain")
             PanMainLeft = FindControl(Of Avalonia.Controls.Border)("PanMainLeft")

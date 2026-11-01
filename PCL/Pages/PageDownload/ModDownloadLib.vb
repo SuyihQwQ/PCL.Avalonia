@@ -1969,8 +1969,10 @@ Retry:
             Dim SubLoaders As New List(Of LoaderBase)
             SubLoaders.Add(New LoaderTask(Of Integer, Integer)("检查 Natives 文件占用",
             Sub()
-                For Each File In DirectoryUtils.EnumerateFiles(GetNativesFolder(Instance), includeSubDirectories:=True, searchPattern:="*.dll")
-                    If Not FileUtils.IsAvailable(File) Then Throw New Exception($"Natives 文件正在被占用，请关闭游戏后再次尝试：{File}")
+                For Each Pattern In {"*.dll", "*.so", "*.dylib", "*.jnilib"}
+                    For Each File In DirectoryUtils.EnumerateFiles(GetNativesFolder(Instance), includeSubDirectories:=True, searchPattern:=Pattern)
+                        If Not FileUtils.IsAvailable(File) Then Throw New Exception($"Natives 文件正在被占用，请关闭游戏后再次尝试：{File}")
+                    Next
                 Next
             End Sub) With {.Show = False})
             '安装修改后的 MC 版本

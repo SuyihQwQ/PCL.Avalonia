@@ -3,6 +3,7 @@
 ''' </summary>
 Public Class PageLoginMsSkin
     Inherits Grid
+    Implements ILoginPage
 
     Public Sub New()
         InitControls()
@@ -22,7 +23,7 @@ Public Class PageLoginMsSkin
     ''' <summary>
     ''' 刷新页面显示的所有信息。
     ''' </summary>
-    Public Sub Reload(KeepInput As Boolean)
+    Public Sub Reload(KeepInput As Boolean) Implements ILoginPage.Reload
         TextName.Text = Settings.Get(Of String)("CacheMsV2Name")
         '皮肤在 Loaded 加载
     End Sub

@@ -4,7 +4,7 @@
                   x:Class="PCL.PageLaunchLeft"
                   Width="300" Background="Transparent">
     <Grid x:Name="PanBack">
-        <Grid x:Name="PanInput" RenderTransformOrigin="0.5,0.5">
+        <Grid x:Name="PanInput" RenderTransformOrigin="50%,50%">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition />
@@ -23,14 +23,15 @@
                 <ScaleTransform />
             </Grid.RenderTransform>
             <local:MyButton Grid.Row="3" Grid.Column="2" x:Name="BtnVersion" Height="35" Margin="0,10,10,0" Text="版本选择" IsEnabled="False" />
-            <local:MyButton Grid.Row="3" Grid.Column="3" x:Name="BtnMore" IsVisible="False" Height="35" Margin="0,10,10,0" Text="版本设置" />
+            <local:MyButton Grid.Row="3" Grid.Column="3" x:Name="BtnMore" IsVisible="False" Height="35" Margin="0,10,10,0" TextPadding="36,0" Text="版本设置" />
             <Grid Grid.ColumnSpan="5" Grid.Row="1" Margin="20,0" VerticalAlignment="Center" x:Name="PanLogin" />
             <Grid Grid.ColumnSpan="5" Margin="20,24,20,-4" x:Name="PanTypeOne">
                 <Border HorizontalAlignment="Center" VerticalAlignment="Center"
                         Background="{StaticResource ColorBrushSemiTransparent}" CornerRadius="13" MinHeight="27" MaxHeight="27">
                     <StackPanel Orientation="Horizontal">
-                        <Path x:Name="PathTypeOne" HorizontalAlignment="Left" RenderTransformOrigin="0.5,0.5" Margin="12,0,0,0"
-                              Stretch="Uniform" MaxHeight="16" MaxWidth="16" VerticalAlignment="Center">
+                        <Path x:Name="PathTypeOne" HorizontalAlignment="Left" RenderTransformOrigin="50%,50%" Margin="12,0,0,0"
+                              Stretch="Uniform" MaxHeight="16" MaxWidth="16" VerticalAlignment="Center"
+                              Fill="{DynamicResource ColorBrush3}">
                             <Path.RenderTransform>
                                 <ScaleTransform ScaleX="1.05" ScaleY="1.05" />
                             </Path.RenderTransform>
@@ -52,7 +53,7 @@
                 <local:MyRadioButton x:Name="RadioLoginType0" Grid.Column="2" ColorType="Highlight" Text="离线" Margin="4,0"
                                      LogoScale="0.85" Logo="M533.293176 788.841412a60.235294 60.235294 0 1 1 85.202824 85.202823l-42.616471 42.586353c-129.355294 129.385412-339.124706 129.385412-468.510117 0-129.385412-129.385412-129.385412-339.124706 0-468.510117l42.586353-42.616471a60.235294 60.235294 0 1 1 85.202823 85.202824l-42.61647 42.586352a210.823529 210.823529 0 1 0 298.164706 298.164706l42.586352-42.61647z m255.548236-255.548236l42.61647-42.586352a210.823529 210.823529 0 1 0-298.164706-298.164706l-42.586352 42.61647a60.235294 60.235294 0 1 1-85.202824-85.202823l42.616471-42.586353c129.355294-129.385412 339.124706-129.385412 468.510117 0 129.385412 129.385412 129.385412 339.124706 0 468.510117l-42.586353 42.616471a60.235294 60.235294 0 1 1-85.202823-85.202824zM192.542118 192.542118a60.235294 60.235294 0 0 1 85.202823 0l553.712941 553.712941a60.235294 60.235294 0 0 1-85.202823 85.202823L192.542118 277.744941a60.235294 60.235294 0 0 1 0-85.202823z" />
             </Grid>
-            <Grid Grid.ColumnSpan="5" Grid.Row="2" RenderTransformOrigin="0.5,0.5" x:Name="PanLaunchBox">
+            <Grid Grid.ColumnSpan="5" Grid.Row="2" RenderTransformOrigin="50%,50%" x:Name="PanLaunchBox">
                 <Grid.RenderTransform>
                     <TransformGroup>
                         <ScaleTransform />
@@ -62,10 +63,10 @@
                 <local:MyButton x:Name="BtnLaunch" Height="54" Margin="20,0" Text="正在加载" ColorType="Highlight" Padding="30,0,30,15" IsEnabled="False" />
                 <TextBlock x:Name="LabVersion" Text="正在加载版本列表，请稍候" Margin="35,0,35,10" IsHitTestVisible="False"
                            VerticalAlignment="Bottom" HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"
-                           FontSize="11" Foreground="{DynamicResource ColorBrushGray3}" RenderTransformOrigin="0.5,-0.2" />
+                           FontSize="11" Foreground="{DynamicResource ColorBrushGray3}" RenderTransformOrigin="50%,-20%" />
             </Grid>
         </Grid>
-        <Grid x:Name="PanLaunching" RenderTransformOrigin="0.5,0.5" IsVisible="False" Opacity="0">
+        <Grid x:Name="PanLaunching" RenderTransformOrigin="50%,50%" IsVisible="False" Opacity="0">
             <Grid.RenderTransform>
                 <ScaleTransform ScaleX="0.8" ScaleY="0.8" />
             </Grid.RenderTransform>
@@ -76,8 +77,8 @@
                 <RowDefinition />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <StackPanel Grid.Row="1" RenderTransformOrigin="0.5,0.5" Margin="0,-7,0,0">
-                <local:MyLoading x:Name="LoadLaunching" AutoRun="False" Height="50" Margin="0,10,0,5" />
+            <StackPanel Grid.Row="1" RenderTransformOrigin="50%,50%" Margin="0,-7,0,0">
+                <local:MyLoading x:Name="LoadLaunching" AutoRun="False" Text="" Height="50" Margin="0,10,0,5" />
                 <TextBlock x:Name="LabLaunchingTitle" Margin="15,10,15,0" Text="正在启动游戏" HorizontalAlignment="Center"
                            FontSize="20" Foreground="{DynamicResource ColorBrush3}" />
                 <TextBlock x:Name="LabLaunchingName" Margin="40,5,40,0" FontSize="13.5" Text=""
@@ -121,9 +122,20 @@
                     <TextBlock FontSize="12.5" Margin="0,0,0,5" Text="0 B/s" Grid.Row="3" Grid.Column="3" HorizontalAlignment="Left" x:Name="LabLaunchingDownload" Opacity="0" IsVisible="False" />
                     <Grid x:Name="PanLaunchingHint" HorizontalAlignment="Center" Grid.Row="2" Grid.ColumnSpan="5" Grid.RowSpan="2"
                           Width="260" Margin="0,16,0,2" IsVisible="False" Opacity="0">
-                        <Border Margin="0,8,0,0" BorderThickness="1" CornerRadius="3" BorderBrush="{StaticResource ColorBrushGray1}" Opacity="0.5" />
+                        <Border Margin="0,8,0,0" BorderThickness="1" CornerRadius="3" BorderBrush="{DynamicResource ColorBrushGray1}" Opacity="0.5">
+                            <Border.Clip>
+                                <CombinedGeometry GeometryCombineMode="Exclude">
+                                    <CombinedGeometry.Geometry1>
+                                        <RectangleGeometry Rect="0,0,1000,1000" />
+                                    </CombinedGeometry.Geometry1>
+                                    <CombinedGeometry.Geometry2>
+                                        <RectangleGeometry Rect="94,0,72,10" />
+                                    </CombinedGeometry.Geometry2>
+                                </CombinedGeometry>
+                            </Border.Clip>
+                        </Border>
                         <TextBlock FontSize="12.5" Text="你知道吗" HorizontalAlignment="Center" VerticalAlignment="Top"
-                                   Foreground="{StaticResource ColorBrushGray1}" Opacity="0.5" />
+                                   Foreground="{DynamicResource ColorBrushGray1}" Opacity="0.5" />
                         <TextBlock x:Name="LabLaunchingHint" FontSize="12.5" Text="" Margin="11,21,11,10" TextWrapping="Wrap"
                                    HorizontalAlignment="Center" />
                     </Grid>

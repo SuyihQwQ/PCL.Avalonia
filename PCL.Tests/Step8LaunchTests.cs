@@ -290,11 +290,33 @@ public class LaunchPageTests {
     public void Java_entry_reports_folder_and_exe_path() {
         var java21 = new global::PCLCS.Java("/opt/jdk21", new Version(21, 0, 1));
         Assert.EndsWith(Path.DirectorySeparatorChar.ToString(), java21.Folder);
-        Assert.Equal(Path.Combine(java21.Folder, "java.exe"), java21.JavaExePath);
+        Assert.Equal(Path.Combine(java21.Folder, global::PCLCS.Java.ExecutableName), java21.JavaExePath);
         Assert.Contains("21.0.1", java21.ToString());
 
         var unknown = new global::PCLCS.Java("/opt/jdk");
         Assert.Null(unknown.Version);
         Assert.Equal(unknown, new global::PCLCS.Java("/opt/jdk"));
+    }
+
+    [AvaloniaFact]
+    public void Instance_login_setting_survives_instance_metadata_write() {
+        var temp = Path.Combine(Path.GetTempPath(), "pcl-instance-settings-" + Guid.NewGuid().ToString("N"));
+        var instancePath = Path.Combine(temp, "versions", "TestInstance") + Path.DirectorySeparatorChar;
+        Directory.CreateDirectory(Path.Combine(instancePath, "PCL"));
+        try {
+            // McInstance 使用 Windows 分隔符读写版本元数据
+            var metadataPath = instancePath + "PCL\\Setup.ini";
+            global::PCL.ModBase.WriteIni(metadataPath, "State", "9");
+            // 用户在版本设置中选择第三方登录
+            global::PCL.Settings.Set("VersionServerLogin", 4, instancePath);
+            // 再次进入版本设置时 McInstance 会重写元数据，不能因此丢掉版本设置
+            global::PCL.ModBase.WriteIni(metadataPath, "Info", "正式版 1.21.11");
+            // 清空内存缓存，模拟重启后重新读取
+            global::PCL.Settings.Entries["VersionServerLogin"].ValueCache.TryRemove(instancePath, out _);
+            Assert.Equal(4, global::PCL.Settings.Get<int>("VersionServerLogin", instancePath));
+            Assert.Contains("VersionServerLogin:4", File.ReadAllLines(Path.Combine(instancePath, "PCL", "Setup.ini")));
+        } finally {
+            try { Directory.Delete(temp, true); } catch { /* 忽略清理失败 */ }
+        }
     }
 }

@@ -24,7 +24,7 @@
                         <RowDefinition Height="20" />
                     </Grid.RowDefinitions>
                     <local:MyLoading Grid.Column="1" Grid.Row="1" x:Name="Load" Grid.RowSpan="3" Margin="0,-4,0,-29" HorizontalAlignment="Center"
-                                     Text="" TextError="" TextErrorInherit="False" AutoRun="False" IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5">
+                                     Text="" TextError="" TextErrorInherit="False" AutoRun="False" IsHitTestVisible="False" RenderTransformOrigin="50%,50%">
                         <local:MyLoading.RenderTransform>
                             <ScaleTransform ScaleX="0.9" ScaleY="0.9" />
                         </local:MyLoading.RenderTransform>
@@ -145,7 +145,7 @@
                             <RowDefinition Height="21" />
                         </Grid.RowDefinitions>
                         <Path Grid.Column="1" Grid.Row="1" Height="28" Width="28" x:Name="ImgFinishLogo"
-                              Stretch="Uniform" Fill="{DynamicResource ColorBrush3}" RenderTransformOrigin="0.5,0.54"
+                              Stretch="Uniform" Fill="{DynamicResource ColorBrush3}" RenderTransformOrigin="50%,54%"
                               Data="M845 547.45h65.54A400.6 400.6 0 0 0 712.7 201.77l-33.22 56.49C781.6 318.32 845 429.13 845 547.45zM347.72 253.92L316 196.58a401.21 401.21 0 0 0-207 350.87h65.54a335.66 335.66 0 0 1 173.18-293.53zM509.79 882.68a334 334 0 0 1-181.3-53.2L293 884.57a401.13 401.13 0 0 0 419.1 8.91L679 836.93a334.94 334.94 0 0 1-169.21 45.75z M821.51 625.1A108.64 108.64 0 0 0 752.2 650l-67.31-38.86a185.44 185.44 0 0 0 11.22-63.7c0-91.55-66.38-167.9-153.54-183.42V289a109.14 109.14 0 1 0-65.57 0v75c-87.16 15.53-153.54 91.87-153.54 183.42a185.46 185.46 0 0 0 11.22 63.7L267.39 650a109.17 109.17 0 1 0 35.81 55l64.47-37.23a186 186 0 0 0 284.23 0L716.38 705a109.13 109.13 0 1 0 105.13-79.9zM198.07 777.85a43.6 43.6 0 1 1 43.61-43.61 43.66 43.66 0 0 1-43.61 43.61z m311.72-636.53a43.61 43.61 0 1 1-43.61 43.61 43.65 43.65 0 0 1 43.61-43.61z m0 526.91a120.78 120.78 0 1 1 120.78-120.78 120.91 120.91 0 0 1-120.78 120.77z m311.72 109.62a43.6 43.6 0 1 1 43.61-43.61 43.65 43.65 0 0 1-43.61 43.61z" />
                         <TextBlock x:Name="LabFinishTitle" Grid.Column="3" Grid.ColumnSpan="3" Grid.Row="1" Margin="0,3,0,0"
                                    Text="已加入房间" FontSize="20" Foreground="{DynamicResource ColorBrush3}" />
@@ -160,11 +160,11 @@
                     <StackPanel Orientation="Horizontal" Margin="3,0">
                         <StackPanel x:Name="BtnFinishPing" Orientation="Horizontal" Background="{DynamicResource ColorBrushSemiTransparent}"
                                     ToolTip.Tip="延迟" ToolTip.ShowDelay="50">
-                            <Path IsHitTestVisible="False" Height="14" Width="14" Stretch="Uniform" Fill="#9C9C9C" Margin="13,0,8,0"
+                            <Path IsHitTestVisible="False" Height="14" Width="14" Stretch="Uniform" Fill="{DynamicResource ColorBrushGray3}" Margin="13,0,8,0"
                                 Data="M60.9 966.2A60.3 60.3 0 0 1 0.8 906.1v-90.1a60.3 60.3 0 0 1 60.1-60.1 60.3 60.3 0 0 1 60.1 60.1v90.1a60.2 60.2 0 0 1-60.1 60.1z m300.6 0a60.3 60.3 0 0 1-60.1-60.1V665.6a60.3 60.3 0 0 1 60.1-60.1 60.3 60.3 0 0 1 60.1 60.1v240.5a60.2 60.2 0 0 1-60.1 60.1z m300.6 0a60.3 60.3 0 0 1-60.1-60.1V425.1a60.3 60.3 0 0 1 60.1-60.1 60.3 60.3 0 0 1 60.1 60.1v481.0a60.3 60.3 0 0 1-60.1 60.1z m300.6 0a60.3 60.3 0 0 1-60.1-60.1V124.5a60.3 60.3 0 0 1 60.1-60.1 60.3 60.3 0 0 1 60.1 60.1v781.6a60.3 60.3 0 0 1-60.1 60.1z" />
                             <TextBlock x:Name="LabFinishPing" IsHitTestVisible="False" Text="15 ms" VerticalAlignment="Center" Foreground="{DynamicResource ColorBrushGray1}" Margin="0,0.5,13,0" />
                         </StackPanel>
-                        <TextBlock Text="|" Opacity="0.2" Margin="0,8.8,0,8" RenderTransformOrigin="0.5,0.5">
+                        <TextBlock Text="|" Opacity="0.2" Margin="0,8.8,0,8" RenderTransformOrigin="50%,50%">
                             <TextBlock.RenderTransform>
                                 <ScaleTransform ScaleX="1.5" ScaleY="2.75" />
                             </TextBlock.RenderTransform>
@@ -175,7 +175,7 @@
                                 Data="m843.3,478.4c-.1-3.9-.2-7.7-.2-10.8,0-42.8-11.1-84.4-32-120.2-19.6-33.5-47.1-60.7-79.7-79,15-16.8,23.6-39.2,25-65.2,1.3-24.8-3.7-52.1-14.6-79-20.5-50.8-56-86.3-86.3-86.3s-25.1,4.1-37.5,23.5l-.4.7-.2.8c-4.1,16.6,3.9,33.4,20,41.7l.7.4h.8c34.9,5.6,50.6,38.7,53.5,65.3,3.3,30.7-7.8,67.2-40.1,80.1-7.4,1.1-9.9,7.7-11.5,12.1-.6,1.7-1.2,3.3-1.9,4.3l-.7,1v1.2c-3.4,27.8,19.6,39.8,46.3,53.6,41.4,21.4,93,48.1,93.1,144.9v.3c.3,4.3,0,9.9-.1,15.7-.6,17.9-1.4,40.2,10.3,52.4,5.5,5.7,13,8.6,22.5,8.7.7,0,1.4,0,2.1,0h0c8.1,0,14.7-2.6,19.8-7.9,12.7-13.1,11.9-39.4,11.4-58.6Z M204.7,295.9l.5-1.1v-30.1c0-3.9-2.1-6-3.3-7.1-.1-.1-.2-.2-.3-.3v-1.7l-8.9-9.2-.7-.4c-26.3-13.5-42.6-40.8-42.6-71.3s21.8-67.4,55.5-78.1c17-4.5,28.2-22.1,24.5-38.4v-.6c-.1,0-.4-.5-.4-.5-7.5-15.3-21.4-24.7-36.2-24.7s-5.1.3-7.7.8h-.2c-29.8,7.2-56.6,25.5-75.7,51.4-18.9,25.7-29.3,57.8-29.3,90.4s11.1,64.8,32.2,92.1C45.3,303.9,2.5,376.9,0,458.9v57.5s0,.2,0,.2c1.4,15.3,13.1,30.8,32.8,30.8s32.9-12.7,32.9-33.9v-43.3c0-76.2,45.9-139.2,114.3-157.1,10.5-.5,19.5-6.8,24.7-17.3Z M516,286.5c36.8-31.1,58.5-77.4,58.5-125.4C574.4,70.8,507.4,0,421.7,0s-152.7,70.8-152.7,161.2,20.4,95.1,56.4,125.6c-51.7,19.8-96.1,54.8-129,101.5-35.2,50.2-53.9,109.7-53.9,172v33.8c0,16.9,13.7,30.6,30.6,30.6h496.6c16.9,0,30.6-13.7,30.6-30.6v-33.8c0-61.4-19-120.6-54.9-171.3-32.9-46.4-78.6-82.5-129.5-102.4Zm-94.5-225.3c51.3,0,91.5,43.9,91.5,100s-41.9,100-91.5,100-91.5-43.9-91.5-100,40.2-100,91.5-100Zm218,502H203.8v-3.2c0-127,97.8-230.3,218-230.3s217.7,105.4,217.7,230.3v3.2Z" />
                             <TextBlock x:Name="LabFinishPlayer" IsHitTestVisible="False" Text="2  人" VerticalAlignment="Center" Foreground="{DynamicResource ColorBrushGray1}" Margin="0,0.5,13,0" />
                         </StackPanel>
-                        <TextBlock Text="|" x:Name="LineFinishPort" Opacity="0.2" Margin="0,8.8,0,8" RenderTransformOrigin="0.5,0.5">
+                        <TextBlock Text="|" x:Name="LineFinishPort" Opacity="0.2" Margin="0,8.8,0,8" RenderTransformOrigin="50%,50%">
                             <TextBlock.RenderTransform>
                                 <ScaleTransform ScaleX="1.5" ScaleY="2.75" />
                             </TextBlock.RenderTransform>

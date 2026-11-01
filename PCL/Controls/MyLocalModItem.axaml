@@ -3,7 +3,7 @@
       xmlns:local="clr-namespace:PCL"
       x:Class="PCL.MyLocalModItem"
       x:Name="PanBack" Height="44"
-      RenderTransformOrigin="0.5,0.5" Background="{DynamicResource ColorBrushSemiTransparent}"
+      RenderTransformOrigin="50%,50%" Background="{DynamicResource ColorBrushSemiTransparent}"
       UseLayoutRounding="True">
     <Grid.ColumnDefinitions>
         <ColumnDefinition Width="6" />
@@ -40,7 +40,7 @@
         <TextBlock x:Name="LabTitle" TextTrimming="CharacterEllipsis" FontSize="14" IsHitTestVisible="False" />
         <TextBlock x:Name="LabSubtitle" Grid.Column="1" HorizontalAlignment="Left"
                    TextTrimming="CharacterEllipsis" FontSize="12" IsHitTestVisible="False"
-                   Foreground="{StaticResource ColorBrushGray1}" Opacity="0.4" VerticalAlignment="Bottom" IsVisible="False" />
+                   Foreground="{DynamicResource ColorBrushGray1}" Opacity="0.4" VerticalAlignment="Bottom" IsVisible="False" />
         <!-- 更新按钮 -->
         <local:MyIconButton Grid.Column="2"
                             Width="21" Height="21" Margin="-2,-1.6,0,0" x:Name="BtnUpdate" Theme="Black" Opacity="0.4" IsVisible="False"
@@ -50,6 +50,6 @@
     <!-- Tag 与 详情 -->
     <StackPanel x:Name="PanTags" Grid.Row="2" Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="-1,0,1,0" IsVisible="False" IsHitTestVisible="False" />
     <TextBlock x:Name="LabInfo" Grid.Row="2" Grid.Column="4" VerticalAlignment="Bottom" Margin="0,0,3,1"
-               TextTrimming="CharacterEllipsis" FontSize="12" Foreground="{StaticResource ColorBrushGray4}"
+               TextTrimming="CharacterEllipsis" FontSize="12" Foreground="{DynamicResource ColorBrushGray4}"
                IsHitTestVisible="False" UseLayoutRounding="False" />
 </Grid>

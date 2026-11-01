@@ -72,6 +72,8 @@ Public Class MyTextButton
         IsMouseDown = False
         If IsEnabled Then
             Logger.Info($"按下文本按钮：{Text}")
+            '提前释放隐式指针捕获，避免 Click 中打开的模态弹窗被本控件持续捕获指针
+            e.Pointer.Capture(Nothing)
             RaiseEvent Click(Me, EventArgs.Empty)
             RaiseCustomEvent()
         End If

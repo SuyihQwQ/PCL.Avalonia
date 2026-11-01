@@ -12,8 +12,6 @@ Public Class PageLaunchRight
     Private Sub Init() Handles Me.Loaded
         PanBack.ScrollToHome()
         PanLog.IsVisible = ModeDebug
-        '快照版提示
-        PanHint.IsVisible = BuildType <> BuildTypes.Release AndAlso Not Settings.Get(Of Boolean)("HintSnapshot")
     End Sub
 
     ''' <summary>
@@ -40,7 +38,7 @@ Public Class PageLaunchRight
             Case 1
                 '加载本地文件
                 Logger.Info("主页自定义数据来源：本地文件")
-                Content = FileUtils.TryReadAsString(Paths.Base & "PCL\Custom.xaml")
+                Content = FileUtils.TryReadAsString(PathData & "Custom.xaml")
             Case 2
                 '联网下载
                 Url = Settings.Get(Of String)("UiCustomNet")
@@ -194,12 +192,15 @@ Public Class PageLaunchRight
             End Try
             '实际下载
             Dim FileContent As String = NetRequestByClientRetry(Address)
+            If Task.IsCanceled Then Return
             Logger.Info($"已联网下载主页，内容长度：{FileContent.Length}，来源：{Address}")
             Settings.Set("CacheSavedPageUrl", Address)
             Settings.Set("CacheSavedPageVersion", Version)
             FileUtils.Write(PathTemp & "Cache\Custom.xaml", FileContent)
-            '若内容变更则要求刷新
-            If LoadedContentHash <> FileContent.GetStableHashCode() AndAlso ShouldRefresh Then Refresh()
+            '若内容变更则直接加载，避免再次经过下载流程时被重启的加载器打断
+            If LoadedContentHash <> FileContent.GetStableHashCode() AndAlso ShouldRefresh Then
+                RunInUi(Sub() LoadContent(FileContent))
+            End If
         Catch ex As Exception
             Logger.Error(ex, $"下载主页失败（{Address}）", If(ModeDebug, LogBehavior.Alert, LogBehavior.Toast))
         End Try
@@ -230,6 +231,20 @@ Public Class PageLaunchRight
         Settings.Set("CacheSavedPageUrl", "")
         Settings.Set("CacheSavedPageVersion", "")
         Logger.Info("已清空主页缓存")
+    End Sub
+
+    ''' <summary>
+    ''' 切换主页预设后清空缓存，并在启动页可见时立即刷新，避免需要切换页面后才显示新主页。
+    ''' </summary>
+    Public Shared Sub OnHomepagePresetChanged()
+        RunInUi(
+        Sub()
+            If FrmLaunchRight Is Nothing Then Return
+            FrmLaunchRight.ClearCache()
+            If FrmMain IsNot Nothing AndAlso FrmMain.PageCurrent.Page = FormMain.PageType.Launch Then
+                FrmLaunchRight.Refresh()
+            End If
+        End Sub)
     End Sub
 
     ''' <summary>
@@ -280,7 +295,7 @@ Public Class PageLaunchRight
                         End Try
                     End Function)
                 Content = ConvertLegacyXaml(Content)
-                Content = "<StackPanel xmlns=""https://github.com/avaloniaui"" xmlns:x=""http://schemas.microsoft.com/winfx/2006/xaml"" xmlns:local=""using:PCL"">" & Content & "</StackPanel>"
+                Content = "<StackPanel xmlns=""https://github.com/avaloniaui"" xmlns:x=""http://schemas.microsoft.com/winfx/2006/xaml"" xmlns:local=""using:PCL"" xmlns:sys=""using:System"">" & Content & "</StackPanel>"
                 Logger.Info($"实例化：加载主页 UI 开始，最终内容长度：{Content.Length}")
                 PanCustom.Children.Add(GetObjectFromXML(Content))
                 '加载计时

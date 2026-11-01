@@ -156,6 +156,7 @@ Public Module ModModpack
     'CurseForge
     Private Function InstallPackCurseForge(FileAddress As String, Archive As ZipArchive, ArchiveBaseFolder As String,
                                            Optional InstanceName As String = Nothing, Optional Logo As String = Nothing) As LoaderCombo(Of String)
+        If Not CurseForgeEnabled Then Throw New Exception("CurseForge 整合包安装暂未开放（需要 CurseForge API 权限）")
 
         '读取 Json 文件
         Dim Json As JObject
@@ -582,7 +583,7 @@ Public Module ModModpack
                         Dim PreLaunchCommand As String = ReadIni(MmcSetupFile, "PreLaunchCommand")
                         If PreLaunchCommand <> "" Then
                             PreLaunchCommand = PreLaunchCommand.Replace("\""", """").
-                                Replace("$INST_JAVA", "{java}java.exe").
+                                Replace("$INST_JAVA", "{java}" & Java.ExecutableName).
                                 Replace("$INST_MC_DIR\", "{minecraft}").Replace("$INST_MC_DIR", "{minecraft}").
                                 Replace("$INST_DIR\", "{verpath}").Replace("$INST_DIR", "{verpath}").
                                 Replace("$INST_ID", "{name}").Replace("$INST_NAME", "{name}")

@@ -158,8 +158,61 @@
             <local:MyCard x:Name="CardSkin" Margin="0,0,0,15" Title="离线皮肤" CanSwap="True" IsSwapped="True">
                 <StackPanel Margin="25,40,25,15">
                     <local:MyHint Margin="0,0,0,10" Text="由于技术问题，此功能只保证对 1.19.2 以前的版本有效！" HintTheme="Yellow" />
-                    <TextBlock TextWrapping="Wrap" Opacity="0.65"
-                               Text="离线皮肤需要 Minecraft 版本与皮肤管理模块支持，将在后续批次中移植。该设置项目前不会影响启动行为。" />
+                    <Grid Margin="-1,0,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition />
+                            <ColumnDefinition />
+                            <ColumnDefinition />
+                            <ColumnDefinition />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <local:MyRadioBox x:Name="RadioSkinType0" Grid.Column="0" Height="22"
+                                          local:SettingService.Key="LaunchSkinType" local:SettingService.Value="0"
+                                          Text="随机" ToolTip.Tip="随机选择一个默认皮肤" />
+                        <local:MyRadioBox x:Name="RadioSkinType1" Grid.Column="1" Height="22"
+                                          local:SettingService.Key="LaunchSkinType" local:SettingService.Value="1"
+                                          Text="Steve" />
+                        <local:MyRadioBox x:Name="RadioSkinType2" Grid.Column="2" Height="22"
+                                          local:SettingService.Key="LaunchSkinType" local:SettingService.Value="2"
+                                          Text="Alex" />
+                        <local:MyRadioBox x:Name="RadioSkinType3" Grid.Column="3" Height="22"
+                                          local:SettingService.Key="LaunchSkinType" local:SettingService.Value="3"
+                                          Text="正版皮肤" ToolTip.Tip="使用某个正版玩家的皮肤" />
+                        <local:MyRadioBox x:Name="RadioSkinType4" Grid.Column="4" Height="22"
+                                          local:SettingService.Key="LaunchSkinType" local:SettingService.Value="4"
+                                          Text="自定义" ToolTip.Tip="以资源包的形式加载自定义皮肤。&#xa;使用此方式更换的皮肤在多人游戏中仅自己可见，且会替换游戏中所有的角色。" />
+                    </Grid>
+                    <Grid x:Name="PanSkinID" Margin="0,14,0,2" IsVisible="False">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" SharedSizeGroup="Name" />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock VerticalAlignment="Center" HorizontalAlignment="Left" Text="正版玩家名" Margin="0,0,25,0" />
+                        <local:MyTextBox x:Name="TextSkinID" Grid.Column="1" MaxLength="50"
+                                         local:SettingService.Key="LaunchSkinID" />
+                        <Grid Height="35" Grid.Row="1" Grid.ColumnSpan="2" Margin="0,14,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <local:MyButton x:Name="BtnSkinSave" Text="保存皮肤" MinWidth="140" Padding="13,0" Margin="0,0,20,0" />
+                            <local:MyButton x:Name="BtnSkinCache" Text="刷新" MinWidth="140" Padding="13,0" Margin="0,0,20,0"
+                                            Grid.Column="1" ToolTip.Tip="刷新并重新下载 PCL 当前显示的皮肤" />
+                        </Grid>
+                    </Grid>
+                    <Grid x:Name="PanSkinChange" Margin="0,14,0,2" Height="35" IsVisible="False">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <local:MyButton x:Name="BtnSkinChange" Text="更改皮肤" MinWidth="140" Padding="13,0" Margin="0,0,20,0" />
+                        <local:MyButton x:Name="BtnSkinDelete" Text="重置皮肤" MinWidth="140" Padding="13,0" Margin="0,0,20,0"
+                                        ColorType="Red" Grid.Column="1" />
+                    </Grid>
                 </StackPanel>
             </local:MyCard>
             <local:MyCard Margin="0,0,0,15" Title="高级选项" IsSwapped="True" CanSwap="True">
@@ -270,6 +323,9 @@
                                   CanClose="True" RelativeSetup="HintMoreAdvancedSetup" />
                 </Grid>
             </local:MyCard>
+            <local:MyExtraTextButton HorizontalAlignment="Center" Margin="0,-5,0,15"
+                x:Name="BtnSwitch" Text="版本独立设置" IsVisible="False"
+                LogoScale="0.9" Logo="M73 584L920 584 608 896C579 925 579 972 608 1001 637 1030 683 1030 712 1001L1149 565C1164 550 1170 531 1170 511 1170 492 1164 472 1149 457L712 21C683-7 637-7 608 21 579 50 579 97 608 126L920 438 73 438C33 438 0 471 0 511 0 551 33 584 73 584Z" />
         </StackPanel>
     </local:MyScrollViewer>
 </local:MyPageRight>

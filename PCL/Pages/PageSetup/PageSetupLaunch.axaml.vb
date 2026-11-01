@@ -1,4 +1,5 @@
 Imports System.Collections.ObjectModel
+Imports SkiaSharp
 
 Public Class PageSetupLaunch
     Inherits MyPageRight
@@ -22,6 +23,7 @@ Public Class PageSetupLaunch
         PanBack.ScrollToHome()
         ModJava.JavaInit()
         RefreshRam(False)
+        BtnSwitch.IsVisible = McInstanceSelected IsNot Nothing
         AniControlEnabled += 1
         Refresh()
         AniControlEnabled -= 1
@@ -44,6 +46,7 @@ Public Class PageSetupLaunch
     Public Sub Refresh()
         Try
             SettingService.RefreshSettings(Me)
+            UpdateSkinTypeUI()
             UpdateRamType()
             WindowTypeUIRefresh()
             RefreshAdvanceRunWait()
@@ -70,6 +73,100 @@ Public Class PageSetupLaunch
         End Try
         Refresh()
     End Sub
+
+#Region "离线皮肤"
+
+    Private Sub BtnSkinChange_Click(sender As Object, e As PointerReleasedEventArgs) Handles BtnSkinChange.Click
+        Dim SkinInfo As McSkinInfo = McSkinSelect()
+        If Not SkinInfo.IsVaild Then Return
+        ChangeSkin(SkinInfo)
+    End Sub
+
+    Private Sub RadioSkinType4_Check(sender As Object, e As RouteEventArgs) Handles RadioSkinType4.PreviewCheck
+        If Not (AniControlEnabled = 0 AndAlso e.RaiseByMouse) Then Return
+        '已有图片则不再选择
+        If FileUtils.Exists(Paths.AppDataThenName & "CustomSkin.png") Then Return
+        '没有图片则要求选择
+        Dim SkinInfo As McSkinInfo = McSkinSelect()
+        If Not SkinInfo.IsVaild Then
+            e.Handled = True
+            Return
+        End If
+        '正式改变
+        If Not ChangeSkin(SkinInfo) Then e.Handled = True
+    End Sub
+
+    '返回是否成功改变
+    Private Function ChangeSkin(SkinInfo As McSkinInfo) As Boolean
+        Try
+            '复制文件
+            FileUtils.Copy(SkinInfo.LocalFile, Paths.AppDataThenName & "CustomSkin.png")
+            '将单层皮肤扩展到双层
+            Dim Bitmap As New MyBitmap(Paths.AppDataThenName & "CustomSkin.png")
+            If Bitmap.Pic.Width = 64 AndAlso Bitmap.Pic.Height = 32 Then
+                Using NewPic As New SKBitmap(64, 64)
+                    Using Canvas As New SKCanvas(NewPic)
+                        Canvas.DrawBitmap(Bitmap.Pic, 0, 0)
+                    End Using
+                    FileUtils.Delete(Paths.AppDataThenName & "CustomSkin.png")
+                    Dim NewBitmap As New MyBitmap(NewPic)
+                    NewBitmap.Save(Paths.AppDataThenName & "CustomSkin.png")
+                End Using
+            End If
+            '更新设置
+            Settings.Set("LaunchSkinSlim", SkinInfo.IsSlim)
+            Return True
+        Catch ex As Exception
+            Logger.Error(ex, "改变离线皮肤失败", LogBehavior.Alert)
+            Return False
+        Finally
+            '设置当前显示
+            PageLaunchLeft.SkinLegacy.Start(IsForceRestart:=True)
+        End Try
+    End Function
+
+    Private Sub BtnSkinDelete_Click(sender As Object, e As PointerReleasedEventArgs) Handles BtnSkinDelete.Click
+        Try
+            FileUtils.Delete(Paths.AppDataThenName & "CustomSkin.png")
+            RadioSkinType0.SetChecked(True, True)
+            Hint("离线皮肤已清空！", HintType.Green)
+        Catch ex As Exception
+            Logger.Error(ex, "清空离线皮肤失败", LogBehavior.Alert)
+        End Try
+    End Sub
+
+    Private Sub BtnSkinSave_Click(sender As Object, e As PointerReleasedEventArgs) Handles BtnSkinSave.Click
+        MySkin.Save(PageLaunchLeft.SkinLegacy)
+    End Sub
+
+    Private Sub BtnSkinCache_Click(sender As Object, e As PointerReleasedEventArgs) Handles BtnSkinCache.Click
+        MySkin.RefreshCache(Nothing)
+    End Sub
+
+    Public Shared Sub UpdateSkinType()
+        PageLaunchLeft.SkinLegacy.Start()
+        FrmMain?.FrmSetupLeft?.FrmSetupLaunch?.UpdateSkinTypeUI()
+    End Sub
+
+    ''' <summary>
+    ''' 根据当前皮肤类型切换卡片内的附加设置项。
+    ''' </summary>
+    Private Sub UpdateSkinTypeUI()
+        Select Case Settings.Get(Of Integer)("LaunchSkinType")
+            Case 0, 1, 2 '默认
+                PanSkinID.IsVisible = False
+                PanSkinChange.IsVisible = False
+            Case 3 '正版
+                PanSkinID.IsVisible = True
+                PanSkinChange.IsVisible = False
+            Case 4 '自定义
+                PanSkinID.IsVisible = False
+                PanSkinChange.IsVisible = True
+        End Select
+        CardSkin.TriggerForceResize()
+    End Sub
+
+#End Region
 
 #Region "内存分配"
 
@@ -214,9 +311,20 @@ Public Class PageSetupLaunch
             LabRamUsed.Text = FormatRam(RamUsed) & " GB"
             LabRamTotal.Text = " / " & FormatRam(RamTotal) & " GB"
             '设置色条宽度
-            PanRamDisplay.ColumnDefinitions(0).Width = New GridLength(Math.Max(RamUsed, 0.001), GridUnitType.Star)
-            PanRamDisplay.ColumnDefinitions(1).Width = New GridLength(Math.Max(RamGameActual, 0.001), GridUnitType.Star)
-            PanRamDisplay.ColumnDefinitions(2).Width = New GridLength(Math.Max(RamEmpty, 0.001), GridUnitType.Star)
+            Dim TargetWidths As Double() = {Math.Max(RamUsed, 0.001), Math.Max(RamGameActual, 0.001), Math.Max(RamEmpty, 0.001)}
+            If ShowAnim Then
+                Dim AnimList As New List(Of AniData)
+                For i = 0 To 2
+                    AnimList.Add(AaGridLengthWidth(PanRamDisplay.ColumnDefinitions(i),
+                        TargetWidths(i) - PanRamDisplay.ColumnDefinitions(i).Width.Value,
+                        800,, New AniEaseOutFluent(AniEasePower.Strong)))
+                Next
+                AniStart(AnimList, "Ram Display")
+            Else
+                For i = 0 To 2
+                    PanRamDisplay.ColumnDefinitions(i).Width = New GridLength(TargetWidths(i), GridUnitType.Star)
+                Next
+            End If
         Catch ex As Exception
             Logger.Error(ex, "刷新内存显示失败")
         End Try
@@ -426,5 +534,12 @@ Public Class PageSetupLaunch
     End Sub
 
 #End Region
+
+    '切换到版本独立设置
+    Private Sub BtnSwitch_Click(sender As Object, e As EventArgs) Handles BtnSwitch.Click
+        McInstanceSelected.Load()
+        PageInstanceLeft.Instance = McInstanceSelected
+        FrmMain.PageChange(FormMain.PageType.InstanceSetup, FormMain.PageSubType.InstanceSetup)
+    End Sub
 
 End Class

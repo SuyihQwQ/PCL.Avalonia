@@ -4,6 +4,7 @@ using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Xunit;
 
 namespace PCL.Tests;
@@ -45,10 +46,12 @@ public class PersonalizationPageTests {
             Assert.NotNull(page.CardCustom);
             Assert.NotNull(page.CardSwitch);
             Assert.NotNull(page.PanLauncherTheme);
-            Assert.Equal(16, page.PanLauncherTheme.Children.OfType<global::PCL.MyRadioBox>().Count());
+            Assert.Equal(8, page.PanLauncherTheme.Children.OfType<global::PCL.MyRadioBox>().Count());
+            Assert.Equal("UiLauncherTheme", global::PCL.SettingService.GetKey(page.RadioLauncherTheme0));
+            Assert.Equal("UiLauncherThemeMode", global::PCL.SettingService.GetKey(page.RadioThemeModeFollow));
+            Assert.Equal("UiLauncherThemeMode", global::PCL.SettingService.GetKey(page.RadioThemeModeDark));
 
             Assert.Equal("UiLauncherTransparent", global::PCL.SettingService.GetKey(page.SliderLauncherTransparent));
-            Assert.Equal("UiLauncherHue", global::PCL.SettingService.GetKey(page.SliderLauncherHue));
             Assert.Equal("UiBackgroundOpacity", global::PCL.SettingService.GetKey(page.SliderBackgroundOpacity));
             Assert.Equal("UiLogoType", global::PCL.SettingService.GetKey(page.RadioLogoType3));
             Assert.Equal("UiCustomType", global::PCL.SettingService.GetKey(page.RadioCustomType1));
@@ -57,17 +60,10 @@ public class PersonalizationPageTests {
 
             Assert.NotNull(page.SliderMusicVolume.GetHintText);
             Assert.NotNull(page.SliderLauncherTransparent.GetHintText);
-            Assert.NotNull(page.SliderLauncherHue.GetHintText);
-            Assert.NotNull(page.SliderLauncherSat.GetHintText);
-            Assert.NotNull(page.SliderLauncherDelta.GetHintText);
-            Assert.NotNull(page.SliderLauncherLight.GetHintText);
             Assert.NotNull(page.SliderBackgroundOpacity.GetHintText);
             Assert.NotNull(page.SliderBackgroundBlur.GetHintText);
             Assert.Equal("100%", (string)page.SliderLauncherTransparent.GetHintText.DynamicInvoke(600)!);
             Assert.Equal("50%", (string)page.SliderMusicVolume.GetHintText.DynamicInvoke(500)!);
-            Assert.Equal("+10", (string)page.SliderLauncherDelta.GetHintText.DynamicInvoke(100)!);
-            Assert.Equal("-10", (string)page.SliderLauncherDelta.GetHintText.DynamicInvoke(80)!);
-            Assert.Equal("0", (string)page.SliderLauncherLight.GetHintText.DynamicInvoke(20)!);
             Assert.Equal("5 像素", (string)page.SliderBackgroundBlur.GetHintText.DynamicInvoke(5)!);
 
             Settle();
@@ -227,7 +223,7 @@ public class PersonalizationPageTests {
         Dispatcher.UIThread.RunJobs();
         try {
             Settle();
-            Click(window, window.FindControl<Button>("BtnTitleSelect3")!);
+            Click(window, window.FindControl<global::PCL.MyRadioButton>("BtnTitleSelect3")!);
             Settle();
             var left = Assert.IsType<global::PCL.PageSetupLeft>(window.PageLeft);
             var original = global::PCL.Settings.Get<bool>("UiHiddenSetupUi");
@@ -250,13 +246,197 @@ public class PersonalizationPageTests {
             var originalPageSetup = global::PCL.Settings.Get<bool>("UiHiddenPageSetup");
             try {
                 global::PCL.Settings.Set("UiHiddenPageSetup", true);
-                Assert.False(window.FindControl<Button>("BtnTitleSelect3")!.IsVisible);
+                Assert.False(window.FindControl<global::PCL.MyRadioButton>("BtnTitleSelect3")!.IsVisible);
             } finally {
                 global::PCL.Settings.Set("UiHiddenPageSetup", originalPageSetup);
             }
-            Assert.True(window.FindControl<Button>("BtnTitleSelect3")!.IsVisible);
+            Assert.True(window.FindControl<global::PCL.MyRadioButton>("BtnTitleSelect3")!.IsVisible);
         } finally {
             window.Close();
+        }
+    }
+    private static Avalonia.Media.Color BrushColor(string key) =>
+        ((Avalonia.Media.ISolidColorBrush)Application.Current!.FindResource(key)!).Color;
+
+    [AvaloniaFact]
+    public void Theme_mode_switches_between_light_and_dark_palettes() {
+        var originalMode = global::PCL.Settings.Get<int>("UiLauncherThemeMode");
+        var originalTheme = global::PCL.Settings.Get<int>("UiLauncherTheme");
+        try {
+            global::PCL.Settings.Set("UiLauncherTheme", 0);
+            global::PCL.Settings.Set("UiLauncherThemeMode", 1);
+            var lightText = BrushColor("ColorBrush1");
+            var lightBack = BrushColor("ColorBrush8");
+            var lightCard = BrushColor("ColorBrushCard");
+            var lightGray = BrushColor("ColorBrushGray1");
+            Assert.True(lightText.R < 100, $"浅色主题文字应为深色：{lightText}");
+            Assert.True(lightBack.R > 200, $"浅色主题背景应为亮色：{lightBack}");
+            Assert.True(lightCard.R > 200, $"浅色主题卡片应为亮色：{lightCard}");
+
+            global::PCL.Settings.Set("UiLauncherThemeMode", 2);
+            var darkText = BrushColor("ColorBrush1");
+            var darkBack = BrushColor("ColorBrush8");
+            var darkCard = BrushColor("ColorBrushCard");
+            var darkGray = BrushColor("ColorBrushGray1");
+            Assert.True(darkText.R > 200, $"深色主题文字应为亮色：{darkText}");
+            Assert.True(darkBack.R < 80, $"深色主题背景应为暗色：{darkBack}");
+            Assert.True(darkCard.R < 80, $"深色主题卡片应为暗色：{darkCard}");
+            Assert.True(darkGray.R > 150, $"深色主题灰色文字应提亮：{darkGray}");
+
+            global::PCL.Settings.Set("UiLauncherThemeMode", 0);
+            var followText = BrushColor("ColorBrush1");
+            Assert.Equal(
+                Application.Current!.ActualThemeVariant == Avalonia.Styling.ThemeVariant.Dark ? darkText : lightText,
+                followText);
+        } finally {
+            global::PCL.Settings.Set("UiLauncherTheme", originalTheme);
+            global::PCL.Settings.Set("UiLauncherThemeMode", originalMode);
+        }
+    }
+
+    [AvaloniaFact]
+    public void Theme_radio_text_stays_resource_bound_after_switching() {
+        var originalTheme = global::PCL.Settings.Get<int>("UiLauncherTheme");
+        var page = new global::PCL.PageSetupUI();
+        var window = Show(page);
+        try {
+            page.RadioLauncherTheme0.BringIntoView();
+            Dispatcher.UIThread.RunJobs();
+            var target = page.RadioLauncherTheme1;
+            var center = target.TranslatePoint(new Point(target.Bounds.Width / 2, target.Bounds.Height / 2), window);
+            Assert.True(center.HasValue);
+            window.MouseMove(center!.Value);
+            Dispatcher.UIThread.RunJobs();
+            Click(window, target);
+            Settle();
+            var label = target.GetVisualDescendants().OfType<TextBlock>().First();
+            var brush = Assert.IsType<Avalonia.Media.SolidColorBrush>(label.Foreground);
+            Assert.Equal(BrushColor("ColorBrush1"), brush.Color);
+            Assert.Equal(1, global::PCL.Settings.Get<int>("UiLauncherTheme"));
+        } finally {
+            window.Close();
+            global::PCL.Settings.Set("UiLauncherTheme", originalTheme);
+        }
+    }
+
+    [AvaloniaFact]
+    public void Title_tab_checked_pill_survives_theme_switch() {
+        var originalTheme = global::PCL.Settings.Get<int>("UiLauncherTheme");
+        var originalMode = global::PCL.Settings.Get<int>("UiLauncherThemeMode");
+        var window = new global::PCL.FormMain { Width = 1200, Height = 800 };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        Settle();
+        try {
+            global::PCL.Settings.Set("UiLauncherThemeMode", 1);
+            foreach (var theme in new[] { 0, 1, 2, 3, 4 }) {
+                global::PCL.Settings.Set("UiLauncherTheme", theme);
+                Settle();
+                var tab = window.FindControl<global::PCL.MyRadioButton>("BtnTitleSelect0")!;
+                Assert.True(tab.Checked);
+                var background = Assert.IsType<Avalonia.Media.SolidColorBrush>(tab.Background);
+                Assert.Equal(Avalonia.Media.Colors.White, background.Color);
+                var text = tab.FindControl<TextBlock>("LabText")!;
+                var foreground = Assert.IsType<Avalonia.Media.SolidColorBrush>(text.Foreground);
+                Assert.Equal(BrushColor("ColorBrush3"), foreground.Color);
+                Assert.Equal(1d, text.Opacity);
+                Assert.Equal(1d, tab.Opacity);
+            }
+
+            global::PCL.Settings.Set("UiLauncherThemeMode", 2);
+            global::PCL.Settings.Set("UiLauncherTheme", 0);
+            Settle();
+            var darkTab = window.FindControl<global::PCL.MyRadioButton>("BtnTitleSelect0")!;
+            var darkBackground = Assert.IsType<Avalonia.Media.SolidColorBrush>(darkTab.Background);
+            Assert.Equal(Avalonia.Media.Colors.White, darkBackground.Color);
+            var darkText = Assert.IsType<Avalonia.Media.SolidColorBrush>(darkTab.FindControl<TextBlock>("LabText")!.Foreground);
+            Assert.Equal(BrushColor("ColorBrush3"), darkText.Color);
+        } finally {
+            global::PCL.Settings.Set("UiLauncherTheme", originalTheme);
+            global::PCL.Settings.Set("UiLauncherThemeMode", originalMode);
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Dark_mode_launch_button_has_no_gray_fill() {
+        var originalMode = global::PCL.Settings.Get<int>("UiLauncherThemeMode");
+        var originalTheme = global::PCL.Settings.Get<int>("UiLauncherTheme");
+        var window = new global::PCL.FormMain { Width = 1200, Height = 800 };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        Settle();
+        try {
+            global::PCL.Settings.Set("UiLauncherTheme", 0);
+            global::PCL.Settings.Set("UiLauncherThemeMode", 2);
+            Settle();
+            var launch = window.GetVisualDescendants().OfType<global::PCL.MyButton>().First(b => b.Name == "BtnLaunch");
+            var fore = launch.GetVisualChildren().OfType<Border>().First(b => b.Name == "PanFore");
+            var brush = Assert.IsType<Avalonia.Media.SolidColorBrush>(fore.Background);
+            Assert.Equal(0, brush.Color.A);
+        } finally {
+            global::PCL.Settings.Set("UiLauncherTheme", originalTheme);
+            global::PCL.Settings.Set("UiLauncherThemeMode", originalMode);
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Theme_and_appearance_radio_groups_are_independent() {
+        var originalTheme = global::PCL.Settings.Get<int>("UiLauncherTheme");
+        var originalMode = global::PCL.Settings.Get<int>("UiLauncherThemeMode");
+        global::PCL.Settings.Set("UiLauncherTheme", 0);
+        global::PCL.Settings.Set("UiLauncherThemeMode", 1);
+        var page = new global::PCL.PageSetupUI();
+        var window = Show(page);
+        try {
+            Settle();
+            Assert.True(page.RadioLauncherTheme0.Checked);
+            Assert.True(page.RadioThemeModeLight.Checked);
+
+            page.RadioLauncherTheme2.SetChecked(true, true);
+            Settle();
+            Assert.True(page.RadioLauncherTheme2.Checked);
+            Assert.False(page.RadioLauncherTheme0.Checked);
+            Assert.True(page.RadioThemeModeLight.Checked);
+            Assert.False(page.RadioThemeModeDark.Checked);
+
+            page.RadioThemeModeDark.SetChecked(true, true);
+            Settle();
+            Assert.True(page.RadioThemeModeDark.Checked);
+            Assert.False(page.RadioThemeModeLight.Checked);
+            Assert.True(page.RadioLauncherTheme2.Checked);
+            Assert.Equal(2, global::PCL.Settings.Get<int>("UiLauncherTheme"));
+            Assert.Equal(2, global::PCL.Settings.Get<int>("UiLauncherThemeMode"));
+
+            page.RadioLauncherTheme0.SetChecked(true, true);
+            Settle();
+            Assert.True(page.RadioLauncherTheme0.Checked);
+            Assert.False(page.RadioLauncherTheme2.Checked);
+            Assert.True(page.RadioThemeModeDark.Checked);
+        } finally {
+            global::PCL.Settings.Set("UiLauncherTheme", originalTheme);
+            global::PCL.Settings.Set("UiLauncherThemeMode", originalMode);
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Theme_mode_updates_application_theme_variant() {
+        var originalMode = global::PCL.Settings.Get<int>("UiLauncherThemeMode");
+        try {
+            global::PCL.Settings.Set("UiLauncherThemeMode", 1);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(Avalonia.Styling.ThemeVariant.Light, Application.Current!.ActualThemeVariant);
+            global::PCL.Settings.Set("UiLauncherThemeMode", 2);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(Avalonia.Styling.ThemeVariant.Dark, Application.Current!.ActualThemeVariant);
+            global::PCL.Settings.Set("UiLauncherThemeMode", 0);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(Avalonia.Styling.ThemeVariant.Default, Application.Current!.RequestedThemeVariant);
+        } finally {
+            global::PCL.Settings.Set("UiLauncherThemeMode", originalMode);
+            Dispatcher.UIThread.RunJobs();
         }
     }
 }

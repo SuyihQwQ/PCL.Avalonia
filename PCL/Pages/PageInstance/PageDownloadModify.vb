@@ -57,7 +57,7 @@ Public Class PageDownloadModify
         Dim Manifest = Configs.McInstallManifest.Get(Task.Input.Config)
         If Manifest IsNot Nothing AndAlso Manifest.SchemaVersion > Versions.McInstallManifestVersion Then
             Logger.Warn($"安装清单由更新版本的 PCL 创建（清单版本：{Manifest.SchemaVersion}，当前版本：{Versions.McInstallManifestVersion}）")
-            Throw New Exception($"更新 PCL 后才能修改它！点击【设置 → 其他 → 检查更新】以更新。")
+            Throw New Exception($"该整合包由更新版本的 PCL 创建，当前版本无法修改它。")
         End If
         If Manifest IsNot Nothing Then
             Dim LatestManifest = Manifest.RefreshModComponents(Task.Input.PathIndie)
@@ -573,7 +573,7 @@ Public Class PageDownloadModify
         NewLabel.Margin = If(NewVersion Is Nothing, New Thickness(0), New Thickness(7, 0, 0, 0))
         NewLabel.Text = If(NewVersion Is Nothing, "移除", NewText)
         If NewVersion Is Nothing AndAlso UnavailableReason IsNot Nothing Then
-            NewLabel.Inlines.Add(New Run($"（{If(UnavailableReason = "无", "无可用版本", UnavailableReason)}）") With {.Foreground = ColorGray4})
+            NewLabel.Inlines.Add(New Run($"（{If(UnavailableReason = "无", "无可用版本", UnavailableReason)}）") With {.Foreground = CType(ColorGray4, Brush)})
         End If
     End Sub
 

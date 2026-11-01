@@ -16,30 +16,10 @@ Public Class PageOtherAbout
         IsLoaded = True
 
         ItemAboutPcl.Info = ItemAboutPcl.Info.Replace("%VERSION%", VersionDisplay).Replace("%VERSIONCODE%", VersionCode.ToString()).Replace("%BRANCH%", CInt(BuildType).ToString())
-        If BuildType = BuildTypes.Debug Then
-            BtnDonateDonate.IsVisible = False
-            BtnDonateOutput.IsVisible = True
-        End If
     End Sub
 
     Public Shared Sub CopyIdentify()
         ClipboardSet(Identify)
-    End Sub
-
-    Private Sub BtnDonateCopy_Click(sender As Object, e As PointerReleasedEventArgs) Handles BtnDonateCopy.Click
-        CopyIdentify()
-    End Sub
-
-    Private Sub BtnDonateInput_Click(sender As Object, e As PointerReleasedEventArgs) Handles BtnDonateInput.Click
-        InputPotatoCode(False)
-    End Sub
-
-    Private Sub BtnDonateOutput_Click(sender As Object, e As PointerReleasedEventArgs) Handles BtnDonateOutput.Click
-        GeneratePotatoCode()
-    End Sub
-
-    Private Sub BtnAboutUpdate_Click(sender As Object, e As PointerReleasedEventArgs) Handles BtnAboutUpdate.Click
-        UpdateCheckByButton()
     End Sub
 
 End Class

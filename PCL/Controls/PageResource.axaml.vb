@@ -4,6 +4,15 @@
 Public Class PageResource
     Inherits MyScrollViewer
 
+    ''' <summary>
+    ''' 沿用 MyScrollViewer 的模板，否则派生类会退回无滚动能力的默认内容模板。
+    ''' </summary>
+    Protected Overrides ReadOnly Property StyleKeyOverride As Type
+        Get
+            Return GetType(MyScrollViewer)
+        End Get
+    End Property
+
 #Region "属性"
 
     ''' <summary>

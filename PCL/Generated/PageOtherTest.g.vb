@@ -15,11 +15,14 @@ Namespace Global.PCL
     Partial Public Class PageOtherTest
 
         Friend WithEvents PanBack As PCL.MyScrollViewer
+        Friend WithEvents PanMain As Avalonia.Controls.StackPanel
 
         Private Sub InitControls()
             AvaloniaXamlLoader.Load(Me)
             PanBack = FindControl(Of PCL.MyScrollViewer)("PanBack")
             If PanBack Is Nothing Then Throw New InvalidOperationException("找不到控件：PanBack")
+            PanMain = FindControl(Of Avalonia.Controls.StackPanel)("PanMain")
+            If PanMain Is Nothing Then Throw New InvalidOperationException("找不到控件：PanMain")
         End Sub
 
     End Class

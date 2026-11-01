@@ -8,13 +8,35 @@ Public Class MySkin
 
     Public Event Click(sender As Object, e As PointerReleasedEventArgs)
 
+    Private SkinEffect As DropShadowEffect
+
     Public Sub New()
         InitControls()
+        SkinEffect = New DropShadowEffect With {.OffsetX = 0, .OffsetY = 0, .BlurRadius = 10, .Opacity = 0.2}
+        Effect = SkinEffect
+        RefreshShadow()
         If ContextMenu IsNot Nothing Then
             AddHandler ContextMenu.Opening, Sub(sender As Object, e As System.ComponentModel.CancelEventArgs)
                                                 BtnSkinSave.IsEnabled = Address <> ""
                                             End Sub
         End If
+        AddHandler ActualThemeVariantChanged, Sub() RefreshShadow()
+    End Sub
+
+    ''' <summary>
+    ''' 按主题强调色刷新头像外圈光晕。
+    ''' </summary>
+    Private Sub RefreshShadow()
+        Try
+            Dim Resource = Application.Current?.FindResource("ColorObject2")
+            If TypeOf Resource Is Color Then
+                SkinEffect.Color = CType(Resource, Color)
+            ElseIf TypeOf Resource Is SolidColorBrush Then
+                SkinEffect.Color = CType(Resource, SolidColorBrush).Color
+            End If
+        Catch ex As Exception
+            Logger.Warn(ex, "刷新皮肤阴影颜色失败")
+        End Try
     End Sub
 
     Public Uuid As Integer = GetUuid()
@@ -46,9 +68,10 @@ Public Class MySkin
 #Region "控件动画"
 
     Private Sub PanSkin_PointerEntered(sender As Object, e As PointerEventArgs) Handles Me.PointerEntered
-        AniStart(AaScaleTransform(Me, 0.04 - AniScaleX(Me), 200), "Skin Scale")
+        AniStart(AaDouble(Sub(i) SkinEffect.Opacity += i, 0.8 - SkinEffect.Opacity, 200, 100), "Skin Shadow")
     End Sub
     Private Sub PanSkin_PointerExited(sender As Object, e As PointerEventArgs) Handles Me.PointerExited
+        AniStart(AaDouble(Sub(i) SkinEffect.Opacity += i, 0.2 - SkinEffect.Opacity, 200), "Skin Shadow")
         IsSkinMouseDown = False
         AniStart(AaScaleTransform(Me, 1 - AniScaleX(Me), 60, , New AniEaseOutFluent), "Skin Scale")
     End Sub

@@ -12,6 +12,7 @@ Public Class MyComboBox
     Public Uuid As Integer = GetUuid()
     Private TextBox As MyTextBox
     Private Popup As Popup
+    Private ArrowPath As Avalonia.Controls.Shapes.Path
     Private _contentPresenter As ContentPresenter
     Private IsTextChanging As Boolean = False
     Public Property HintText As String = ""
@@ -19,6 +20,7 @@ Public Class MyComboBox
     Protected Overrides Sub OnApplyTemplate(e As TemplateAppliedEventArgs)
         MyBase.OnApplyTemplate(e)
         Popup = e.NameScope.Find(Of Popup)("PART_Popup")
+        ArrowPath = e.NameScope.Find(Of Avalonia.Controls.Shapes.Path)("PART_Arrow")
         _contentPresenter = e.NameScope.Find(Of ContentPresenter)("PART_Content")
         If Not IsEditable Then Return
         Try
@@ -68,7 +70,11 @@ Public Class MyComboBox
                 RefreshColor()
             End Sub)
         AddHandler Me.DropDownOpened, Sub(sender, e) DropDownOpenedHandler()
-        AddHandler Me.DropDownClosed, Sub(sender, e) RefreshColor()
+        AddHandler Me.DropDownClosed,
+            Sub(sender, e)
+                RefreshColor()
+                RefreshArrow()
+            End Sub
         AddHandler Me.SelectionChanged,
             Sub(sender, e)
                 If IsControlLoaded AndAlso AniControlEnabled = 0 Then RaiseCustomEvent()
@@ -143,8 +149,15 @@ Public Class MyComboBox
 
     '下拉菜单
 
+    Private Sub RefreshArrow()
+        If ArrowPath Is Nothing Then Return
+        Dim TargetAngle As Double = If(IsDropDownOpen, 180, 0)
+        AniStart(AaRotateTransform(ArrowPath, TargetAngle - AniAngle(ArrowPath), 150, , New AniEaseOutFluent), "MyComboBox Arrow " & Uuid)
+    End Sub
+
     Private Sub DropDownOpenedHandler()
         RefreshColor()
+        RefreshArrow()
         '将下拉菜单宽度与透明度与主窗口同步
         Try
             If Popup IsNot Nothing Then

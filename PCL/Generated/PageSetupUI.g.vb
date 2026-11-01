@@ -18,36 +18,15 @@ Namespace Global.PCL
         Friend WithEvents PanMain As Avalonia.Controls.StackPanel
         Friend WithEvents CardLauncher As PCL.MyCard
         Friend WithEvents SliderLauncherTransparent As PCL.MySlider
-        Friend WithEvents LabLauncherHue As Avalonia.Controls.TextBlock
-        Friend WithEvents SliderLauncherHue As PCL.MySlider
-        Friend WithEvents LabLauncherDelta As Avalonia.Controls.TextBlock
-        Friend WithEvents SliderLauncherDelta As PCL.MySlider
-        Friend WithEvents LabLauncherSat As Avalonia.Controls.TextBlock
-        Friend WithEvents SliderLauncherSat As PCL.MySlider
-        Friend WithEvents LabLauncherLight As Avalonia.Controls.TextBlock
-        Friend WithEvents SliderLauncherLight As PCL.MySlider
         Friend WithEvents PanLauncherTheme As Avalonia.Controls.Grid
         Friend WithEvents RadioLauncherTheme0 As PCL.MyRadioBox
         Friend WithEvents RadioLauncherTheme1 As PCL.MyRadioBox
         Friend WithEvents RadioLauncherTheme2 As PCL.MyRadioBox
         Friend WithEvents RadioLauncherTheme3 As PCL.MyRadioBox
         Friend WithEvents RadioLauncherTheme4 As PCL.MyRadioBox
-        Friend WithEvents RadioLauncherTheme5 As PCL.MyRadioBox
-        Friend WithEvents RadioLauncherTheme5Gray As PCL.MyRadioBox
-        Friend WithEvents LabLauncherTheme5Unlock As Avalonia.Controls.TextBlock
-        Friend WithEvents RadioLauncherTheme12 As PCL.MyRadioBox
-        Friend WithEvents RadioLauncherTheme6 As PCL.MyRadioBox
-        Friend WithEvents RadioLauncherTheme7 As PCL.MyRadioBox
-        Friend WithEvents RadioLauncherTheme13 As PCL.MyRadioBox
-        Friend WithEvents RadioLauncherTheme8 As PCL.MyRadioBox
-        Friend WithEvents LabLauncherTheme8Copy As Avalonia.Controls.TextBlock
-        Friend WithEvents RadioLauncherTheme9 As PCL.MyRadioBox
-        Friend WithEvents LabLauncherTheme9Copy As Avalonia.Controls.TextBlock
-        Friend WithEvents RadioLauncherTheme10 As PCL.MyRadioBox
-        Friend WithEvents RadioLauncherTheme11 As PCL.MyRadioBox
-        Friend WithEvents LabLauncherTheme11Click As Avalonia.Controls.TextBlock
-        Friend WithEvents RadioLauncherTheme14 As PCL.MyRadioBox
-        Friend WithEvents PanLauncherHide As Avalonia.Controls.Border
+        Friend WithEvents RadioThemeModeFollow As PCL.MyRadioBox
+        Friend WithEvents RadioThemeModeLight As PCL.MyRadioBox
+        Friend WithEvents RadioThemeModeDark As PCL.MyRadioBox
         Friend WithEvents CardBackground As PCL.MyCard
         Friend WithEvents PanBackgroundSuit As Avalonia.Controls.Grid
         Friend WithEvents ComboBackgroundSuit As PCL.MyComboBox
@@ -125,22 +104,6 @@ Namespace Global.PCL
             If CardLauncher Is Nothing Then Throw New InvalidOperationException("找不到控件：CardLauncher")
             SliderLauncherTransparent = FindControl(Of PCL.MySlider)("SliderLauncherTransparent")
             If SliderLauncherTransparent Is Nothing Then Throw New InvalidOperationException("找不到控件：SliderLauncherTransparent")
-            LabLauncherHue = FindControl(Of Avalonia.Controls.TextBlock)("LabLauncherHue")
-            If LabLauncherHue Is Nothing Then Throw New InvalidOperationException("找不到控件：LabLauncherHue")
-            SliderLauncherHue = FindControl(Of PCL.MySlider)("SliderLauncherHue")
-            If SliderLauncherHue Is Nothing Then Throw New InvalidOperationException("找不到控件：SliderLauncherHue")
-            LabLauncherDelta = FindControl(Of Avalonia.Controls.TextBlock)("LabLauncherDelta")
-            If LabLauncherDelta Is Nothing Then Throw New InvalidOperationException("找不到控件：LabLauncherDelta")
-            SliderLauncherDelta = FindControl(Of PCL.MySlider)("SliderLauncherDelta")
-            If SliderLauncherDelta Is Nothing Then Throw New InvalidOperationException("找不到控件：SliderLauncherDelta")
-            LabLauncherSat = FindControl(Of Avalonia.Controls.TextBlock)("LabLauncherSat")
-            If LabLauncherSat Is Nothing Then Throw New InvalidOperationException("找不到控件：LabLauncherSat")
-            SliderLauncherSat = FindControl(Of PCL.MySlider)("SliderLauncherSat")
-            If SliderLauncherSat Is Nothing Then Throw New InvalidOperationException("找不到控件：SliderLauncherSat")
-            LabLauncherLight = FindControl(Of Avalonia.Controls.TextBlock)("LabLauncherLight")
-            If LabLauncherLight Is Nothing Then Throw New InvalidOperationException("找不到控件：LabLauncherLight")
-            SliderLauncherLight = FindControl(Of PCL.MySlider)("SliderLauncherLight")
-            If SliderLauncherLight Is Nothing Then Throw New InvalidOperationException("找不到控件：SliderLauncherLight")
             PanLauncherTheme = FindControl(Of Avalonia.Controls.Grid)("PanLauncherTheme")
             If PanLauncherTheme Is Nothing Then Throw New InvalidOperationException("找不到控件：PanLauncherTheme")
             RadioLauncherTheme0 = FindControl(Of PCL.MyRadioBox)("RadioLauncherTheme0")
@@ -153,38 +116,12 @@ Namespace Global.PCL
             If RadioLauncherTheme3 Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioLauncherTheme3")
             RadioLauncherTheme4 = FindControl(Of PCL.MyRadioBox)("RadioLauncherTheme4")
             If RadioLauncherTheme4 Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioLauncherTheme4")
-            RadioLauncherTheme5 = FindControl(Of PCL.MyRadioBox)("RadioLauncherTheme5")
-            If RadioLauncherTheme5 Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioLauncherTheme5")
-            RadioLauncherTheme5Gray = FindControl(Of PCL.MyRadioBox)("RadioLauncherTheme5Gray")
-            If RadioLauncherTheme5Gray Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioLauncherTheme5Gray")
-            LabLauncherTheme5Unlock = FindControl(Of Avalonia.Controls.TextBlock)("LabLauncherTheme5Unlock")
-            If LabLauncherTheme5Unlock Is Nothing Then Throw New InvalidOperationException("找不到控件：LabLauncherTheme5Unlock")
-            RadioLauncherTheme12 = FindControl(Of PCL.MyRadioBox)("RadioLauncherTheme12")
-            If RadioLauncherTheme12 Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioLauncherTheme12")
-            RadioLauncherTheme6 = FindControl(Of PCL.MyRadioBox)("RadioLauncherTheme6")
-            If RadioLauncherTheme6 Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioLauncherTheme6")
-            RadioLauncherTheme7 = FindControl(Of PCL.MyRadioBox)("RadioLauncherTheme7")
-            If RadioLauncherTheme7 Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioLauncherTheme7")
-            RadioLauncherTheme13 = FindControl(Of PCL.MyRadioBox)("RadioLauncherTheme13")
-            If RadioLauncherTheme13 Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioLauncherTheme13")
-            RadioLauncherTheme8 = FindControl(Of PCL.MyRadioBox)("RadioLauncherTheme8")
-            If RadioLauncherTheme8 Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioLauncherTheme8")
-            LabLauncherTheme8Copy = FindControl(Of Avalonia.Controls.TextBlock)("LabLauncherTheme8Copy")
-            If LabLauncherTheme8Copy Is Nothing Then Throw New InvalidOperationException("找不到控件：LabLauncherTheme8Copy")
-            RadioLauncherTheme9 = FindControl(Of PCL.MyRadioBox)("RadioLauncherTheme9")
-            If RadioLauncherTheme9 Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioLauncherTheme9")
-            LabLauncherTheme9Copy = FindControl(Of Avalonia.Controls.TextBlock)("LabLauncherTheme9Copy")
-            If LabLauncherTheme9Copy Is Nothing Then Throw New InvalidOperationException("找不到控件：LabLauncherTheme9Copy")
-            RadioLauncherTheme10 = FindControl(Of PCL.MyRadioBox)("RadioLauncherTheme10")
-            If RadioLauncherTheme10 Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioLauncherTheme10")
-            RadioLauncherTheme11 = FindControl(Of PCL.MyRadioBox)("RadioLauncherTheme11")
-            If RadioLauncherTheme11 Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioLauncherTheme11")
-            LabLauncherTheme11Click = FindControl(Of Avalonia.Controls.TextBlock)("LabLauncherTheme11Click")
-            If LabLauncherTheme11Click Is Nothing Then Throw New InvalidOperationException("找不到控件：LabLauncherTheme11Click")
-            RadioLauncherTheme14 = FindControl(Of PCL.MyRadioBox)("RadioLauncherTheme14")
-            If RadioLauncherTheme14 Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioLauncherTheme14")
-            PanLauncherHide = FindControl(Of Avalonia.Controls.Border)("PanLauncherHide")
-            If PanLauncherHide Is Nothing Then Throw New InvalidOperationException("找不到控件：PanLauncherHide")
+            RadioThemeModeFollow = FindControl(Of PCL.MyRadioBox)("RadioThemeModeFollow")
+            If RadioThemeModeFollow Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioThemeModeFollow")
+            RadioThemeModeLight = FindControl(Of PCL.MyRadioBox)("RadioThemeModeLight")
+            If RadioThemeModeLight Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioThemeModeLight")
+            RadioThemeModeDark = FindControl(Of PCL.MyRadioBox)("RadioThemeModeDark")
+            If RadioThemeModeDark Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioThemeModeDark")
             CardBackground = FindControl(Of PCL.MyCard)("CardBackground")
             If CardBackground Is Nothing Then Throw New InvalidOperationException("找不到控件：CardBackground")
             PanBackgroundSuit = FindControl(Of Avalonia.Controls.Grid)("PanBackgroundSuit")

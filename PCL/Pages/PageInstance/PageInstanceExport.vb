@@ -176,7 +176,7 @@ Public Class PageInstanceExport
             If Not CheckBox.IsVisible Then Continue For
             CheckBox.Inlines.Add(New Run(TargetOption.Title))
             If Not String.IsNullOrEmpty(TargetOption.Description) Then
-                CheckBox.Inlines.Add(New Run("   " & TargetOption.Description) With {.Foreground = ColorGray5})
+                CheckBox.Inlines.Add(New Run("   " & TargetOption.Description) With {.Foreground = CType(ColorGray5, Brush)})
             End If
         Next
         RefreshOptionBindings()
@@ -603,13 +603,13 @@ Public Class PageInstanceExport
             If BuildType = BuildTypes.Release AndAlso IncludePCL Then FileUtils.Copy(PathExe, CacheFolder & "Plain Craft Launcher.exe")
             '复制 PCL 个性化内容
             If IncludePCLCustom Then
-                If DirectoryUtils.Exists(Paths.Base & "PCL\Pictures\") Then DirectoryUtils.Copy(Paths.Base & "PCL\Pictures\", CacheFolder & "PCL\Pictures\")
-                If DirectoryUtils.Exists(Paths.Base & "PCL\Musics\") Then DirectoryUtils.Copy(Paths.Base & "PCL\Musics\", CacheFolder & "PCL\Musics\")
-                If DirectoryUtils.Exists(Paths.Base & "PCL\Help\") Then DirectoryUtils.Copy(Paths.Base & "PCL\Help\", CacheFolder & "PCL\Help\")
-                If FileUtils.Exists(Paths.Base & "PCL\Custom.xaml") Then FileUtils.Copy(Paths.Base & "PCL\Custom.xaml", CacheFolder & "PCL\Custom.xaml")
-                If FileUtils.Exists(Paths.Base & "PCL\Setup.ini") Then FileUtils.Copy(Paths.Base & "PCL\Setup.ini", CacheFolder & "PCL\Setup.ini")
-                If FileUtils.Exists(Paths.Base & "PCL\hints.txt") Then FileUtils.Copy(Paths.Base & "PCL\hints.txt", CacheFolder & "PCL\hints.txt")
-                If FileUtils.Exists(Paths.Base & "PCL\Logo.png") Then FileUtils.Copy(Paths.Base & "PCL\Logo.png", CacheFolder & "PCL\Logo.png")
+                If DirectoryUtils.Exists(PathData & "Pictures\") Then DirectoryUtils.Copy(PathData & "Pictures\", CacheFolder & "PCL\Pictures\")
+                If DirectoryUtils.Exists(PathData & "Musics\") Then DirectoryUtils.Copy(PathData & "Musics\", CacheFolder & "PCL\Musics\")
+                If DirectoryUtils.Exists(PathData & "Help\") Then DirectoryUtils.Copy(PathData & "Help\", CacheFolder & "PCL\Help\")
+                If FileUtils.Exists(PathData & "Custom.xaml") Then FileUtils.Copy(PathData & "Custom.xaml", CacheFolder & "PCL\Custom.xaml")
+                If FileUtils.Exists(PathData & "Setup.ini") Then FileUtils.Copy(PathData & "Setup.ini", CacheFolder & "PCL\Setup.ini")
+                If FileUtils.Exists(PathData & "hints.txt") Then FileUtils.Copy(PathData & "hints.txt", CacheFolder & "PCL\hints.txt")
+                If FileUtils.Exists(PathData & "Logo.png") Then FileUtils.Copy(PathData & "Logo.png", CacheFolder & "PCL\Logo.png")
             End If
         End Sub) With {.ProgressWeight = 5})
 
@@ -625,6 +625,7 @@ Public Class PageInstanceExport
 
             '分平台获取下载地址
             Dim EndedThreadCount As Integer = 0, FailedExceptions As New List(Of Exception)
+            Dim ThreadCount As Integer = If(CurseForgeEnabled, 2, 1)
 
             '从 Modrinth 获取信息
             RunInNewThread(
@@ -650,7 +651,8 @@ Public Class PageInstanceExport
                 End Try
             End Sub, "Modrinth - " & LoaderName)
 
-            '从 CurseForge 获取信息
+            '从 CurseForge 获取信息（需要 CurseForge API 权限，暂未开放）
+            If CurseForgeEnabled Then
             RunInNewThread(
             Sub()
                 Try
@@ -679,9 +681,10 @@ Public Class PageInstanceExport
                     Loader.Progress += 0.45
                 End Try
             End Sub, "CurseForge - " & LoaderName)
+            End If
 
             '等待线程结束
-            Do Until EndedThreadCount = 2
+            Do Until EndedThreadCount >= ThreadCount
                 If Loader.IsCanceled Then Return
                 Thread.Sleep(10)
             Loop
@@ -779,7 +782,7 @@ Public Class PageInstanceExport
                 GetExportOption(CheckOptionsJava).Title))
             CheckOptionsJava.Inlines.Add(New Run("   " &
                 $"Java {JavaToExport.Version.Major} ({JavaToExport.Version})：{ _
-                PathUtils.AddSlashSuffix(PathUtils.RemoveLastPart(JavaToExport.Folder.Replace(PathUtils.RemoveLastPart(PathUtils.RemoveLastPart(PageInstanceLeft.Instance.PathVersion)), ""))).TrimStart("\"c)}") With {.Foreground = ColorGray5})
+                PathUtils.AddSlashSuffix(PathUtils.RemoveLastPart(JavaToExport.Folder.Replace(PathUtils.RemoveLastPart(PathUtils.RemoveLastPart(PageInstanceLeft.Instance.PathVersion)), ""))).TrimStart("\"c)}") With {.Foreground = CType(ColorGray5, Brush)})
         End If
         '警告条
         If JavaType = 3 Then

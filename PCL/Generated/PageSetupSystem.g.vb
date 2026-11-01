@@ -26,17 +26,9 @@ Namespace Global.PCL
         Friend WithEvents CheckUpdateRelease As PCL.MyCheckBox
         Friend WithEvents CheckUpdateSnapshot As PCL.MyCheckBox
         Friend WithEvents CheckHelpChinese As PCL.MyCheckBox
-        Friend WithEvents ComboSystemUpdate As PCL.MyComboBox
-        Friend WithEvents ItemSystemUpdateDownload As PCL.MyComboBoxItem
-        Friend WithEvents ComboSystemActivity As PCL.MyComboBox
         Friend WithEvents TextSystemCache As PCL.MyTextBox
-        Friend WithEvents CheckSystemTelemetry As PCL.MyCheckBox
-        Friend WithEvents BtnSystemUpdate As PCL.MyButton
         Friend WithEvents BtnSystemSettingExp As PCL.MyButton
         Friend WithEvents BtnSystemSettingImp As PCL.MyButton
-        Friend WithEvents PanDonate As Avalonia.Controls.Grid
-        Friend WithEvents BtnSystemIdentify As PCL.MyButton
-        Friend WithEvents BtnSystemUnlock As PCL.MyButton
         Friend WithEvents CardDebug As PCL.MyCard
         Friend WithEvents PanDebugAnim As Avalonia.Controls.Grid
         Friend WithEvents SliderDebugAnim As PCL.MySlider
@@ -70,28 +62,12 @@ Namespace Global.PCL
             If CheckUpdateSnapshot Is Nothing Then Throw New InvalidOperationException("找不到控件：CheckUpdateSnapshot")
             CheckHelpChinese = FindControl(Of PCL.MyCheckBox)("CheckHelpChinese")
             If CheckHelpChinese Is Nothing Then Throw New InvalidOperationException("找不到控件：CheckHelpChinese")
-            ComboSystemUpdate = FindControl(Of PCL.MyComboBox)("ComboSystemUpdate")
-            If ComboSystemUpdate Is Nothing Then Throw New InvalidOperationException("找不到控件：ComboSystemUpdate")
-            ItemSystemUpdateDownload = FindControl(Of PCL.MyComboBoxItem)("ItemSystemUpdateDownload")
-            If ItemSystemUpdateDownload Is Nothing Then Throw New InvalidOperationException("找不到控件：ItemSystemUpdateDownload")
-            ComboSystemActivity = FindControl(Of PCL.MyComboBox)("ComboSystemActivity")
-            If ComboSystemActivity Is Nothing Then Throw New InvalidOperationException("找不到控件：ComboSystemActivity")
             TextSystemCache = FindControl(Of PCL.MyTextBox)("TextSystemCache")
             If TextSystemCache Is Nothing Then Throw New InvalidOperationException("找不到控件：TextSystemCache")
-            CheckSystemTelemetry = FindControl(Of PCL.MyCheckBox)("CheckSystemTelemetry")
-            If CheckSystemTelemetry Is Nothing Then Throw New InvalidOperationException("找不到控件：CheckSystemTelemetry")
-            BtnSystemUpdate = FindControl(Of PCL.MyButton)("BtnSystemUpdate")
-            If BtnSystemUpdate Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnSystemUpdate")
             BtnSystemSettingExp = FindControl(Of PCL.MyButton)("BtnSystemSettingExp")
             If BtnSystemSettingExp Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnSystemSettingExp")
             BtnSystemSettingImp = FindControl(Of PCL.MyButton)("BtnSystemSettingImp")
             If BtnSystemSettingImp Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnSystemSettingImp")
-            PanDonate = FindControl(Of Avalonia.Controls.Grid)("PanDonate")
-            If PanDonate Is Nothing Then Throw New InvalidOperationException("找不到控件：PanDonate")
-            BtnSystemIdentify = FindControl(Of PCL.MyButton)("BtnSystemIdentify")
-            If BtnSystemIdentify Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnSystemIdentify")
-            BtnSystemUnlock = FindControl(Of PCL.MyButton)("BtnSystemUnlock")
-            If BtnSystemUnlock Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnSystemUnlock")
             CardDebug = FindControl(Of PCL.MyCard)("CardDebug")
             If CardDebug Is Nothing Then Throw New InvalidOperationException("找不到控件：CardDebug")
             PanDebugAnim = FindControl(Of Avalonia.Controls.Grid)("PanDebugAnim")

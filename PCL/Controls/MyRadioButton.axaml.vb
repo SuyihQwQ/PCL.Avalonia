@@ -150,6 +150,8 @@ Public Class MyRadioButton
         If Not IsMouseDown Then Return
         Logger.Info($"按下单选按钮：{Text}")
         IsMouseDown = False
+        '提前释放隐式指针捕获，避免 Check 回调中打开的模态弹窗被本控件持续捕获指针
+        e.Pointer.Capture(Nothing)
         Dim ePreview As New RouteEventArgs(True)
         RaiseEvent PreviewClick(Me, ePreview)
         If ePreview.Handled Then Return

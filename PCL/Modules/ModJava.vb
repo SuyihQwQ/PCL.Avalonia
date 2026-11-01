@@ -78,7 +78,8 @@ Public Module ModJava
     ''' </summary>
     Public Sub ManuallyImportJava()
         '选择
-        Dim NewJavaPath As String = Dialogs.SelectFile("选择 java.exe（可能在 bin 文件夹中）", False, filter:="java.exe|java.exe").FirstOrDefault()
+        Dim ExeName As String = Java.ExecutableName
+        Dim NewJavaPath As String = Dialogs.SelectFile($"选择 {ExeName}（可能在 bin 文件夹中）", False, filter:=$"{ExeName}|{ExeName}").FirstOrDefault()
         If String.IsNullOrEmpty(NewJavaPath) Then Return
         '验证 Java 可用
         Dim NewJava As New Java(PathUtils.RemoveLastPart(NewJavaPath))
