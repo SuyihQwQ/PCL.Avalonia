@@ -4,6 +4,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using System.Text;
@@ -81,7 +82,8 @@ public class UiRegressionTests {
             Pump(40);
             Assert.Equal(1, border.Opacity, 2);
             Assert.Equal(-20, border.Margin.Left, 1);
-            Assert.Equal(26, border.Height, 1);
+            Assert.Equal(30, border.Height, 1);
+            Assert.Equal(18, text.LineHeight, 1);
 
             //重复提示复用同一条提示条
             global::PCL.ModMain.Hint("测试提示", global::PCL.ModMain.HintType.Green, false);
@@ -301,6 +303,341 @@ public class UiRegressionTests {
             Assert.Equal(40, global::PCL.ModAnimation.AniAngle(loading.PathPickaxe), 2);
         } finally {
             window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Textbox_hint_is_visible_only_when_text_is_empty() {
+        var box = new global::PCL.MyTextBox { HintText = "跟随全局设置" };
+        var window = new Window { Width = 200, Height = 100, Content = box };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        try {
+            var hint = box.GetVisualDescendants().OfType<TextBlock>().First(t => t.Name == "labHint");
+            Assert.True(hint.IsVisible);
+            Assert.Equal("跟随全局设置", hint.Text);
+            box.Text = "abc";
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(hint.IsVisible);
+            box.Text = "";
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(hint.IsVisible);
+        } finally {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Radio_dot_stays_centered_when_checked_and_unchecked() {
+        var radio = new global::PCL.MyRadioBox { Text = "测试" };
+        var window = new Window { Width = 200, Height = 100, Content = radio };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        try {
+            radio.Checked = true;
+            Pump(60);
+            Assert.Equal(10, radio.ShapeDot.Bounds.X + radio.ShapeDot.Bounds.Width / 2, 2);
+            radio.Checked = false;
+            Pump(60);
+            Assert.Equal(0, global::PCL.ModAnimation.AniScaleX(radio.ShapeDot), 2);
+            Assert.Equal(10, radio.ShapeDot.Bounds.X + radio.ShapeDot.Bounds.Width / 2, 2);
+        } finally {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Combo_dropdown_keeps_card_title_highlighted_until_closed() {
+        var card = new global::PCL.MyCard { Title = "测试卡片", Width = 300, Height = 200, Margin = new Thickness(50) };
+        var combo = new global::PCL.MyComboBox {
+            Width = 120, Margin = new Thickness(20, 80, 0, 0),
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left
+        };
+        combo.Items.Add(new global::PCL.MyComboBoxItem { Content = "选项" });
+        card.Children.Add(combo);
+        var window = new Window { Width = 500, Height = 400, Content = card };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        try {
+            var title = card.MainTextBlock;
+            var blue = ((ISolidColorBrush)Application.Current!.FindResource("ColorBrush2")!).Color;
+            var normal = ((ISolidColorBrush)Application.Current!.FindResource("ColorBrush1")!).Color;
+            combo.IsDropDownOpen = true;
+            Pump(20);
+            Assert.Equal(blue, ((ISolidColorBrush)title.Foreground!).Color);
+            window.MouseMove(new Point(450, 350));
+            Pump(20);
+            Assert.Equal(blue, ((ISolidColorBrush)title.Foreground!).Color);
+            combo.IsDropDownOpen = false;
+            Pump(20);
+            Assert.Equal(normal, ((ISolidColorBrush)title.Foreground!).Color);
+        } finally {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Jvm_textboxes_keep_a_little_top_padding() {
+        var original = global::PCL.ModMain.FrmInstanceSetup;
+        try {
+            var instancePage = new global::PCL.PageInstanceSetup();
+            Assert.Equal(7, instancePage.TextAdvanceJvm.Padding.Top);
+            var globalPage = new global::PCL.PageSetupLaunch();
+            Assert.Equal(7, globalPage.TextAdvanceJvm.Padding.Top);
+        } finally {
+            global::PCL.ModMain.FrmInstanceSetup = original;
+        }
+    }
+
+    [AvaloniaFact]
+    public void Launch_environment_lines_are_applied_to_the_game_process() {
+        var oldEnv = global::PCL.Settings.Get<string>("LaunchEnvironment");
+        var oldInstance = global::PCL.ModMinecraft.McInstanceSelected;
+        try {
+            global::PCL.ModMinecraft.McInstanceSelected = null;
+            global::PCL.Settings.Set("LaunchEnvironment", "PCL_TEST_ENV=bar;# comment;PCL_TEST_ENV2=a=b");
+            var startInfo = new System.Diagnostics.ProcessStartInfo();
+            var method = typeof(global::PCL.ModLaunch).GetMethod(
+                "ApplyLaunchEnvironment", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            Assert.NotNull(method);
+            method!.Invoke(null, new object[] { startInfo });
+            Assert.Equal("bar", startInfo.Environment["PCL_TEST_ENV"]);
+            Assert.Equal("a=b", startInfo.Environment["PCL_TEST_ENV2"]);
+        } finally {
+            global::PCL.Settings.Set("LaunchEnvironment", oldEnv);
+            global::PCL.ModMinecraft.McInstanceSelected = oldInstance;
+        }
+    }
+
+    [AvaloniaFact]
+    public void New_launch_settings_are_registered() {
+        Assert.Equal("", global::PCL.Settings.GetDefault("LaunchEnvironment"));
+        Assert.Equal("", global::PCL.Settings.GetDefault("LaunchAdvanceWrapper"));
+        Assert.Equal("", global::PCL.Settings.GetDefault("LaunchAdvanceAfterExit"));
+        Assert.Equal("", global::PCL.Settings.GetDefault("VersionEnvironment"));
+        Assert.Equal("", global::PCL.Settings.GetDefault("VersionAdvanceWrapper"));
+        Assert.Equal("", global::PCL.Settings.GetDefault("VersionAdvanceAfterExit"));
+    }
+
+    [AvaloniaFact]
+    public void Wrapper_command_is_prepended_to_the_java_command() {
+        var oldWrapper = global::PCL.Settings.Get<string>("LaunchAdvanceWrapper");
+        var oldInstance = global::PCL.ModMinecraft.McInstanceSelected;
+        try {
+            global::PCL.ModMinecraft.McInstanceSelected = null;
+            global::PCL.Settings.Set("LaunchAdvanceWrapper", "mangohud --dlsym");
+            var command = global::PCL.ModLaunch.GetLaunchProcessCommand("/usr/bin/java", "-Xmx2G -jar game.jar");
+            Assert.Equal("mangohud", command.FileName);
+            Assert.Equal("--dlsym \"/usr/bin/java\" -Xmx2G -jar game.jar", command.Arguments);
+        } finally {
+            global::PCL.Settings.Set("LaunchAdvanceWrapper", oldWrapper);
+            global::PCL.ModMinecraft.McInstanceSelected = oldInstance;
+        }
+    }
+
+    [AvaloniaFact]
+    public void Authlib_login_falls_back_to_cached_server_for_instance_without_own_server() {
+        var temp = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "pcl-auth-fallback-" + Guid.NewGuid().ToString("N"));
+        var instancePath = System.IO.Path.Combine(temp, "versions", "Test") + System.IO.Path.DirectorySeparatorChar;
+        System.IO.Directory.CreateDirectory(System.IO.Path.Combine(instancePath, "PCL"));
+        var oldInstance = global::PCL.ModMinecraft.McInstanceSelected;
+        var oldServer = global::PCL.Settings.Get<string>("CacheAuthServerServer");
+        try {
+            global::PCL.Settings.Set("CacheAuthServerServer", "https://littleskin.cn/api/yggdrasil");
+            global::PCL.Settings.Set("VersionServerLogin", 4, instancePath);
+            global::PCL.Settings.Set("VersionServerAuthServer", "", instancePath);
+            global::PCL.ModMinecraft.McInstanceSelected = new global::PCL.ModMinecraft.McInstance(instancePath);
+            var data = global::PCL.PageLoginAuthSkin.GetLoginData();
+            Assert.Equal("https://littleskin.cn/api/yggdrasil/authserver", data.BaseUrl);
+        } finally {
+            global::PCL.ModMinecraft.McInstanceSelected = oldInstance;
+            global::PCL.Settings.Set("CacheAuthServerServer", oldServer);
+            foreach (var setting in global::PCL.Settings.Entries.Values) setting.ValueCache.TryRemove(instancePath, out _);
+            try { System.IO.Directory.Delete(temp, true); } catch { }
+        }
+    }
+
+    [AvaloniaFact]
+    public void Card_rapid_toggle_does_not_leave_hidden_content_in_expanded_card() {
+        var card = new global::PCL.MyCard { Title = "卡片", CanSwap = true, Width = 300 };
+        var content = new StackPanel { Margin = new Thickness(25, 44, 25, 15) };
+        content.Children.Add(new TextBox { Height = 100, Text = "内容" });
+        card.Children.Add(content);
+        var window = new Window { Width = 400, Height = 400, Content = card };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        try {
+            Pump(10);
+            card.IsSwapped = true;
+            Pump(3);
+            card.IsSwapped = false;
+            Pump(20);
+            Assert.True(card.SwapControl.IsVisible);
+            Assert.True(card.Bounds.Height > 80);
+
+            card.IsSwapped = true;
+            Pump(2);
+            card.IsSwapped = false;
+            Pump(2);
+            card.IsSwapped = true;
+            Pump(30);
+            Assert.Equal(40, card.Height, 1.5);
+            Assert.False(card.SwapControl.IsVisible);
+        } finally {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Tooltips_follow_pointer_movement() {
+        var window = new global::PCL.FormMain { Width = 900, Height = 600 };
+        var button = new Button {
+            Width = 120, Height = 40, Content = "悬停",
+            Margin = new Thickness(50, 100, 0, 0),
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top
+        };
+        ToolTip.SetTip(button, "详细信息");
+        ((Panel)window.Content!).Children.Add(button);
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        try {
+            Assert.False(ToolTip.GetServiceEnabled(button));
+            var start = button.TranslatePoint(new Point(60, 20), window)!.Value;
+            window.MouseMove(start);
+            Dispatcher.UIThread.RunJobs();
+            System.Threading.Thread.Sleep(150);
+            Dispatcher.UIThread.RunJobs();
+            typeof(global::PCL.FormMain).GetMethod("ShowHoverTip", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .Invoke(window, null);
+            Assert.True(window.BorderToolTip.IsVisible);
+            Assert.Equal("详细信息", window.LabToolTip.Text);
+            var left = Canvas.GetLeft(window.BorderToolTip);
+            window.MouseMove(start + new Vector(30, 0));
+            Dispatcher.UIThread.RunJobs();
+            Assert.InRange(Canvas.GetLeft(window.BorderToolTip) - left, 28, 32);
+            window.MouseMove(new Point(700, 500));
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(window.BorderToolTip.IsVisible);
+        } finally {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Legacy_inline_link_still_receives_pointer_clicks() {
+        const string input = "<TextBlock><Underline><local:MyTextButton>链接</local:MyTextButton></Underline></TextBlock>";
+        var converted = global::PCL.ModHelp.ConvertLegacyXaml(input);
+        var wrapped = "<StackPanel xmlns=\"https://github.com/avaloniaui\" xmlns:local=\"using:PCL\">" + converted + "</StackPanel>";
+        var root = Assert.IsAssignableFrom<Control>(global::PCL.ModHelp.GetObjectFromXML(wrapped));
+        var window = new Window { Width = 300, Height = 100, Content = root };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        try {
+            var link = root.GetVisualDescendants().OfType<global::PCL.MyTextButton>().First();
+            var clicked = false;
+            link.Click += (_, _) => clicked = true;
+            var center = link.TranslatePoint(new Point(link.Bounds.Width / 2, link.Bounds.Height / 2), window)!.Value;
+            window.MouseDown(center, MouseButton.Left);
+            window.MouseUp(center, MouseButton.Left);
+            Pump(4);
+            Assert.True(clicked);
+        } finally {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Legacy_paragraph_line_height_does_not_leak_to_other_text_blocks() {
+        const string input =
+            "<StackPanel.Resources>" +
+            "<Style TargetType=\"Paragraph\"><Setter Property=\"LineHeight\" Value=\"12\"/></Style>" +
+            "<Style TargetType=\"TextBlock\"><Setter Property=\"FontSize\" Value=\"14\"/></Style>" +
+            "</StackPanel.Resources><Paragraph>段落</Paragraph><TextBlock>普通文本</TextBlock>";
+        var converted = global::PCL.ModHelp.ConvertLegacyXaml(input);
+        Assert.DoesNotContain("LineHeight", converted);
+        Assert.Contains("Margin=\"0,8\"", converted);
+    }
+
+    [AvaloniaFact]
+    public void Launching_view_keeps_its_scale_when_reentering_the_page() {
+        var window = new global::PCL.FormMain { Width = 900, Height = 600 };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        try {
+            var page = global::PCL.ModMain.FrmLaunchLeft;
+            page.PageChangeToLaunching();
+            Pump(40);
+            Assert.Equal(1, global::PCL.ModAnimation.AniScaleX(page.PanLaunching), 2);
+            var loaded = typeof(global::PCL.PageLaunchLeft).GetMethod(
+                "PageLaunchLeft_Loaded", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.NotNull(loaded);
+            loaded!.Invoke(page, new object?[] { null, new Avalonia.Interactivity.RoutedEventArgs() });
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(1, global::PCL.ModAnimation.AniScaleX(page.PanLaunching), 2);
+        } finally {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Authlib_login_keeps_skin_page_when_only_cached_name_remains() {
+        var oldPageType = global::PCL.Settings.Get<int>("LoginPageType");
+        var oldLoginType = global::PCL.Settings.Get<global::PCL.ModLaunch.McLoginType>("LoginType");
+        var oldAccess = global::PCL.Settings.Get<string>("CacheAuthAccess");
+        var oldName = global::PCL.Settings.Get<string>("CacheAuthName");
+        var oldUuid = global::PCL.Settings.Get<string>("CacheAuthUuid");
+        var oldUser = global::PCL.Settings.Get<string>("CacheAuthUsername");
+        var oldPass = global::PCL.Settings.Get<string>("CacheAuthPass");
+        var window = new global::PCL.FormMain { Width = 900, Height = 600 };
+        try {
+            global::PCL.Settings.Set("LoginPageType", 4);
+            global::PCL.Settings.Set("CacheAuthAccess", "");
+            global::PCL.Settings.Set("CacheAuthName", "TestUser");
+            global::PCL.Settings.Set("CacheAuthUuid", "00000000-0000-0000-0000-000000000000");
+            global::PCL.Settings.Set("CacheAuthUsername", "");
+            global::PCL.Settings.Set("CacheAuthPass", "");
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            var page = global::PCL.ModMain.FrmLaunchLeft;
+            page.RefreshPage(false, false, ForceReload: true);
+            Dispatcher.UIThread.RunJobs();
+            Assert.IsType<global::PCL.PageLoginAuthSkin>(page.PanLogin.Children[0]);
+            page.PageChangeToLogin();
+            Dispatcher.UIThread.RunJobs();
+            Assert.IsType<global::PCL.PageLoginAuthSkin>(page.PanLogin.Children[0]);
+        } finally {
+            window.Close();
+            global::PCL.Settings.Set("LoginPageType", oldPageType);
+            global::PCL.Settings.Set("LoginType", oldLoginType);
+            global::PCL.Settings.Set("CacheAuthAccess", oldAccess);
+            global::PCL.Settings.Set("CacheAuthName", oldName);
+            global::PCL.Settings.Set("CacheAuthUuid", oldUuid);
+            global::PCL.Settings.Set("CacheAuthUsername", oldUser);
+            global::PCL.Settings.Set("CacheAuthPass", oldPass);
+        }
+    }
+
+    [AvaloniaFact]
+    public void After_exit_command_runs_in_the_selected_minecraft_folder() {
+        var temp = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "pcl-after-exit-" + Guid.NewGuid().ToString("N"));
+        System.IO.Directory.CreateDirectory(temp);
+        var oldFolder = global::PCL.ModMinecraft.McFolderSelected;
+        var oldInstance = global::PCL.ModMinecraft.McInstanceSelected;
+        try {
+            global::PCL.ModMinecraft.McFolderSelected = temp + System.IO.Path.DirectorySeparatorChar;
+            global::PCL.ModMinecraft.McInstanceSelected = null;
+            var method = typeof(global::PCL.ModLaunch).GetMethod(
+                "RunAfterExitCommand", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            Assert.NotNull(method);
+            method!.Invoke(null, new object[] { "echo done>pcl-after-exit.txt", "测试", 0 });
+            var marker = System.IO.Path.Combine(temp, "pcl-after-exit.txt");
+            Assert.True(System.IO.File.Exists(marker));
+            Assert.Contains("done", System.IO.File.ReadAllText(marker));
+        } finally {
+            global::PCL.ModMinecraft.McFolderSelected = oldFolder;
+            global::PCL.ModMinecraft.McInstanceSelected = oldInstance;
+            try { System.IO.Directory.Delete(temp, true); } catch { }
         }
     }
 }

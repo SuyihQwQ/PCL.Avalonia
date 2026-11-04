@@ -53,6 +53,8 @@ Public Class PageLoginNideSkin
 
     Public Shared Sub ExitLogin()
         Settings.Set("CacheNideAccess", "")
+        Settings.Set("CacheNideUuid", "")
+        Settings.Set("CacheNideName", "")
         McLoginNideLoader.Input = Nothing '防止因为输入的用户名密码相同，直接使用了上次登录的加载器结果
         FrmLaunchLeft.RefreshPage(False, True)
     End Sub

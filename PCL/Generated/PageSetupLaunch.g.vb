@@ -57,8 +57,6 @@ Namespace Global.PCL
         Friend WithEvents BtnAdvanceJvmReset As PCL.MyIconButton
         Friend WithEvents TextAdvanceJvm As PCL.MyTextBox
         Friend WithEvents TextAdvanceGame As PCL.MyTextBox
-        Friend WithEvents TextAdvanceRun As PCL.MyTextBox
-        Friend WithEvents CheckAdvanceRunWait As PCL.MyCheckBox
         Friend WithEvents PanAdvanceJava As Avalonia.Controls.Grid
         Friend WithEvents ComboAdvanceJava As PCL.MyComboBox
         Friend WithEvents LabAdvanceJava As Avalonia.Controls.TextBlock
@@ -68,6 +66,11 @@ Namespace Global.PCL
         Friend WithEvents CheckAdvanceDisableLUA As PCL.MyCheckBox
         Friend WithEvents CheckAdvanceGraphicCard As PCL.MyCheckBox
         Friend WithEvents CheckDownloadCert As PCL.MyCheckBox
+        Friend WithEvents TextAdvanceRun As PCL.MyTextBox
+        Friend WithEvents CheckAdvanceRunWait As PCL.MyCheckBox
+        Friend WithEvents TextEnvironment As PCL.MyTextBox
+        Friend WithEvents TextAdvanceWrapper As PCL.MyTextBox
+        Friend WithEvents TextAdvanceAfterExit As PCL.MyTextBox
         Friend WithEvents HintMoreAdvancedSetup As PCL.MyHint
         Friend WithEvents BtnSwitch As PCL.MyExtraTextButton
 
@@ -159,10 +162,6 @@ Namespace Global.PCL
             If TextAdvanceJvm Is Nothing Then Throw New InvalidOperationException("找不到控件：TextAdvanceJvm")
             TextAdvanceGame = FindControl(Of PCL.MyTextBox)("TextAdvanceGame")
             If TextAdvanceGame Is Nothing Then Throw New InvalidOperationException("找不到控件：TextAdvanceGame")
-            TextAdvanceRun = FindControl(Of PCL.MyTextBox)("TextAdvanceRun")
-            If TextAdvanceRun Is Nothing Then Throw New InvalidOperationException("找不到控件：TextAdvanceRun")
-            CheckAdvanceRunWait = FindControl(Of PCL.MyCheckBox)("CheckAdvanceRunWait")
-            If CheckAdvanceRunWait Is Nothing Then Throw New InvalidOperationException("找不到控件：CheckAdvanceRunWait")
             PanAdvanceJava = FindControl(Of Avalonia.Controls.Grid)("PanAdvanceJava")
             If PanAdvanceJava Is Nothing Then Throw New InvalidOperationException("找不到控件：PanAdvanceJava")
             ComboAdvanceJava = FindControl(Of PCL.MyComboBox)("ComboAdvanceJava")
@@ -181,6 +180,16 @@ Namespace Global.PCL
             If CheckAdvanceGraphicCard Is Nothing Then Throw New InvalidOperationException("找不到控件：CheckAdvanceGraphicCard")
             CheckDownloadCert = FindControl(Of PCL.MyCheckBox)("CheckDownloadCert")
             If CheckDownloadCert Is Nothing Then Throw New InvalidOperationException("找不到控件：CheckDownloadCert")
+            TextAdvanceRun = FindControl(Of PCL.MyTextBox)("TextAdvanceRun")
+            If TextAdvanceRun Is Nothing Then Throw New InvalidOperationException("找不到控件：TextAdvanceRun")
+            CheckAdvanceRunWait = FindControl(Of PCL.MyCheckBox)("CheckAdvanceRunWait")
+            If CheckAdvanceRunWait Is Nothing Then Throw New InvalidOperationException("找不到控件：CheckAdvanceRunWait")
+            TextEnvironment = FindControl(Of PCL.MyTextBox)("TextEnvironment")
+            If TextEnvironment Is Nothing Then Throw New InvalidOperationException("找不到控件：TextEnvironment")
+            TextAdvanceWrapper = FindControl(Of PCL.MyTextBox)("TextAdvanceWrapper")
+            If TextAdvanceWrapper Is Nothing Then Throw New InvalidOperationException("找不到控件：TextAdvanceWrapper")
+            TextAdvanceAfterExit = FindControl(Of PCL.MyTextBox)("TextAdvanceAfterExit")
+            If TextAdvanceAfterExit Is Nothing Then Throw New InvalidOperationException("找不到控件：TextAdvanceAfterExit")
             HintMoreAdvancedSetup = FindControl(Of PCL.MyHint)("HintMoreAdvancedSetup")
             If HintMoreAdvancedSetup Is Nothing Then Throw New InvalidOperationException("找不到控件：HintMoreAdvancedSetup")
             BtnSwitch = FindControl(Of PCL.MyExtraTextButton)("BtnSwitch")

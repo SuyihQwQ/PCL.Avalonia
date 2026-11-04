@@ -44,21 +44,14 @@ Public Class PageLaunchRight
                 Url = Settings.Get(Of String)("UiCustomNet")
             Case 3
                 '预设
-                Select Case Settings.Get(Of Integer)("UiCustomPreset")
+                Dim Preset As Integer = Settings.Get(Of Integer)("UiCustomPreset")
+                If Preset = 1 Then Preset = 0 '回声洞已移除，回退到“你知道吗”
+                Select Case Preset
                     Case 0
                         Logger.Info("主页预设：你知道吗")
                         Content = "
                             <local:MyCard Title=""你知道吗？"" Margin=""0,0,0,15"">
                                 <TextBlock Margin=""25,38,23,15"" FontSize=""13.5"" IsHitTestVisible=""False"" Text=""{hint}"" TextWrapping=""Wrap"" Foreground=""{DynamicResource ColorBrush1}"" />
-                                <local:MyIconButton Height=""22"" Width=""22"" Margin=""9"" VerticalAlignment=""Top"" HorizontalAlignment=""Right"" 
-                                    EventType=""刷新主页"" EventData=""/""
-                                    Logo=""M512.0 838.3c-80.2 0-153.4-29.3-210.2-77.4l75.5-75.5c11.5-11.5 25.8-22.0 25.8-37.0a27.2 27.2 0 0 0-27.1-27.1H104.0c-27.1 0-27.1 23.9-27.1 27.1v271.9a27.1 27.1 0 0 0 27.1 27.1c15.0 0 27.8-16.6 42.5-31.2l77.9-77.9c76.6 67.7 177.1 108.9 287.4 108.9 221.7 0 404.5-166.0 431.2-380.6h-109.8c-25.9 154.2-159.7 271.9-321.3 271.9zM919.9 76.6c-15.0 0-27.8 16.6-42.5 31.3L799.5 185.8c-76.5-67.7-177.1-108.9-287.4-108.9-221.8 0-404.5 166.1-431.3 380.6H190.6c25.9-154.2 159.7-271.9 321.4-271.9 80.2 0 153.4 29.3 210.1 77.4l-75.5 75.5c-11.6 11.5-25.8 22.0-25.8 37.1a27.2 27.2 0 0 0 27.1 27.1h271.9c27.1 0 27.1-23.9 27.1-27.1V103.8a27.1 27.1 0 0 0-27.1-27.1z"" />
-                            </local:MyCard>"
-                    Case 1
-                        Logger.Info("主页预设：回声洞")
-                        Content = "
-                            <local:MyCard Title=""回声洞"" Margin=""0,0,0,15"">
-                                <TextBlock Margin=""25,38,23,15"" FontSize=""13.5"" IsHitTestVisible=""False"" Text=""{cave}"" TextWrapping=""Wrap"" Foreground=""{DynamicResource ColorBrush1}"" />
                                 <local:MyIconButton Height=""22"" Width=""22"" Margin=""9"" VerticalAlignment=""Top"" HorizontalAlignment=""Right"" 
                                     EventType=""刷新主页"" EventData=""/""
                                     Logo=""M512.0 838.3c-80.2 0-153.4-29.3-210.2-77.4l75.5-75.5c11.5-11.5 25.8-22.0 25.8-37.0a27.2 27.2 0 0 0-27.1-27.1H104.0c-27.1 0-27.1 23.9-27.1 27.1v271.9a27.1 27.1 0 0 0 27.1 27.1c15.0 0 27.8-16.6 42.5-31.2l77.9-77.9c76.6 67.7 177.1 108.9 287.4 108.9 221.7 0 404.5-166.0 431.2-380.6h-109.8c-25.9 154.2-159.7 271.9-321.3 271.9zM919.9 76.6c-15.0 0-27.8 16.6-42.5 31.3L799.5 185.8c-76.5-67.7-177.1-108.9-287.4-108.9-221.8 0-404.5 166.1-431.3 380.6H190.6c25.9-154.2 159.7-271.9 321.4-271.9 80.2 0 153.4 29.3 210.1 77.4l-75.5 75.5c-11.6 11.5-25.8 22.0-25.8 37.1a27.2 27.2 0 0 0 27.1 27.1h271.9c27.1 0 27.1-23.9 27.1-27.1V103.8a27.1 27.1 0 0 0-27.1-27.1z"" />
@@ -284,7 +277,6 @@ Public Class PageLaunchRight
                 '修改时应同时修改 PageOtherHelpDetail.Init
                 Content = ArgumentReplace(Content, AddressOf StringUtils.XmlEscape)
                 Content = Content.Replace("{hint}", StringUtils.XmlEscape(PageOtherTest.GetRandomHint()))
-                Content = Content.Replace("{cave}", StringUtils.XmlEscape(PageOtherTest.GetRandomCave()))
                 Content = Content.RegexReplace("\{setup:([a-zA-Z0-9]+)\}",
                     Function(m)
                         Try

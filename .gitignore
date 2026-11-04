@@ -346,5 +346,8 @@ MaskFiles/
 # Reference source material
 reference/
 
+# Private credentials
+/PCL/Modules/ModSecret.Private.vb
+
 # Packaged build output
 dist/

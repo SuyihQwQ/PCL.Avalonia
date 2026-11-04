@@ -231,7 +231,6 @@
                         <TextBlock VerticalAlignment="Center" HorizontalAlignment="Left" Text="{DynamicResource LangSetHomePagePresetPage}" Margin="0,0,25,0" />
                         <local:MyComboBox local:SettingService.Key="UiCustomPreset" Grid.ColumnSpan="2" Grid.Column="1">
                             <local:MyComboBoxItem local:SettingService.Value="0" Content="{DynamicResource LangLaunchRightPageTips}" />
-                            <local:MyComboBoxItem local:SettingService.Value="1" Content="{DynamicResource LangLaunchRightPageEcho}" />
                             <local:MyComboBoxItem local:SettingService.Value="2" Content="{DynamicResource LangSetHomePagePresetPageC}" />
                             <local:MyComboBoxItem local:SettingService.Value="4" Content="{DynamicResource LangSetHomePagePresetPageE}" />
                             <local:MyComboBoxItem local:SettingService.Value="5" Content="{DynamicResource LangSetHomePagePresetPageF}" />
@@ -291,7 +290,6 @@
                         <local:MyCheckBox Height="22" VerticalAlignment="Center" Grid.Row="3" Grid.Column="3" Text="{DynamicResource LangPageOtherLeftAbout}" x:Name="CheckHiddenOtherAbout" local:SettingService.Key="UiHiddenOtherAbout" />
                         <local:MyCheckBox Height="22" VerticalAlignment="Center" Grid.Row="3" Grid.Column="4" Text="{DynamicResource LangOtherTool}" x:Name="CheckHiddenOtherTest" local:SettingService.Key="UiHiddenOtherTest" />
                         <local:MyCheckBox Height="22" VerticalAlignment="Center" Grid.Row="3" Grid.Column="5" Text="{DynamicResource LangModBaseDialogFeedbackBtnConfirm}" x:Name="CheckHiddenOtherFeedback" local:SettingService.Key="UiHiddenOtherFeedback" />
-                        <local:MyCheckBox Height="22" VerticalAlignment="Center" Grid.Row="3" Grid.Column="6" Text="{DynamicResource LangPageOtherDialogVoteTitle}" x:Name="CheckHiddenOtherVote" local:SettingService.Key="UiHiddenOtherVote" />
                         <TextBlock Grid.Row="4" VerticalAlignment="Center" HorizontalAlignment="Left" Text="{DynamicResource LangSetFuncHiddenSpecial}" />
                         <local:MyCheckBox Height="22" VerticalAlignment="Center" Grid.Row="4" Grid.Column="2" Text="{DynamicResource LangSetFuncHiddenSpecialEmail}" x:Name="CheckLauncherEmail" local:SettingService.Key="UiLauncherEmail" ToolTip.Tip="{DynamicResource LangSetFuncHiddenSpecialEmailToolTip}" />
                         <local:MyCheckBox Height="22" VerticalAlignment="Center" Grid.Row="4" Grid.Column="3" Text="{DynamicResource LangSetFuncHiddenSpecialInstanceSetting}" x:Name="CheckHiddenFunctionSelect" local:SettingService.Key="UiHiddenFunctionSelect" ToolTip.Tip="{DynamicResource LangSetFuncHiddenSpecialInstanceSettingToolTip}" />

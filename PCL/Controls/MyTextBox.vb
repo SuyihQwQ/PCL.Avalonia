@@ -232,6 +232,15 @@ Public Class MyTextBox
         MyBase.OnApplyTemplate(e)
         _labWrong = e.NameScope.Find(Of TextBlock)("labWrong")
         If _labWrong IsNot Nothing Then _labWrong.Text = ValidateResult
+        _labHint = e.NameScope.Find(Of TextBlock)("labHint")
+        RefreshHintVisibility()
+    End Sub
+
+    Private _labHint As TextBlock
+
+    Private Sub RefreshHintVisibility()
+        If _labHint Is Nothing Then Return
+        _labHint.IsVisible = Text = "" AndAlso Not String.IsNullOrEmpty(HintText)
     End Sub
 
     Protected Overrides Sub OnAttachedToVisualTree(e As VisualTreeAttachmentEventArgs)
@@ -239,6 +248,7 @@ Public Class MyTextBox
         IsControlLoaded = True
         RefreshColor()
         RefreshTextColor()
+        RefreshHintVisibility()
         Validate()
     End Sub
 
@@ -248,6 +258,7 @@ Public Class MyTextBox
             _IsValidated = String.IsNullOrEmpty(ValidateResult)
         ElseIf change.Property Is HintTextProperty Then
             PlaceholderText = If(HintText, "")
+            RefreshHintVisibility()
         ElseIf change.Property Is IsEnabledProperty Then
             RefreshColor()
             RefreshTextColor()
@@ -277,6 +288,7 @@ Public Class MyTextBox
     Private Sub MyTextBox_TextChanged(sender As Object, e As TextChangedEventArgs)
         Try
             IsTextChanged = IsControlLoaded
+            RefreshHintVisibility()
             Validate()
             If Not IsValidated Then Return
             RaiseEvent ValidatedTextChanged(Me, e)

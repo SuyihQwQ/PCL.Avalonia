@@ -21,7 +21,7 @@ public class AboutPageTests {
             Assert.NotNull(page.PanMain);
             Assert.NotNull(page.ItemAboutPcl);
 
-            Assert.Contains("2.14.0.0", page.ItemAboutPcl.Info);
+            Assert.Contains("14.1.0", page.ItemAboutPcl.Info);
             Assert.Contains("PCL.Avalonia 是原版 PCL 的跨平台移植版本。", page.ItemAboutPcl.Info);
             var items = page.PanMain.GetVisualDescendants().OfType<global::PCL.MyListItem>().ToList();
             Assert.Contains(items, i => i.Title == "SuyihQwQ" && i.Info == "PCL.Avalonia 的开发者");
@@ -43,7 +43,7 @@ public class AboutPageTests {
 
     [AvaloniaFact]
     public void Left_page_exposes_help_about_and_test() {
-        var keys = new[] { "UiHiddenOtherHelp", "UiHiddenOtherAbout", "UiHiddenOtherTest", "UiHiddenOtherFeedback", "UiHiddenOtherVote" };
+        var keys = new[] { "UiHiddenOtherHelp", "UiHiddenOtherAbout", "UiHiddenOtherTest", "UiHiddenOtherFeedback" };
         var original = keys.ToDictionary(k => k, k => global::PCL.Settings.Get<bool>(k));
         foreach (var key in keys) global::PCL.Settings.Set(key, false);
         try {
@@ -57,6 +57,7 @@ public class AboutPageTests {
                 Assert.True(left.ItemHelp.IsEnabled);
                 Assert.True(left.ItemAbout.IsEnabled);
                 Assert.True(left.ItemTest.IsEnabled);
+                Assert.Null(left.FindControl<global::PCL.MyListItem>("ItemVote"));
                 Assert.IsType<global::PCL.PageOtherHelp>(left.PageGet(global::PCL.FormMain.PageSubType.OtherHelp));
                 Assert.IsType<global::PCL.PageOtherAbout>(left.PageGet(global::PCL.FormMain.PageSubType.OtherAbout));
                 Assert.IsType<global::PCL.PageOtherTest>(left.PageGet(global::PCL.FormMain.PageSubType.OtherTest));
@@ -84,19 +85,23 @@ public class AboutPageTests {
             Dispatcher.UIThread.RunJobs();
             try {
                 window.PageChange(global::PCL.FormMain.PageType.Other, global::PCL.FormMain.PageSubType.OtherHelp);
-                for (var i = 0; i < 5; i++) {
-                    global::PCL.ModAnimation.AniTimer(300);
+                var help = Assert.IsType<global::PCL.PageOtherHelp>(window.PageRight);
+                var start = Environment.TickCount64;
+                while (help.PageState is not (global::PCL.MyPageRight.PageStates.ContentEnter
+                        or global::PCL.MyPageRight.PageStates.ContentStay)
+                    && Environment.TickCount64 - start < 10_000) {
+                    global::PCL.ModAnimation.AniTimer(100);
                     Dispatcher.UIThread.RunJobs();
+                    Thread.Sleep(10);
                 }
                 var left = Assert.IsType<global::PCL.PageOtherLeft>(window.PageLeft);
-                var help = Assert.IsType<global::PCL.PageOtherHelp>(window.PageRight);
                 Assert.Same(left, window.FindControl<Border>("PanMainLeft")!.Child);
                 Assert.Same(help, window.FindControl<Border>("PanMainRight")!.Child);
                 Assert.True(help.PageState is global::PCL.MyPageRight.PageStates.LoaderWait
                     or global::PCL.MyPageRight.PageStates.LoaderEnter
                     or global::PCL.MyPageRight.PageStates.LoaderStay
                     or global::PCL.MyPageRight.PageStates.ContentEnter
-                    or global::PCL.MyPageRight.PageStates.ContentStay);
+                    or global::PCL.MyPageRight.PageStates.ContentStay, $"实际状态：{help.PageState}");
             } finally {
                 window.Close();
             }

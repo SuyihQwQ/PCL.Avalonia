@@ -545,6 +545,13 @@ Public Module ModAnimation
     Public AniFPS As Integer = 0
 
     ''' <summary>
+    ''' 重置动画计时起点，避免长时间布局后第一帧把动画直接跳到结束。
+    ''' </summary>
+    Public Sub AniResetClock()
+        AniLastTick = GetTimeMs()
+    End Sub
+
+    ''' <summary>
     ''' 开始动画执行（UI 线程上的 DispatcherTimer 驱动）。
     ''' </summary>
     Public Sub AniStart()

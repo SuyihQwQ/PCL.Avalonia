@@ -2,6 +2,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="using:PCL">
 
+    <!-- 与原版一致：提示在鼠标位置附近快速出现 -->
+    <Style Selector="Control">
+        <Setter Property="ToolTip.ShowDelay" Value="100" />
+        <Setter Property="ToolTip.Placement" Value="Pointer" />
+    </Style>
+
     <Styles.Resources>
         <!-- 滚动条 -->
         <ControlTheme x:Key="{x:Type local:MyScrollBar}" TargetType="local:MyScrollBar">
@@ -56,7 +62,7 @@
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Template">
                 <ControlTemplate>
-                    <Grid ColumnDefinitions="*,Auto">
+                    <Grid Name="PART_Root" ColumnDefinitions="*,Auto">
                         <ScrollContentPresenter Name="PART_ContentPresenter" Grid.Column="0"
                                                 Background="{TemplateBinding Background}"
                                                 Padding="{TemplateBinding Padding}"
@@ -117,7 +123,6 @@
                                                Opacity="0.6"
                                                Margin="0,0,0,0"
                                                IsHitTestVisible="False"
-                                               IsVisible="False"
                                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
                                     <TextPresenter Name="PART_TextPresenter"
@@ -274,10 +279,10 @@
 
     <!-- 标题栏窗口按钮 -->
     <Style Selector="Button.TitleButton">
-        <Setter Property="Width" Value="28" />
-        <Setter Property="Height" Value="28" />
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
         <Setter Property="Padding" Value="0" />
-        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontSize" Value="14" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="CornerRadius" Value="4" />

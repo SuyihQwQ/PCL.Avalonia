@@ -451,16 +451,16 @@ NextInner:
             Case McLoginType.Legacy
                 Return FrmLoginLegacy.IsVaild()
             Case McLoginType.Nide
-                If Settings.Get(Of String)("CacheNideAccess") = "" Then
+                If Settings.Get(Of String)("CacheNideAccess") = "" AndAlso Settings.Get(Of String)("CacheNideName") = "" Then
                     Return FrmLoginNide.IsVaild()
                 Else
-                    Return ""
+                    Return PageLoginNide.IsVaild(PageLoginNideSkin.GetLoginData())
                 End If
             Case McLoginType.Auth
-                If Settings.Get(Of String)("CacheAuthAccess") = "" Then
+                If Settings.Get(Of String)("CacheAuthAccess") = "" AndAlso Settings.Get(Of String)("CacheAuthName") = "" Then
                     Return FrmLoginAuth.IsVaild()
                 Else
-                    Return ""
+                    Return PageLoginAuth.IsVaild(PageLoginAuthSkin.GetLoginData())
                 End If
             Case Else
                 Return "未知的登录方式"
@@ -501,13 +501,13 @@ NextInner:
                         LoginData = PageLoginMsSkin.GetLoginData()
                     End If
                 Case McLoginType.Nide
-                    If Settings.Get(Of String)("CacheNideAccess") = "" Then
+                    If Settings.Get(Of String)("CacheNideAccess") = "" AndAlso Settings.Get(Of String)("CacheNideName") = "" Then
                         LoginData = PageLoginNide.GetLoginData()
                     Else
                         LoginData = PageLoginNideSkin.GetLoginData()
                     End If
                 Case McLoginType.Auth
-                    If Settings.Get(Of String)("CacheAuthAccess") = "" Then
+                    If Settings.Get(Of String)("CacheAuthAccess") = "" AndAlso Settings.Get(Of String)("CacheAuthName") = "" Then
                         LoginData = PageLoginAuth.GetLoginData()
                     Else
                         LoginData = PageLoginAuthSkin.GetLoginData()
@@ -626,6 +626,11 @@ SkipLogin:
         Dim NeedRefresh As Boolean = False, WasRefreshed As Boolean = False
         McLaunchLog("登录方式：" & Input.Description)
         Data.Progress = 0.05
+        If Input.Type = McLoginType.Auth AndAlso
+           (String.IsNullOrWhiteSpace(Input.BaseUrl) OrElse Not Input.BaseUrl.Contains("://")) Then
+            Throw New Exception("$登录失败：未配置 Authlib-Injector 认证服务器地址。" & vbCrLf &
+                                "请在版本设置 → 设置 → 服务器选项中重新选择或填写认证服务器。")
+        End If
         '尝试登录
         If (Not Data.Input.ForceReselectProfile) AndAlso
             Settings.Get(Of String)("Cache" & Input.Token & "Username") = Data.Input.UserName AndAlso
@@ -1287,13 +1292,16 @@ NextInstance:
 
         '统一通行证
         If McLoginLoader.Output.Type = "Nide" Then
-            Args.Add("-javaagent:""${pure_directory}${path_separator}nide8auth.jar""=""" & Settings.Get(Of String)("VersionServerNide", Instance:=McInstanceSelected) & """")
+            Dim NideServer As String = Settings.Get(Of String)("VersionServerNide", Instance:=McInstanceSelected)
+            If String.IsNullOrEmpty(NideServer) Then NideServer = Settings.Get(Of String)("CacheNideServer")
+            Args.Add("-javaagent:""${pure_directory}${path_separator}nide8auth.jar""=""" & NideServer & """")
         End If
         'Authlib-Injector
         If McLoginLoader.Output.Type = "Auth" Then
             'WINDOWS-ROOT 密钥库类型只在 Windows 上存在，其他平台沿用 Java 自带的 cacerts
             If OperatingSystem.IsWindows() AndAlso McLaunchJavaSelected.Version.Major >= 6 Then Args.Add("-Djavax.net.ssl.trustStoreType=WINDOWS-ROOT") '信任系统根证书（5252#）
             Dim Server As String = Settings.Get(Of String)("VersionServerAuthServer", Instance:=McInstanceSelected)
+            If String.IsNullOrEmpty(Server) Then Server = Settings.Get(Of String)("CacheAuthServerServer")
             Try
                 McLaunchLog($"开始 Authlib Injector Prefetch")
                 Dim Response As String = NetRequestByClientRetry(Server, Encoding:=Encoding.UTF8)
@@ -2068,18 +2076,11 @@ IgnoreCustomSkin:
         End Try
 
         '执行自定义命令
-        Dim ShellExe As String = If(OperatingSystem.IsWindows(), "cmd.exe", "/bin/sh")
         If CustomCommandGlobal <> "" Then
             McLaunchLog("正在执行全局自定义命令：" & CustomCommandGlobal)
             Dim CustomProcess As Process = Nothing
             Try
-                CustomProcess = StartProcess(New ProcessStartInfo With {
-                    .FileName = ShellExe,
-                    .Arguments = $"/c ""{CustomCommandGlobal}""",
-                    .WorkingDirectory = McFolderSelected,
-                    .UseShellExecute = False,
-                    .CreateNoWindow = True
-                })
+                CustomProcess = StartCustomCommand(CustomCommandGlobal)
                 If Settings.Get(Of Boolean)("LaunchAdvanceRunWait") Then
                     Do Until CustomProcess.HasExited OrElse Loader.IsCanceled
                         Thread.Sleep(10)
@@ -2098,13 +2099,7 @@ IgnoreCustomSkin:
             McLaunchLog("正在执行版本自定义命令：" & CustomCommandVersion)
             Dim CustomProcess As Process = Nothing
             Try
-                CustomProcess = StartProcess(New ProcessStartInfo With {
-                    .FileName = ShellExe,
-                    .Arguments = $"/c ""{CustomCommandVersion}""",
-                    .WorkingDirectory = McFolderSelected,
-                    .UseShellExecute = False,
-                    .CreateNoWindow = True
-                })
+                CustomProcess = StartCustomCommand(CustomCommandVersion)
                 If Settings.Get(Of Boolean)("VersionAdvanceRunWait", Instance:=McInstanceSelected) Then
                     Do Until CustomProcess.HasExited OrElse Loader.IsCanceled
                         Thread.Sleep(10)
@@ -2146,6 +2141,7 @@ IgnoreCustomSkin:
                 Logger.Warn(ex, "检测 Linux 高性能显卡失败，Minecraft 将使用默认显卡")
             End Try
         End If
+        ApplyLaunchEnvironment(StartInfo)
 
         '设置其他参数
         StartInfo.WorkingDirectory = McInstanceSelected.PathIndie
@@ -2157,6 +2153,12 @@ IgnoreCustomSkin:
         StartInfo.CreateNoWindow = True
         StartInfo.Arguments = McLaunchArgument
 
+        '包装命令：在原 Java 命令前追加包装器（如 mangohud、prime-run）
+        Dim LaunchCommand = GetLaunchProcessCommand(JavaExe, McLaunchArgument)
+        StartInfo.FileName = LaunchCommand.FileName
+        StartInfo.Arguments = LaunchCommand.Arguments
+        If LaunchCommand.FileName <> JavaExe Then McLaunchLog("使用包装命令启动：" & LaunchCommand.FileName)
+
         '开始进程
         Dim GameProcess = StartProcess(StartInfo)
         McLaunchLog("已启动游戏进程：" & JavaExe)
@@ -2167,6 +2169,7 @@ IgnoreCustomSkin:
         End If
         Loader.Output = GameProcess
         McLaunchProcess = GameProcess
+        StartAfterExitCommand(GameProcess)
 
         '进程优先级处理
         Try
@@ -2183,6 +2186,87 @@ IgnoreCustomSkin:
         End Try
 
     End Sub
+    Friend Function GetLaunchProcessCommand(JavaExe As String, JavaArguments As String) As (FileName As String, Arguments As String)
+        Dim Wrapper As String = ""
+        If McInstanceSelected IsNot Nothing Then Wrapper = Settings.Get(Of String)("VersionAdvanceWrapper", Instance:=McInstanceSelected)
+        If String.IsNullOrWhiteSpace(Wrapper) Then Wrapper = Settings.Get(Of String)("LaunchAdvanceWrapper")
+        Wrapper = If(Wrapper, "").Trim()
+        If Wrapper = "" Then Return (JavaExe, JavaArguments)
+        Try
+            Dim Parts = SplitJavaArguments(Wrapper).ToList()
+            If Parts.Count = 0 Then Return (JavaExe, JavaArguments)
+            Return (Parts(0).Trim(""""c), (Parts.Skip(1).Join(" ") & " """ & JavaExe & """ " & JavaArguments).Trim())
+        Catch ex As Exception
+            Logger.Warn(ex, "解析包装命令失败，将直接启动 Java")
+            Return (JavaExe, JavaArguments)
+        End Try
+    End Function
+
+    Private Sub ApplyLaunchEnvironment(StartInfo As ProcessStartInfo)
+        Dim Variables As New Dictionary(Of String, String)(
+            If(OperatingSystem.IsWindows(), StringComparer.OrdinalIgnoreCase, StringComparer.Ordinal))
+        Dim Raw As String = Settings.Get(Of String)("LaunchEnvironment") & vbLf &
+                            If(McInstanceSelected Is Nothing, "", Settings.Get(Of String)("VersionEnvironment", Instance:=McInstanceSelected))
+        For Each Line In Raw.Split({";"c, vbCr, vbLf}, StringSplitOptions.RemoveEmptyEntries)
+            Dim Text = Line.Trim()
+            If Text = "" OrElse Text.StartsWith("#", StringComparison.Ordinal) Then Continue For
+            Dim Index = Text.IndexOf("="c)
+            If Index <= 0 Then Continue For
+            Dim Key = Text.Substring(0, Index).Trim()
+            If Key = "" Then Continue For
+            Variables(Key) = ArgumentReplace(Text.Substring(Index + 1).Trim())
+        Next
+        For Each Pair In Variables
+            StartInfo.Environment(Pair.Key) = Pair.Value
+        Next
+        If Variables.Count > 0 Then McLaunchLog($"已设置 {Variables.Count} 个环境变量")
+    End Sub
+
+    Private Function ShellCommandArguments(Command As String) As String
+        Return If(OperatingSystem.IsWindows(), $"/c ""{Command}""", $"-c ""{Command}""")
+    End Function
+
+    Private Function StartCustomCommand(Command As String) As Process
+        Dim Info As New ProcessStartInfo With {
+            .FileName = If(OperatingSystem.IsWindows(), "cmd.exe", "/bin/sh"),
+            .Arguments = ShellCommandArguments(Command),
+            .WorkingDirectory = McFolderSelected,
+            .UseShellExecute = False,
+            .CreateNoWindow = True
+        }
+        ApplyLaunchEnvironment(Info)
+        Return StartProcess(Info)
+    End Function
+
+    Private Sub StartAfterExitCommand(GameProcess As Process)
+        Dim GlobalCommand = Settings.Get(Of String)("LaunchAdvanceAfterExit")
+        Dim VersionCommand = If(McInstanceSelected Is Nothing, "", Settings.Get(Of String)("VersionAdvanceAfterExit", Instance:=McInstanceSelected))
+        If String.IsNullOrWhiteSpace(GlobalCommand) AndAlso String.IsNullOrWhiteSpace(VersionCommand) Then Return
+        RunInNewThread(
+        Sub()
+            Try
+                GameProcess.WaitForExit()
+                Dim ExitCode = GameProcess.ExitCode
+                RunAfterExitCommand(GlobalCommand, "全局", ExitCode)
+                RunAfterExitCommand(VersionCommand, "版本", ExitCode)
+            Catch ex As Exception
+                Logger.Warn(ex, "执行游戏退出后命令失败")
+            End Try
+        End Sub, "After Game Exit")
+    End Sub
+
+    Private Sub RunAfterExitCommand(RawCommand As String, Scope As String, ExitCode As Integer)
+        If String.IsNullOrWhiteSpace(RawCommand) Then Return
+        Dim Command = ArgumentReplace(RawCommand).Replace("{exitcode}", ExitCode.ToString())
+        McLaunchLog($"正在执行{Scope}游戏退出后命令：{Command}")
+        Try
+            Dim CustomProcess = StartCustomCommand(Command)
+            CustomProcess.WaitForExit()
+        Catch ex As Exception
+            Logger.Error(ex, "执行游戏退出后命令失败", LogBehavior.Toast)
+        End Try
+    End Sub
+
     Private Sub McLaunchWait(Loader As LoaderTask(Of Process, Integer))
 
         '输出信息

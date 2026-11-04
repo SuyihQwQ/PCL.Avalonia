@@ -87,7 +87,6 @@ Namespace Global.PCL
         Friend WithEvents CheckHiddenOtherAbout As PCL.MyCheckBox
         Friend WithEvents CheckHiddenOtherTest As PCL.MyCheckBox
         Friend WithEvents CheckHiddenOtherFeedback As PCL.MyCheckBox
-        Friend WithEvents CheckHiddenOtherVote As PCL.MyCheckBox
         Friend WithEvents CheckLauncherEmail As PCL.MyCheckBox
         Friend WithEvents CheckHiddenFunctionSelect As PCL.MyCheckBox
         Friend WithEvents CheckHiddenFunctionModUpdate As PCL.MyCheckBox
@@ -242,8 +241,6 @@ Namespace Global.PCL
             If CheckHiddenOtherTest Is Nothing Then Throw New InvalidOperationException("找不到控件：CheckHiddenOtherTest")
             CheckHiddenOtherFeedback = FindControl(Of PCL.MyCheckBox)("CheckHiddenOtherFeedback")
             If CheckHiddenOtherFeedback Is Nothing Then Throw New InvalidOperationException("找不到控件：CheckHiddenOtherFeedback")
-            CheckHiddenOtherVote = FindControl(Of PCL.MyCheckBox)("CheckHiddenOtherVote")
-            If CheckHiddenOtherVote Is Nothing Then Throw New InvalidOperationException("找不到控件：CheckHiddenOtherVote")
             CheckLauncherEmail = FindControl(Of PCL.MyCheckBox)("CheckLauncherEmail")
             If CheckLauncherEmail Is Nothing Then Throw New InvalidOperationException("找不到控件：CheckLauncherEmail")
             CheckHiddenFunctionSelect = FindControl(Of PCL.MyCheckBox)("CheckHiddenFunctionSelect")

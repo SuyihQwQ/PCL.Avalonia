@@ -11,21 +11,31 @@
                Foreground="{DynamicResource ColorBrush1}"
                HorizontalAlignment="Left"
                VerticalAlignment="Center" />
-    <Ellipse x:Name="ShapeBorder"
-             IsHitTestVisible="False"
-             StrokeThickness="1.1"
-             HorizontalAlignment="Left"
-             VerticalAlignment="Center"
-             Width="18" Height="18"
-             Stroke="{DynamicResource ColorBrush1}"
-             Margin="1,0,0,0"
-             Fill="{DynamicResource ColorBrushHalfWhite}" />
-    <Ellipse x:Name="ShapeDot"
-             IsHitTestVisible="False"
-             HorizontalAlignment="Left"
-             VerticalAlignment="Center"
-             Fill="{Binding #ShapeBorder.Stroke}"
-             Width="0" Height="0"
-             Margin="10,0,0,0"
-             StrokeThickness="0" />
+    <Grid Width="20" Height="20"
+          IsHitTestVisible="False"
+          HorizontalAlignment="Left"
+          VerticalAlignment="Center">
+        <Ellipse x:Name="ShapeBorder"
+                 StrokeThickness="1.1"
+                 HorizontalAlignment="Left"
+                 VerticalAlignment="Center"
+                 Width="18" Height="18"
+                 Margin="1,0,0,0"
+                 UseLayoutRounding="False"
+                 Stroke="{DynamicResource ColorBrush1}"
+                 Fill="{DynamicResource ColorBrushHalfWhite}" />
+        <Ellipse x:Name="ShapeDot"
+                 HorizontalAlignment="Center"
+                 VerticalAlignment="Center"
+                 Fill="{Binding #ShapeBorder.Stroke}"
+                 Width="9" Height="9"
+                 Opacity="0"
+                 UseLayoutRounding="False"
+                 RenderTransformOrigin="50%,50%"
+                 StrokeThickness="0">
+            <Ellipse.RenderTransform>
+                <ScaleTransform ScaleX="0" ScaleY="0" />
+            </Ellipse.RenderTransform>
+        </Ellipse>
+    </Grid>
 </Grid>

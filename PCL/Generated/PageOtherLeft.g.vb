@@ -19,7 +19,6 @@ Namespace Global.PCL
         Friend WithEvents ItemAbout As PCL.MyListItem
         Friend WithEvents ItemTest As PCL.MyListItem
         Friend WithEvents ItemFeedback As PCL.MyListItem
-        Friend WithEvents ItemVote As PCL.MyListItem
 
         Private Sub InitControls()
             AvaloniaXamlLoader.Load(Me)
@@ -33,8 +32,6 @@ Namespace Global.PCL
             If ItemTest Is Nothing Then Throw New InvalidOperationException("找不到控件：ItemTest")
             ItemFeedback = FindControl(Of PCL.MyListItem)("ItemFeedback")
             If ItemFeedback Is Nothing Then Throw New InvalidOperationException("找不到控件：ItemFeedback")
-            ItemVote = FindControl(Of PCL.MyListItem)("ItemVote")
-            If ItemVote Is Nothing Then Throw New InvalidOperationException("找不到控件：ItemVote")
         End Sub
 
     End Class

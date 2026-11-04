@@ -1,4 +1,6 @@
 Imports Avalonia.Controls.Documents
+Imports Avalonia.Threading
+Imports Avalonia.VisualTree
 Imports Path = Avalonia.Controls.Shapes.Path
 
 Public Class MyCard
@@ -64,6 +66,20 @@ Public Class MyCard
     Public Shared ReadOnly TitleProperty As StyledProperty(Of String) =
         AvaloniaProperty.Register(Of MyCard, String)("Title", "")
 
+    Private _TitleOffset As Double = 0
+    ''' <summary>
+    ''' 标题文字的垂直偏移，用于修正不同卡片高度的基线差异。
+    ''' </summary>
+    Public Property TitleOffset As Double
+        Get
+            Return _TitleOffset
+        End Get
+        Set(value As Double)
+            _TitleOffset = value
+            If _MainTextBlock IsNot Nothing Then _MainTextBlock.Margin = New Thickness(15, 10 + value, 0, 0)
+        End Set
+    End Property
+
     'UI 建立
     Public Sub New()
         'Avalonia 中背景为空的 Panel 不参与命中测试，会导致无法点击卡片标题栏
@@ -126,6 +142,15 @@ Public Class MyCard
         StartHeightAnimation(DeltaHeight, e.PreviousSize.Height)
     End Sub
 
+    ''' <summary>
+    ''' 停止当前高度动画，并把当前高度作为下一次动画的起点。
+    ''' </summary>
+    Private Sub StopHeightAnimation()
+        AniStop("MyCard Height " & Uuid)
+        IsHeightAnimating = False
+        SetContentClipActive(False)
+    End Sub
+
     Private Sub StartHeightAnimation(Delta As Double, PreviousHeight As Double)
         If IsHeightAnimating Then Return
 
@@ -166,9 +191,13 @@ Public Class MyCard
         AnimList.Add(AaCode(
         Sub()
             IsHeightAnimating = False
-            Height = ActualUsedHeight
+            If IsSwapped Then
+                '折叠时保留动画最终高度，避免再写入 40 造成最后 1px 的跳动
+                If SwapControl IsNot Nothing Then SwapControl.IsVisible = False
+            Else
+                Height = ActualUsedHeight
+            End If
             SetContentClipActive(False)
-            If IsSwapped AndAlso SwapControl IsNot Nothing Then SwapControl.IsVisible = False
         End Sub,, True))
         AniStart(AnimList, "MyCard Height " & Uuid)
         IsHeightAnimating = True
@@ -187,7 +216,7 @@ Public Class MyCard
             _MainTextBlock = New TextBlock With {
                 .HorizontalAlignment = HorizontalAlignment.Left,
                 .VerticalAlignment = VerticalAlignment.Top,
-                .Margin = New Thickness(15, 12, 0, 0),
+                .Margin = New Thickness(15, 10 + TitleOffset, 0, 0),
                 .FontWeight = FontWeight.Bold,
                 .FontSize = 13,
                 .IsHitTestVisible = False,
@@ -273,6 +302,38 @@ Public Class MyCard
     Public Property HasMouseAnimation As Boolean = True
 
     Private Sub MyCard_MouseEnter(sender As Object, e As PointerEventArgs)
+        ApplyHoverColor()
+    End Sub
+
+    Private Sub MyCard_MouseLeave(sender As Object, e As PointerEventArgs)
+        If HoverLocks.Count = 0 Then RemoveHoverColor()
+    End Sub
+
+    '拖动滑块或展开下拉框时指针可能离开卡片，原版会保持标题高亮直到交互结束
+    Private ReadOnly HoverLocks As New HashSet(Of Object)()
+
+    Friend Sub SetHoverLock(Key As Object, Active As Boolean)
+        If Active Then
+            HoverLocks.Add(Key)
+            ApplyHoverColor()
+        Else
+            HoverLocks.Remove(Key)
+            If HoverLocks.Count = 0 Then
+                '下拉框关闭后 PointerOver 状态可能稍后才更新，延迟一帧再决定是否取消高亮
+                Dispatcher.UIThread.Post(
+                    Sub()
+                        If HoverLocks.Count = 0 AndAlso Not IsPointerOver Then RemoveHoverColor()
+                    End Sub, DispatcherPriority.Background)
+            End If
+        End If
+    End Sub
+
+    Friend Shared Sub SetCardHoverLock(Source As Visual, Key As Object, Active As Boolean)
+        Dim Card = Source?.GetVisualAncestors().OfType(Of MyCard)().FirstOrDefault()
+        Card?.SetHoverLock(Key, Active)
+    End Sub
+
+    Private Sub ApplyHoverColor()
         If Not HasMouseAnimation Then Return
         Dim AniList As New List(Of AniData)
         If _MainTextBlock IsNot Nothing Then AniList.Add(AaColor(_MainTextBlock, TextBlock.ForegroundProperty, "ColorBrush2", 90))
@@ -280,7 +341,7 @@ Public Class MyCard
         AniStart(AniList, "MyCard Mouse " & Uuid)
     End Sub
 
-    Private Sub MyCard_MouseLeave(sender As Object, e As PointerEventArgs)
+    Private Sub RemoveHoverColor()
         If Not HasMouseAnimation Then Return
         Dim AniList As New List(Of AniData)
         If _MainTextBlock IsNot Nothing Then AniList.Add(AaColor(_MainTextBlock, TextBlock.ForegroundProperty, "ColorBrush1", 90))
@@ -346,17 +407,20 @@ Public Class MyCard
     Public Const SwapedHeight As Integer = 40
 
     Private Sub ApplySwap()
+        If IsHeightAnimating Then StopHeightAnimation()
         If Not IsSwapped Then BuildContent()
         Dim PreviousHeight As Double = Bounds.Height
         SwapControl.IsVisible = True
-        TriggerForceResize()
-        '折叠时目标高度已知，直接开始动画，避免依赖布局事件
+        '折叠时不要先按折叠高度重新布局，否则内容会在裁剪生效前露出一帧
         If IsSwapped Then
             If PreviousHeight > 0 Then
                 StartHeightAnimation(SwapedHeight - PreviousHeight, PreviousHeight)
             Else
+                TriggerForceResize()
                 SwapControl.IsVisible = False
             End If
+        Else
+            TriggerForceResize()
         End If
         If _MainSwap IsNot Nothing Then
             Dim Target = If(_IsSwapped, If(SwapLogoRight, 270.0, 0.0), 180.0)

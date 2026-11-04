@@ -306,10 +306,9 @@ Public Module ModHelp
         End If
         '高级
         Text = Text.RegexReplace("\{hint\}", Function() Replacer(PageOtherTest.GetRandomHint()))
-        Text = Text.RegexReplace("\{cave\}", Function() Replacer(PageOtherTest.GetRandomCave()))
         Text = Text.RegexReplace("\{setup:([a-zA-Z0-9]+)\}", Function(m) Replacer(Settings.GetSafe(m.Groups(1).Value, McInstanceSelected)))
-        Text = Text.RegexReplace("\{varible:([^:\}]+)(?::([^\}]+))?\}", Function(m) Replacer(RegistryUtils.TryRead($"HKEY_CURRENT_USER\Software\{RegFolder}", $"CustomEvent{m.Groups(1).Value}", m.Groups(2).Value)))
-        Text = Text.RegexReplace("\{variable:([^:\}]+)(?::([^\}]+))?\}", Function(m) Replacer(RegistryUtils.TryRead($"HKEY_CURRENT_USER\Software\{RegFolder}", $"CustomEvent{m.Groups(1).Value}", m.Groups(2).Value)))
+        Text = Text.RegexReplace("\{varible:([^:\}]+)(?::([^\}]+))?\}", Function(m) Replacer(ReadRegistryValue($"HKEY_CURRENT_USER\Software\{RegFolder}", $"CustomEvent{m.Groups(1).Value}", m.Groups(2).Value)))
+        Text = Text.RegexReplace("\{variable:([^:\}]+)(?::([^\}]+))?\}", Function(m) Replacer(ReadRegistryValue($"HKEY_CURRENT_USER\Software\{RegFolder}", $"CustomEvent{m.Groups(1).Value}", m.Groups(2).Value)))
         Return Text
     End Function
 
@@ -381,6 +380,7 @@ Public Module ModHelp
         Try
             Dim Doc = XDocument.Parse("<root xmlns:x=""http://schemas.microsoft.com/winfx/2006/xaml"" xmlns:local=""using:PCL"" xmlns:sys=""using:System"">" & Content & "</root>")
             Dim Root = Doc.Root
+            Dim ConvertedParagraphs As New HashSet(Of XElement)()
             '收集样式定义
             Dim KeyedStyles As New Dictionary(Of String, List(Of KeyValuePair(Of String, String)))
             Dim ImplicitStyles As New List(Of Tuple(Of String, List(Of KeyValuePair(Of String, String))))
@@ -392,6 +392,8 @@ Public Module ModHelp
                     Dim Prop As String = CStr(SetterEl.Attribute("Property"))
                     Dim Val As String = CStr(SetterEl.Attribute("Value"))
                     If String.IsNullOrEmpty(Prop) OrElse Val Is Nothing Then Continue For
+                    'WPF 的 Paragraph.LineHeight 常小于字号，Avalonia 会按行高裁切文字
+                    If TargetType = "Paragraph" AndAlso Prop = "LineHeight" Then Continue For
                     Dim Mapped As String = MapWpfStyleProperty(Prop)
                     If Mapped Is Nothing Then Continue For
                     Setters.Add(New KeyValuePair(Of String, String)(Mapped, Val))
@@ -414,8 +416,24 @@ Public Module ModHelp
                         El.Name = XName.Get("ScrollViewer")
                     Case "FlowDocument"
                         El.Name = XName.Get("StackPanel")
+                    Case "List"
+                        'WPF FlowDocument 的列表在 Avalonia 中没有对应控件，映射为纵向容器
+                        El.Name = XName.Get("StackPanel")
+                        If El.Attribute("Margin") Is Nothing Then El.SetAttributeValue("Margin", "0,4")
+                    Case "ListItem"
+                        El.Name = XName.Get("StackPanel")
+                        If El.Attribute("Margin") Is Nothing Then El.SetAttributeValue("Margin", "20,2,0,2")
+                        El.AddFirst(New XElement(XName.Get("TextBlock"),
+                            New XAttribute("Text", "•"),
+                            New XAttribute("Margin", "0,0,6,0"),
+                            New XAttribute("HorizontalAlignment", "Left")))
                     Case "Paragraph"
                         El.Name = XName.Get("TextBlock")
+                        ConvertedParagraphs.Add(El)
+                        El.Attribute("LineHeight")?.Remove()
+                        If El.Attribute("Style") Is Nothing AndAlso El.Attribute("Margin") Is Nothing Then
+                            El.SetAttributeValue("Margin", "0,8")
+                        End If
                     Case "ContentControl"
                         If El.Attribute("Template") IsNot Nothing Then
                             Dim RawText As String = If(CStr(El.Attribute("Content")), "")
@@ -441,10 +459,27 @@ Public Module ModHelp
                         End If
                 End Select
             Next
-            '文本块内的自定义按钮无法作为内联元素，退化为纯文本
+            '文本块内的自定义按钮改用 InlineUIContainer 承载，保留点击与悬停效果
             For Each El In Root.Descendants().Where(Function(e) e.Name.LocalName = "MyTextButton" AndAlso e.Name.NamespaceName = "using:PCL").ToList()
-                If El.Ancestors().Any(Function(a) a.Name.LocalName = "TextBlock") Then
-                    El.ReplaceWith(New XElement(XName.Get("Run"), El.Value))
+                If Not El.Ancestors().Any(Function(a) a.Name.LocalName = "TextBlock") Then Continue For
+                Dim InUnderline As Boolean = El.Ancestors().TakeWhile(Function(a) a.Name.LocalName <> "TextBlock").
+                    Any(Function(a) a.Name.LocalName = "Underline")
+                Dim LinkText As String = El.Value.Trim()
+                El.RemoveNodes()
+                Dim LinkContent As New XElement(XName.Get("TextBlock"),
+                    New XAttribute("Text", LinkText),
+                    New XAttribute("Foreground", "{Binding $parent[Label].Foreground}"))
+                If InUnderline Then LinkContent.SetAttributeValue("TextDecorations", "Underline")
+                El.Add(LinkContent)
+                If El.Attribute("Cursor") Is Nothing Then El.SetAttributeValue("Cursor", "Hand")
+                Dim UnderlineParent As XElement = If(InUnderline, TryCast(El.Parent, XElement), Nothing)
+                Dim Container As New XElement(XName.Get("InlineUIContainer"))
+                El.ReplaceWith(Container)
+                Container.Add(El)
+                If UnderlineParent IsNot Nothing AndAlso UnderlineParent.Name.LocalName = "Underline" AndAlso
+                   UnderlineParent.Nodes().All(Function(n) n Is Container OrElse (TypeOf n Is XText AndAlso String.IsNullOrWhiteSpace(CType(n, XText).Value))) Then
+                    Container.Remove()
+                    UnderlineParent.ReplaceWith(Container)
                 End If
             Next
             '展开显式引用的样式
@@ -457,6 +492,7 @@ Public Module ModHelp
                     Dim Setters As List(Of KeyValuePair(Of String, String)) = Nothing
                     If KeyedStyles.TryGetValue(Key, Setters) Then
                         For Each Setter In Setters
+                            If ConvertedParagraphs.Contains(El) AndAlso Setter.Key = "LineHeight" Then Continue For
                             If El.Attribute(Setter.Key) Is Nothing AndAlso IsWpfStylePropertySupported(El.Name.LocalName, Setter.Key) Then
                                 El.SetAttributeValue(Setter.Key, Setter.Value)
                             End If
@@ -521,7 +557,7 @@ Public Module ModHelp
 
     Private Function MapWpfImplicitSelector(TargetType As String) As String
         Select Case TargetType
-            Case "TextBlock", "Paragraph"
+            Case "TextBlock"
                 Return "TextBlock"
             Case "FlowDocument"
                 Return "StackPanel"

@@ -57,12 +57,15 @@ Namespace Global.PCL
         Friend WithEvents CardAdvance As PCL.MyCard
         Friend WithEvents TextAdvanceJvm As PCL.MyTextBox
         Friend WithEvents TextAdvanceGame As PCL.MyTextBox
-        Friend WithEvents TextAdvanceRun As PCL.MyTextBox
-        Friend WithEvents CheckAdvanceRunWait As PCL.MyCheckBox
         Friend WithEvents CheckAdvanceDisableModUpdate As PCL.MyCheckBox
         Friend WithEvents CheckAdvanceAssetsV2 As PCL.MyCheckBox
         Friend WithEvents CheckAdvanceDisableJLW As PCL.MyCheckBox
         Friend WithEvents CheckAdvanceDisableLUA As PCL.MyCheckBox
+        Friend WithEvents TextAdvanceRun As PCL.MyTextBox
+        Friend WithEvents CheckAdvanceRunWait As PCL.MyCheckBox
+        Friend WithEvents TextEnvironment As PCL.MyTextBox
+        Friend WithEvents TextAdvanceWrapper As PCL.MyTextBox
+        Friend WithEvents TextAdvanceAfterExit As PCL.MyTextBox
         Friend WithEvents BtnSwitch As PCL.MyExtraTextButton
 
         Private Sub InitControls()
@@ -153,10 +156,6 @@ Namespace Global.PCL
             If TextAdvanceJvm Is Nothing Then Throw New InvalidOperationException("找不到控件：TextAdvanceJvm")
             TextAdvanceGame = FindControl(Of PCL.MyTextBox)("TextAdvanceGame")
             If TextAdvanceGame Is Nothing Then Throw New InvalidOperationException("找不到控件：TextAdvanceGame")
-            TextAdvanceRun = FindControl(Of PCL.MyTextBox)("TextAdvanceRun")
-            If TextAdvanceRun Is Nothing Then Throw New InvalidOperationException("找不到控件：TextAdvanceRun")
-            CheckAdvanceRunWait = FindControl(Of PCL.MyCheckBox)("CheckAdvanceRunWait")
-            If CheckAdvanceRunWait Is Nothing Then Throw New InvalidOperationException("找不到控件：CheckAdvanceRunWait")
             CheckAdvanceDisableModUpdate = FindControl(Of PCL.MyCheckBox)("CheckAdvanceDisableModUpdate")
             If CheckAdvanceDisableModUpdate Is Nothing Then Throw New InvalidOperationException("找不到控件：CheckAdvanceDisableModUpdate")
             CheckAdvanceAssetsV2 = FindControl(Of PCL.MyCheckBox)("CheckAdvanceAssetsV2")
@@ -165,6 +164,16 @@ Namespace Global.PCL
             If CheckAdvanceDisableJLW Is Nothing Then Throw New InvalidOperationException("找不到控件：CheckAdvanceDisableJLW")
             CheckAdvanceDisableLUA = FindControl(Of PCL.MyCheckBox)("CheckAdvanceDisableLUA")
             If CheckAdvanceDisableLUA Is Nothing Then Throw New InvalidOperationException("找不到控件：CheckAdvanceDisableLUA")
+            TextAdvanceRun = FindControl(Of PCL.MyTextBox)("TextAdvanceRun")
+            If TextAdvanceRun Is Nothing Then Throw New InvalidOperationException("找不到控件：TextAdvanceRun")
+            CheckAdvanceRunWait = FindControl(Of PCL.MyCheckBox)("CheckAdvanceRunWait")
+            If CheckAdvanceRunWait Is Nothing Then Throw New InvalidOperationException("找不到控件：CheckAdvanceRunWait")
+            TextEnvironment = FindControl(Of PCL.MyTextBox)("TextEnvironment")
+            If TextEnvironment Is Nothing Then Throw New InvalidOperationException("找不到控件：TextEnvironment")
+            TextAdvanceWrapper = FindControl(Of PCL.MyTextBox)("TextAdvanceWrapper")
+            If TextAdvanceWrapper Is Nothing Then Throw New InvalidOperationException("找不到控件：TextAdvanceWrapper")
+            TextAdvanceAfterExit = FindControl(Of PCL.MyTextBox)("TextAdvanceAfterExit")
+            If TextAdvanceAfterExit Is Nothing Then Throw New InvalidOperationException("找不到控件：TextAdvanceAfterExit")
             BtnSwitch = FindControl(Of PCL.MyExtraTextButton)("BtnSwitch")
             If BtnSwitch Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnSwitch")
         End Sub

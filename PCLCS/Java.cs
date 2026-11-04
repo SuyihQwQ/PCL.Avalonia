@@ -115,6 +115,22 @@ public static class JavaUtils {
         return javas.Where(j => j.available == true).ToList();
     }
 
+    /// <summary>
+    /// 检查并按照原版优先级排序 Java：候选文件夹中的优先，其次优先主版本接近 21 的 Java。
+    /// </summary>
+    public static async Task<List<Java>> SortAsync(List<Java> javas, CancellationToken cancellationToken = default, ProgressProvider? progress = null) {
+        javas = await CheckAllAsync(javas, cancellationToken, progress).NoCapture();
+        javas.Sort((left, right) => {
+            var isLeftInCandidateFolder = CandidateFolders.Value.Any(folder => PathUtils.IsParentOf(folder, left.Folder));
+            var isRightInCandidateFolder = CandidateFolders.Value.Any(folder => PathUtils.IsParentOf(folder, right.Folder));
+            if (isLeftInCandidateFolder != isRightInCandidateFolder) return isLeftInCandidateFolder ? -1 : 1;
+            var leftDistance = left.Version is null ? int.MaxValue : Math.Abs(left.Version.Major - 21);
+            var rightDistance = right.Version is null ? int.MaxValue : Math.Abs(right.Version.Major - 21);
+            return leftDistance.CompareTo(rightDistance);
+        });
+        return javas;
+    }
+
     #region 搜索
 
     /// <summary>
@@ -192,7 +208,7 @@ public static class JavaUtils {
         var oldJavaList = Configs.JavaList.Get()!;
         oldJavaList = await JavaUtils.CheckAllAsync(oldJavaList, c, p?.SplitTo(0.9)).NoCapture(); // 检查原有列表中的 Java
         javaList.RemoveAll(oldJavaList); // 此时 javaList 中只剩下新发现的 Java
-        javaList = await JavaUtils.CheckAllAsync(javaList, c).NoCapture(); // 检查新发现的 Java，保持扫描顺序
+        javaList = await JavaUtils.SortAsync(javaList, c).NoCapture(); // 将所有新发现的 Java 按原版优先级排序
         javaList.AddRange(oldJavaList);
         javaList = javaList.Distinct().ToList();
         // 删掉已被移除的 Java

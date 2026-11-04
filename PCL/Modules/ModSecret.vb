@@ -6,12 +6,16 @@ Friend Module ModSecret
 
     '标注 PCL 的不同分支，仅用于替换标记
     Public Const VersionBranchMain As String = "OpenSource"
-    '在开源版的注册表与常规版的注册表隔离，以防数据冲突
-    Public Const RegFolder As String = "PCLDebug"
-    '用于微软登录的 ClientId
-    Public OAuthClientId As String = If(Environment.GetEnvironmentVariable("PCL_MS_CLIENT_ID"), "")
-    'CurseForge API Key
-    Public CurseForgeAPIKey As String = If(Environment.GetEnvironmentVariable("PCL_CURSEFORGE_API_KEY"), "")
+    '注册表位置
+    Public Const RegFolder As String = "PCL.Avalonia"
+    '用于微软登录的 ClientId；真实值放在不提交到仓库的 ModSecret.Private.vb 中
+#If PCL_PRIVATE_SECRETS Then
+    Public OAuthClientId As String = ModSecretPrivate.PrivateOAuthClientId
+#Else
+    Public OAuthClientId As String = ""
+#End If
+    'CurseForge API 统一通过 MCIM 镜像访问，无需 API Key
+    Public Const CurseForgeAPIKey As String = ""
     '用于匿名数据收集的腾讯云日志服务上报 URL，形如 https://{region}.cls.tencentcs.com/track?topic_id={topic_id}
     Public Const ClsBaseUrl As String = ""
 
@@ -53,7 +57,9 @@ Friend Module ModSecret
             End If
         End If
         If Not SimulateBrowserHeaders Then Req.Headers.Add("Referer", $"http://{VersionCode}.open.pcl2.server/")
-        If Url.Contains("api.curseforge.com") OrElse Url.Contains("forgecdn.net") Then Req.Headers.Add("x-api-key", CurseForgeAPIKey)
+        If (Url.Contains("api.curseforge.com") OrElse Url.Contains("forgecdn.net")) AndAlso Not String.IsNullOrEmpty(CurseForgeAPIKey) Then
+            Req.Headers.Add("x-api-key", CurseForgeAPIKey)
+        End If
     End Sub
 
 #End Region

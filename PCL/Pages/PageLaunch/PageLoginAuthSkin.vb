@@ -28,7 +28,9 @@ Public Class PageLoginAuthSkin
     ''' 获取当前页面的登录信息。
     ''' </summary>
     Public Shared Function GetLoginData() As McLoginServer
-        Dim Server As String = If(IsNothing(McInstanceSelected), Settings.Get(Of String)("CacheAuthServerServer"), Settings.Get(Of String)("VersionServerAuthServer", Instance:=McInstanceSelected)) & "/authserver"
+        Dim ServerSetting As String = If(IsNothing(McInstanceSelected), Settings.Get(Of String)("CacheAuthServerServer"), Settings.Get(Of String)("VersionServerAuthServer", Instance:=McInstanceSelected))
+        If String.IsNullOrEmpty(ServerSetting) Then ServerSetting = Settings.Get(Of String)("CacheAuthServerServer")
+        Dim Server As String = If(String.IsNullOrEmpty(ServerSetting), "", ServerSetting.TrimEnd("/"c) & "/authserver")
         Return New McLoginServer(McLoginType.Auth) With {.Token = "Auth", .BaseUrl = Server, .UserName = Settings.Get(Of String)("CacheAuthUsername"), .Password = Settings.Get(Of String)("CacheAuthPass"), .Description = "Authlib-Injector", .Type = McLoginType.Auth}
     End Function
 

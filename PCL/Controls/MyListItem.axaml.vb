@@ -312,6 +312,11 @@ Public Class MyListItem
         End Set
     End Property
 
+    ''' <summary>
+    ''' 标题文本的垂直偏移，用于校正拉丁字母与中文字形的基线差异。
+    ''' </summary>
+    Public Property TitleOffset As Double = 0
+
     '适应尺寸
     Private Sub RefreshSize()
         ColumnDefinitions(0).Width = New GridLength(If(_Type = CheckType.None OrElse _Type = CheckType.Clickable, If(Height < 40, 4, 2), 6))
@@ -323,7 +328,7 @@ Public Class MyListItem
                 PathLogo.Margin = New Thickness(If(Height < 40, 6, 8), 8, If(Height < 40, 4, 6), 8)
             End If
         End If
-        LabTitle.Margin = New Thickness(4, 0, 0, If(Height < 40, 0, 2))
+        LabTitle.Margin = New Thickness(4, TitleOffset, 0, If(Height < 40, 0, 2))
     End Sub
 
     '勾选状态

@@ -154,7 +154,7 @@
                                         local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://shimo.im/docs/rGrd8pY8xWkt6ryW#anchor-RnU9" />
                         <local:MyButton Text="{DynamicResource LangAvalonia0009}" Width="170" Padding="13,0" Margin="0,0,20,0"
                                         local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://shimo.im/docs/rGrd8pY8xWkt6ryW#anchor-X0bo" />
-                        <local:MyButton Text="{DynamicResource LangPageOtherAboutAboutVersionBtn}" Width="140" Padding="13,0" local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://github.com/Hex-Dragon/PCL2" />
+                        <local:MyButton Text="{DynamicResource LangPageOtherAboutAboutVersionBtn}" Width="140" Padding="13,0" local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://github.com/SuyihQwQ/PCL.Avalonia" />
                     </StackPanel>
                 </StackPanel>
             </local:MyCard>

@@ -14,11 +14,28 @@ Public Module ModMinecraft
             SetMcFolder(Value)
         End Set
     End Property
+    Private ReadOnly Property McBasePath As String
+        Get
+            'AppImage 内 Paths.Base 是只读临时挂载目录，默认 .minecraft 应放到 AppImage 文件旁边
+            Return GetWritableBasePath()
+        End Get
+    End Property
+
+    ''' <summary>
+    ''' 默认的 Minecraft 文件夹，位于可写基础目录下的 .minecraft，以 / 或 \ 结尾。
+    ''' </summary>
+    Public ReadOnly Property McDefaultFolder As String
+        Get
+            Return PathUtils.AddSlashSuffix(Path.Combine(McBasePath, ".minecraft"))
+        End Get
+    End Property
+
     Private Sub SetMcFolder(Value As String) '等同 McFolderSelected.Set
-        If PathUtils.IsSame(_McFolderSelected, Value.Replace("$", Paths.Base)) Then Return
-        _McFolderSelected = Value.Replace("$", Paths.Base)
-        _McFolderSelected = PathUtils.AddSlashSuffix(PathUtils.ForCompare(_McFolderSelected))
-        Settings.Set("LaunchFolderSelect", Value.Replace(Paths.Base, "$"))
+        If String.IsNullOrEmpty(Value) Then Value = McDefaultFolder
+        Dim Target As String = Value.Replace("$", McBasePath)
+        If PathUtils.IsSame(_McFolderSelected, Target) Then Return
+        _McFolderSelected = PathUtils.AddSlashSuffix(PathUtils.ForCompare(Target))
+        Settings.Set("LaunchFolderSelect", Value.Replace(McBasePath, "$"))
         Logger.Info($"当前选择的 Minecraft 文件夹：{_McFolderSelected}")
     End Sub
     Private _McFolderSelected As String
@@ -64,8 +81,8 @@ Public Module ModMinecraft
 
             '扫描当前文件夹
             Try
-                If DirectoryUtils.Exists(Paths.Base & "versions\") Then CacheMcFolderList.Add(New McFolder With {.Name = "当前文件夹", .Location = Paths.Base, .Type = McFolder.Types.Vanilla})
-                For Each Folder As DirectoryInfo In DirectoryUtils.GetInfo(Paths.Base).GetDirectories
+                If DirectoryUtils.Exists(McBasePath & "versions\") Then CacheMcFolderList.Add(New McFolder With {.Name = "当前文件夹", .Location = McBasePath, .Type = McFolder.Types.Vanilla})
+                For Each Folder As DirectoryInfo In DirectoryUtils.GetInfo(McBasePath).GetDirectories
                     If DirectoryUtils.Exists(Folder.FullName & "versions\") OrElse Folder.Name = ".minecraft" Then
                         CacheMcFolderList.Add(New McFolder With {.Name = "当前文件夹", .Location = PathUtils.AddSlashSuffix(PathUtils.ForCompare(Folder.FullName)), .Type = McFolder.Types.Vanilla})
                     End If
@@ -124,8 +141,9 @@ Public Module ModMinecraft
 
             '若没有可用文件夹，则创建 .minecraft
             If Not CacheMcFolderList.Any() Then
-                DirectoryUtils.Create(Paths.Base & ".minecraft\versions\")
-                CacheMcFolderList.Add(New McFolder With {.Name = "当前文件夹", .Location = Paths.Base & ".minecraft\", .Type = McFolder.Types.Vanilla})
+                Dim DefaultMcFolder As String = McDefaultFolder
+                DirectoryUtils.Create(Path.Combine(DefaultMcFolder, "versions"))
+                CacheMcFolderList.Add(New McFolder With {.Name = "当前文件夹", .Location = DefaultMcFolder, .Type = McFolder.Types.Vanilla})
             End If
 
             For Each Folder As McFolder In CacheMcFolderList
@@ -202,16 +220,21 @@ Public Module ModMinecraft
                 Settings.Set("CacheNideServer", Settings.Get(Of String)("VersionServerNide", Instance:=value))
             End If
             'Authlib-Injector 重判
+            Dim InstanceAuthServer As String = Settings.Get(Of String)("VersionServerAuthServer", Instance:=value)
+            '版本没有单独填写服务器时沿用已缓存的全局服务器，避免切版本时把登录服务器清空
+            Dim EffectiveAuthServer As String = If(String.IsNullOrEmpty(InstanceAuthServer), Settings.Get(Of String)("CacheAuthServerServer"), InstanceAuthServer)
             If AniControlEnabled = 0 AndAlso
-               Settings.Get(Of String)("VersionServerAuthServer", Instance:=value) <> Settings.Get(Of String)("CacheAuthServerServer") AndAlso
+               EffectiveAuthServer <> Settings.Get(Of String)("CacheAuthServerServer") AndAlso
                Settings.Get(Of Integer)("VersionServerLogin", Instance:=value) = 4 Then
                 Settings.Set("CacheAuthAccess", "")
                 Logger.Info("服务器改变，要求重新登录 Authlib-Injector")
             End If
             If Settings.Get(Of Integer)("VersionServerLogin", Instance:=value) = 4 Then
-                Settings.Set("CacheAuthServerServer", Settings.Get(Of String)("VersionServerAuthServer", Instance:=value))
-                Settings.Set("CacheAuthServerName", Settings.Get(Of String)("VersionServerAuthName", Instance:=value))
-                Settings.Set("CacheAuthServerRegister", Settings.Get(Of String)("VersionServerAuthRegister", Instance:=value))
+                If Not String.IsNullOrEmpty(EffectiveAuthServer) Then Settings.Set("CacheAuthServerServer", EffectiveAuthServer)
+                Dim InstanceAuthName As String = Settings.Get(Of String)("VersionServerAuthName", Instance:=value)
+                If Not String.IsNullOrEmpty(InstanceAuthName) Then Settings.Set("CacheAuthServerName", InstanceAuthName)
+                Dim InstanceAuthRegister As String = Settings.Get(Of String)("VersionServerAuthRegister", Instance:=value)
+                If Not String.IsNullOrEmpty(InstanceAuthRegister) Then Settings.Set("CacheAuthServerRegister", InstanceAuthRegister)
             End If
         End Set
     End Property

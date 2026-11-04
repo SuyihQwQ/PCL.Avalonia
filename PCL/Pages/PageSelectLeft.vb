@@ -41,7 +41,7 @@ Public Class PageSelectLeft
             For Each Folder As McFolder In McFolderList.ToArray
                 '添加控件
                 Dim ContMenu As New ContextMenu()
-                Dim DeleteText As String = If((Folder.Type = McFolder.Types.Vanilla OrElse Folder.Type = McFolder.Types.RenamedVanilla) AndAlso PathUtils.IsSame(Folder.Location, Paths.Base & ".minecraft\") AndAlso McFolderList.IsSingle, "清空", "删除")
+                Dim DeleteText As String = If((Folder.Type = McFolder.Types.Vanilla OrElse Folder.Type = McFolder.Types.RenamedVanilla) AndAlso PathUtils.IsSame(Folder.Location, McDefaultFolder) AndAlso McFolderList.IsSingle, "清空", "删除")
                 Select Case Folder.Type
                     Case McFolder.Types.Vanilla
                         AddMenuItem(ContMenu, "重命名", Sub() Rename_Click(Folder))
@@ -75,7 +75,7 @@ Public Class PageSelectLeft
             PanList.Children.Add(New TextBlock With {.Text = "添加或导入", .Margin = New Thickness(13, 18, 5, 4), .Opacity = 0.6, .FontSize = 12})
 
             '确认创建按钮状态
-            If Not DirectoryUtils.Exists(Paths.Base & ".minecraft\") Then
+            If Not DirectoryUtils.Exists(McDefaultFolder) Then
                 Dim ItemCreate As New MyListItem With {.IsScaleAnimationEnabled = False, .Type = MyListItem.CheckType.Clickable, .Title = "新建 .minecraft 文件夹", .Height = 34,
                     .LogoScale = 0.9,
                     .Logo = "M103.331925 384.978025l25.805736 0L129.137661 161.847132c0-18.313088 14.905478-33.718963 33.718963-33.718963l0.969071 0 253.006318 0c10.82044 0 20.218484 4.797259 26.500561 12.257162l117.579929 126.753869 297.819966 0c18.297738 0 33.736359 15.179724 33.736359 33.977859l0 0.952698 0 82.909292 25.547863 0c18.538215 0 34.187637 15.179724 34.187637 33.977859 0 2.163269-0.469698 3.617387-0.469698 5.539156l-54.437843 432.971086c-1.210571 10.382465-7.007601 19.056008-14.968923 24.352641-6.249331 5.765307-14.680351 9.624195-23.595394 9.624195l-0.969071 0-694.906773 0c-9.155521 0-17.344017-3.858888-23.626094-9.155521-8.67252-5.765307-14.453177-14.939247-15.389502-25.758664L69.597613 423.040922c-2.165316-18.313088 10.868535-35.414581 29.665647-38.062897L103.331925 384.978025 103.331925 384.978025zM196.576609 384.978025 196.576609 384.978025l627.938546 0 0-49.625234L546.461371 335.352791l0 0c-9.400091 0-18.329461-4.117784-25.048489-11.110035L402.363486 196.067514 196.576609 196.067514 196.576609 384.978025 196.576609 384.978025zM879.469767 452.916347 879.469767 452.916347l-20.267603 0-0.469698 0-0.969071 0-694.906773 0-0.984421 0-20.218484 0 45.781696 366.728382 646.218888 0L879.469767 452.916347 879.469767 452.916347z"}
@@ -264,12 +264,12 @@ Public Class PageSelectLeft
         Hint("新建 .minecraft 文件夹成功！", HintType.Green)
     End Sub
     Public Shared Sub CreateMcFolderInCurrentPath()
-        McFolderSelected = Paths.Base & ".minecraft\"
+        McFolderSelected = McDefaultFolder
         If Not DirectoryUtils.Exists(McFolderSelected) Then
             DirectoryUtils.Create(McFolderSelected & "versions\")
             McFolderLauncherProfilesJsonCreate(McFolderSelected)
         End If
-        AddFolder(McFolderSelected, PathUtils.GetLastPart(Paths.Base), False)
+        AddFolder(McFolderSelected, PathUtils.GetLastPart(GetWritableBasePath()), False)
     End Sub
 
     '右键菜单
@@ -308,7 +308,7 @@ Public Class PageSelectLeft
             Hint("请在其他任务完成后，再删除游戏文件夹！", HintType.Red)
             Return
         End If
-        Dim DeleteText As String = If((Target.Type = McFolder.Types.Vanilla OrElse Target.Type = McFolder.Types.RenamedVanilla) AndAlso Target.Location = Paths.Base & ".minecraft\" AndAlso McFolderList.IsSingle, "清空", "删除")
+        Dim DeleteText As String = If((Target.Type = McFolder.Types.Vanilla OrElse Target.Type = McFolder.Types.RenamedVanilla) AndAlso PathUtils.IsSame(Target.Location, McDefaultFolder) AndAlso McFolderList.IsSingle, "清空", "删除")
         If MyMsgBox("你确定要" & DeleteText & "这个文件夹吗？" & vbCrLf &
                     "目标文件夹：" & Target.Location & vbCrLf & vbCrLf &
                     "该文件夹中的游戏存档、游戏版本，以及 MC 之外的其他文件，都会永久丢失，不可恢复！", "警告", "取消", "确认", "取消") <> 2 Then Return

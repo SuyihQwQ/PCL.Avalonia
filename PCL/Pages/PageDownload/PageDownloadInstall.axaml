@@ -25,7 +25,7 @@
                         <local:MyHint Text="{DynamicResource LangAvalonia0080}" Margin="0,10,0,0" x:Name="HintOptiFabric" Theme="Red" />
                         <local:MyHint Text="{DynamicResource LangDownloadInstallOldOptiFabric}" Margin="0,10,0,0" x:Name="HintOptiFabricOld" Theme="Yellow" />
                         <local:MyHint Text="{DynamicResource LangDownloadInstallOptiFine}" Margin="0,10,0,0" x:Name="HintModOptiFine" Theme="Yellow" />
-                        <local:MyCard Title="{DynamicResource LangDownloadPageLeftMinecraft}" Height="40" Margin="0,12,0,0" x:Name="CardMinecraft" IsVisible="False">
+                        <local:MyCard Title="{DynamicResource LangDownloadPageLeftMinecraft}" Height="40" Margin="0,12,0,0" x:Name="CardMinecraft" TitleOffset="2" IsVisible="False">
                             <Grid x:Name="PanMinecraftInfo" Height="18" Margin="132,11,35,0" VerticalAlignment="Top">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
@@ -64,7 +64,7 @@
                                                 HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,32,0" ToolTip.Tip="{DynamicResource LangAvalonia0096}"
                                                 Theme="Black" LogoScale="0.55" Logo="M9.83,3.17 A1.18,1.18 0 0 1 9.83,4.83 L6.85,7.82 H14.5 A6.68,6.68 0 0 1 14.5,21.18 H11 A1.18,1.18 0 0 1 11,18.82 H14.5 A4.32,4.32 0 0 0 14.5,10.18 H6.85 L9.83,13.17 A1.18,1.18 0 0 1 8.17,14.83 L3.17,9.83 A1.18,1.18 0 0 1 3.17,8.17 L8.17,3.17 A1.18,1.18 0 0 1 9.83,3.17 Z" />
                         </local:MyCard>
-                        <local:MyCard Title="{DynamicResource LangDownloadPageLeftForge}" Height="40" Margin="0,12,0,0" x:Name="CardForge" IsSwapped="True" CanSwap="True" SwapLogoRight="True">
+                        <local:MyCard Title="{DynamicResource LangDownloadPageLeftForge}" Height="40" Margin="0,12,0,0" x:Name="CardForge" TitleOffset="2" IsSwapped="True" CanSwap="True" SwapLogoRight="True">
                             <StackPanel Margin="20,40,18,15" VerticalAlignment="Top" Name="PanForge" />
                             <Grid x:Name="PanForgeInfo" Height="18" Margin="132,11,15,0" VerticalAlignment="Top" Tag="True">
                                 <Grid.ColumnDefinitions>
@@ -99,7 +99,7 @@
                                                 HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,32,0" ToolTip.Tip="{DynamicResource LangAvalonia0096}"
                                                 Theme="Black" LogoScale="0.55" Logo="M9.83,3.17 A1.18,1.18 0 0 1 9.83,4.83 L6.85,7.82 H14.5 A6.68,6.68 0 0 1 14.5,21.18 H11 A1.18,1.18 0 0 1 11,18.82 H14.5 A4.32,4.32 0 0 0 14.5,10.18 H6.85 L9.83,13.17 A1.18,1.18 0 0 1 8.17,14.83 L3.17,9.83 A1.18,1.18 0 0 1 3.17,8.17 L8.17,3.17 A1.18,1.18 0 0 1 9.83,3.17 Z" />
                         </local:MyCard>
-                        <local:MyCard Title="{DynamicResource LangDownloadPageLeftNeoForge}" Height="40" Margin="0,12,0,0" x:Name="CardNeoForge" IsSwapped="True" CanSwap="True" SwapLogoRight="True">
+                        <local:MyCard Title="{DynamicResource LangDownloadPageLeftNeoForge}" Height="40" Margin="0,12,0,0" x:Name="CardNeoForge" TitleOffset="2" IsSwapped="True" CanSwap="True" SwapLogoRight="True">
                             <StackPanel Margin="20,40,18,15" VerticalAlignment="Top" Name="PanNeoForge" />
                             <Grid x:Name="PanNeoForgeInfo" Height="18" Margin="132,11,15,0" VerticalAlignment="Top" Tag="True">
                                 <Grid.ColumnDefinitions>
@@ -134,7 +134,7 @@
                                                 HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,32,0" ToolTip.Tip="{DynamicResource LangAvalonia0096}"
                                                 Theme="Black" LogoScale="0.55" Logo="M9.83,3.17 A1.18,1.18 0 0 1 9.83,4.83 L6.85,7.82 H14.5 A6.68,6.68 0 0 1 14.5,21.18 H11 A1.18,1.18 0 0 1 11,18.82 H14.5 A4.32,4.32 0 0 0 14.5,10.18 H6.85 L9.83,13.17 A1.18,1.18 0 0 1 8.17,14.83 L3.17,9.83 A1.18,1.18 0 0 1 3.17,8.17 L8.17,3.17 A1.18,1.18 0 0 1 9.83,3.17 Z" />
                         </local:MyCard>
-                        <local:MyCard Title="{DynamicResource LangDownloadPageLeftFabric}" Height="40" Margin="0,12,0,0" x:Name="CardFabric" IsSwapped="True" CanSwap="True" SwapLogoRight="True">
+                        <local:MyCard Title="{DynamicResource LangDownloadPageLeftFabric}" Height="40" Margin="0,12,0,0" x:Name="CardFabric" TitleOffset="2" IsSwapped="True" CanSwap="True" SwapLogoRight="True">
                             <StackPanel Margin="20,40,18,15" VerticalAlignment="Top" Name="PanFabric" />
                             <Grid x:Name="PanFabricInfo" Height="18" Margin="132,11,15,0" VerticalAlignment="Top" Tag="True">
                                 <Grid.ColumnDefinitions>
@@ -169,7 +169,7 @@
                                                 HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,32,0" ToolTip.Tip="{DynamicResource LangAvalonia0096}"
                                                 Theme="Black" LogoScale="0.55" Logo="M9.83,3.17 A1.18,1.18 0 0 1 9.83,4.83 L6.85,7.82 H14.5 A6.68,6.68 0 0 1 14.5,21.18 H11 A1.18,1.18 0 0 1 11,18.82 H14.5 A4.32,4.32 0 0 0 14.5,10.18 H6.85 L9.83,13.17 A1.18,1.18 0 0 1 8.17,14.83 L3.17,9.83 A1.18,1.18 0 0 1 3.17,8.17 L8.17,3.17 A1.18,1.18 0 0 1 9.83,3.17 Z" />
                         </local:MyCard>
-                        <local:MyCard Title="{DynamicResource LangDownloadPageLeftFabricAPI}" Height="40" Margin="0,12,0,0" x:Name="CardFabricApi" IsSwapped="True" CanSwap="True" SwapLogoRight="True">
+                        <local:MyCard Title="{DynamicResource LangDownloadPageLeftFabricAPI}" Height="40" Margin="0,12,0,0" x:Name="CardFabricApi" TitleOffset="2" IsSwapped="True" CanSwap="True" SwapLogoRight="True">
                             <StackPanel Margin="20,40,18,15" VerticalAlignment="Top" Name="PanFabricApi" />
                             <Grid x:Name="PanFabricApiInfo" Height="18" Margin="132,11,15,0" VerticalAlignment="Top" Tag="True">
                                 <Grid.ColumnDefinitions>
@@ -204,7 +204,7 @@
                                                 HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,32,0" ToolTip.Tip="{DynamicResource LangAvalonia0096}"
                                                 Theme="Black" LogoScale="0.55" Logo="M9.83,3.17 A1.18,1.18 0 0 1 9.83,4.83 L6.85,7.82 H14.5 A6.68,6.68 0 0 1 14.5,21.18 H11 A1.18,1.18 0 0 1 11,18.82 H14.5 A4.32,4.32 0 0 0 14.5,10.18 H6.85 L9.83,13.17 A1.18,1.18 0 0 1 8.17,14.83 L3.17,9.83 A1.18,1.18 0 0 1 3.17,8.17 L8.17,3.17 A1.18,1.18 0 0 1 9.83,3.17 Z" />
                         </local:MyCard>
-                        <local:MyCard Title="{DynamicResource LangDownloadPageLeftOptiFine}" Height="40" Margin="0,12,0,0" x:Name="CardOptiFine" IsSwapped="True" CanSwap="True" SwapLogoRight="True">
+                        <local:MyCard Title="{DynamicResource LangDownloadPageLeftOptiFine}" Height="40" Margin="0,12,0,0" x:Name="CardOptiFine" TitleOffset="2" IsSwapped="True" CanSwap="True" SwapLogoRight="True">
                             <StackPanel Margin="20,40,18,15" VerticalAlignment="Top">
                                 <StackPanel Name="PanOptiFine" />
                             </StackPanel>
@@ -241,7 +241,7 @@
                                                 HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,32,0" ToolTip.Tip="{DynamicResource LangAvalonia0096}"
                                                 Theme="Black" LogoScale="0.55" Logo="M9.83,3.17 A1.18,1.18 0 0 1 9.83,4.83 L6.85,7.82 H14.5 A6.68,6.68 0 0 1 14.5,21.18 H11 A1.18,1.18 0 0 1 11,18.82 H14.5 A4.32,4.32 0 0 0 14.5,10.18 H6.85 L9.83,13.17 A1.18,1.18 0 0 1 8.17,14.83 L3.17,9.83 A1.18,1.18 0 0 1 3.17,8.17 L8.17,3.17 A1.18,1.18 0 0 1 9.83,3.17 Z" />
                         </local:MyCard>
-                        <local:MyCard Title="{DynamicResource LangDownloadPageLeftOptiFabric}" Height="40" Margin="0,12,0,0" x:Name="CardOptiFabric" IsSwapped="True" CanSwap="True" SwapLogoRight="True">
+                        <local:MyCard Title="{DynamicResource LangDownloadPageLeftOptiFabric}" Height="40" Margin="0,12,0,0" x:Name="CardOptiFabric" TitleOffset="2" IsSwapped="True" CanSwap="True" SwapLogoRight="True">
                             <StackPanel Margin="20,40,18,15" VerticalAlignment="Top" Name="PanOptiFabric" />
                             <Grid x:Name="PanOptiFabricInfo" Height="18" Margin="132,11,15,0" VerticalAlignment="Top" Tag="True">
                                 <Grid.ColumnDefinitions>
@@ -276,7 +276,7 @@
                                                 HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,32,0" ToolTip.Tip="{DynamicResource LangAvalonia0096}"
                                                 Theme="Black" LogoScale="0.55" Logo="M9.83,3.17 A1.18,1.18 0 0 1 9.83,4.83 L6.85,7.82 H14.5 A6.68,6.68 0 0 1 14.5,21.18 H11 A1.18,1.18 0 0 1 11,18.82 H14.5 A4.32,4.32 0 0 0 14.5,10.18 H6.85 L9.83,13.17 A1.18,1.18 0 0 1 8.17,14.83 L3.17,9.83 A1.18,1.18 0 0 1 3.17,8.17 L8.17,3.17 A1.18,1.18 0 0 1 9.83,3.17 Z" />
                         </local:MyCard>
-                        <local:MyCard Title="{DynamicResource LangDownloadPageLeftLiteLoader}" Height="40" Margin="0,12,0,0" x:Name="CardLiteLoader" IsSwapped="True" CanSwap="True" SwapLogoRight="True">
+                        <local:MyCard Title="{DynamicResource LangDownloadPageLeftLiteLoader}" Height="40" Margin="0,12,0,0" x:Name="CardLiteLoader" TitleOffset="2" IsSwapped="True" CanSwap="True" SwapLogoRight="True">
                             <StackPanel Margin="20,40,18,15" VerticalAlignment="Top" Name="PanLiteLoader" />
                             <Grid x:Name="PanLiteLoaderInfo" Height="18" Margin="132,11,15,0" VerticalAlignment="Top" Tag="True">
                                 <Grid.ColumnDefinitions>

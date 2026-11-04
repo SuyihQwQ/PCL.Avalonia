@@ -216,7 +216,7 @@
                 </StackPanel>
             </local:MyCard>
             <local:MyCard Margin="0,0,0,15" Title="{DynamicResource LangPageSetupLaunchLaunchAdvanceOptions}" IsSwapped="True" CanSwap="True">
-                <Grid Margin="25,40,25,15">
+                <Grid Margin="25,44,25,15">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="1*" />
@@ -225,13 +225,14 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="9" />
                         <RowDefinition Height="28" />
+                        <RowDefinition Height="0" />
+                        <RowDefinition Height="0" />
+                        <RowDefinition Height="0" />
+                        <RowDefinition Height="9" />
+                        <RowDefinition Height="28" />
                         <RowDefinition Height="9" />
                         <RowDefinition Height="28" />
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="9" />
-                        <RowDefinition Height="28" />
-                        <RowDefinition Height="9" />
-                        <RowDefinition Height="28" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
@@ -245,19 +246,13 @@
                     <local:MyTextBox x:Name="TextAdvanceJvm" Grid.Row="0" Grid.Column="1" Height="100"
                                      local:SettingService.Key="LaunchAdvanceJvm" MaxLength="4000"
                                      AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top"
+                                     Padding="7,7,7,7"
                                      ScrollViewer.VerticalScrollBarVisibility="Auto"
                                      ToolTip.Tip="{DynamicResource LangPageSetupLaunchLaunchAdvanceOptionsJVMHeadTops}" />
                     <TextBlock Grid.Row="2" VerticalAlignment="Center" HorizontalAlignment="Left" Text="{DynamicResource LangPageSetupLaunchLaunchAdvanceOptionsJVMTail}" Margin="0,0,25,0" />
                     <local:MyTextBox x:Name="TextAdvanceGame" Grid.Row="2" Grid.Column="1" MaxHeight="28"
                                      local:SettingService.Key="LaunchAdvanceGame"
                                      ToolTip.Tip="{DynamicResource LangPageSetupLaunchLaunchAdvanceOptionsJVMTailTip}" />
-                    <TextBlock Grid.Row="4" VerticalAlignment="Center" HorizontalAlignment="Left" Text="{DynamicResource LangPageSetupLaunchLaunchAdvanceOptionsCommandBeforeStart}" Margin="0,0,25,0" />
-                    <local:MyTextBox x:Name="TextAdvanceRun" Grid.Row="4" Grid.Column="1" MaxHeight="28"
-                                     local:SettingService.Key="LaunchAdvanceRun"
-                                     ToolTip.Tip="{DynamicResource LangAvalonia0059}" />
-                    <local:MyCheckBox x:Name="CheckAdvanceRunWait" Grid.Row="5" Grid.Column="1" IsVisible="False"
-                                      Text="{DynamicResource LangPageSetupLaunchLaunchAdvanceOptionsCommandStartWaitForCommand}" Margin="0,8,0,7"
-                                      local:SettingService.Key="LaunchAdvanceRunWait" />
                     <StackPanel Grid.Row="7" VerticalAlignment="Center" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,0,25,0">
                         <TextBlock Text="{DynamicResource LangPageSetupLaunchLaunchJava}" VerticalAlignment="Center"
                                    ToolTip.Tip="{DynamicResource LangPageSetupLaunchLaunchJavaToolTip}" />
@@ -299,7 +294,28 @@
                                           local:SettingService.Key="ToolDownloadCert"
                                           ToolTip.Tip="{DynamicResource LangPageSetupSystemDownloadSSLToolTip}" />
                     </StackPanel>
-                    <local:MyHint x:Name="HintMoreAdvancedSetup" Grid.Row="11" Grid.ColumnSpan="2" Margin="0,5,0,10"
+                    <StackPanel Grid.Row="11" Grid.ColumnSpan="2" Margin="0,10,0,0">
+                        <TextBlock Text="{DynamicResource LangPageSetupLaunchLaunchAdvanceOptionsCommandBeforeStart}" Margin="0,0,0,4" />
+                        <local:MyTextBox x:Name="TextAdvanceRun" local:SettingService.Key="LaunchAdvanceRun"
+                                         MaxHeight="28" Padding="7,0,7,0"
+                                         ToolTip.Tip="{DynamicResource LangAvalonia0059}" />
+                        <local:MyCheckBox x:Name="CheckAdvanceRunWait" IsVisible="False"
+                                          Text="{DynamicResource LangPageSetupLaunchLaunchAdvanceOptionsCommandStartWaitForCommand}" Margin="0,5,0,0"
+                                          local:SettingService.Key="LaunchAdvanceRunWait" />
+                        <TextBlock Text="环境变量" Margin="0,10,0,4" />
+                        <local:MyTextBox x:Name="TextEnvironment" local:SettingService.Key="LaunchEnvironment"
+                                         MaxHeight="28" Padding="7,0,7,0" HintText="key=value;key=value"
+                                         ToolTip.Tip="多个变量用分号分隔，格式 key=value;key=value；实例设置会覆盖同名全局变量。" />
+                        <TextBlock Text="包装命令" Margin="0,10,0,4" />
+                        <local:MyTextBox x:Name="TextAdvanceWrapper" local:SettingService.Key="LaunchAdvanceWrapper"
+                                         MaxHeight="28" Padding="7,0,7,0" HintText="例如 mangohud、prime-run，留空则不使用"
+                                         ToolTip.Tip="在 Java 命令前追加的包装命令，例如 mangohud、prime-run。留空则不使用。" />
+                        <TextBlock Text="退出后执行命令" Margin="0,10,0,4" />
+                        <local:MyTextBox x:Name="TextAdvanceAfterExit" local:SettingService.Key="LaunchAdvanceAfterExit"
+                                         MaxHeight="28" Padding="7,0,7,0" HintText="游戏退出后执行，可用 {exitcode}"
+                                         ToolTip.Tip="游戏进程退出后执行；可用 {exitcode} 获取退出码。" />
+                    </StackPanel>
+                    <local:MyHint x:Name="HintMoreAdvancedSetup" Grid.Row="12" Grid.ColumnSpan="2" Margin="0,5,0,10"
                                   Text="{DynamicResource LangPageSetupLaunchLaunchAdvanceOptionsMoreTips}" HintTheme="Blue"
                                   CanClose="True" RelativeSetup="HintMoreAdvancedSetup" />
                 </Grid>

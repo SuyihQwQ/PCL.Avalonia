@@ -111,7 +111,6 @@ Public Class PageLaunchLeft
 #Region "页面加载"
 
     Private Sub PageLaunchLeft_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
-        InitCustom()
         If IsLoad Then
             '重新进入页面时 XAML 的 DynamicResource 会覆盖代码设置过的文字，需要强制刷新还原
             BtnLaunchState = -1
@@ -123,6 +122,8 @@ Public Class PageLaunchLeft
         AprilPosTrans.Y = 0
 
         If IsLoad Then Return
+        '只在首次加载时初始化变换，重新进入页面时不能把启动中界面的缩放重置回 0.8
+        InitCustom()
         IsLoad = True
         AniControlEnabled += 1
 
@@ -324,7 +325,8 @@ Public Class PageLaunchLeft
     ''' 切换至登录页面。
     ''' </summary>
     Public Sub PageChangeToLogin()
-        DirectCast(PageGet(PageCurrent), ILoginPage).Reload(KeepInput:=False)
+        '退出启动界面时按当前缓存重新确认登录页，避免登录成功后仍停留在密码页
+        RefreshPage(False, False, ForceReload:=True)
         PanInput.IsHitTestVisible = False
         PanLaunching.IsHitTestVisible = False
         LoadLaunching.State.LoadingState = MyLoading.MyLoadingState.Stop
@@ -445,7 +447,7 @@ Public Class PageLaunchLeft
             Case 0 '正版或离线
 UnknownType:
                 If RadioLoginType5.Checked Then
-                    If Settings.Get(Of String)("CacheMsV2Access") = "" Then
+                    If Settings.Get(Of String)("CacheMsV2OAuthRefresh") = "" Then
                         Type = PageType.Ms
                     Else
                         Type = PageType.MsSkin
@@ -460,7 +462,7 @@ UnknownType:
                 RadioLoginType5.IsVisible = True
                 RadioLoginType0.IsVisible = True
             Case 1 '仅正版
-                If Settings.Get(Of String)("CacheMsV2Access") = "" Then
+                If Settings.Get(Of String)("CacheMsV2OAuthRefresh") = "" Then
                     Type = PageType.Ms
                 Else
                     Type = PageType.MsSkin
@@ -480,7 +482,7 @@ UnknownType:
                 PathTypeOne.Data = Geometry.Parse(Logo.IconButtonOffline)
                 LabTypeOne.Text = "离线登录"
             Case 3 '统一通行证
-                If Settings.Get(Of String)("CacheNideAccess") = "" Then
+                If Settings.Get(Of String)("CacheNideAccess") = "" AndAlso Settings.Get(Of String)("CacheNideName") = "" Then
                     Type = PageType.Nide
                 Else
                     Type = PageType.NideSkin
@@ -491,7 +493,7 @@ UnknownType:
                 PathTypeOne.Data = Geometry.Parse(Logo.IconButtonCard)
                 LabTypeOne.Text = "统一通行证登录"
             Case 4 'Authlib-Injector
-                If Settings.Get(Of String)("CacheAuthAccess") = "" Then
+                If Settings.Get(Of String)("CacheAuthAccess") = "" AndAlso Settings.Get(Of String)("CacheAuthName") = "" Then
                     Type = PageType.Auth
                 Else
                     Type = PageType.AuthSkin

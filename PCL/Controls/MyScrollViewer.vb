@@ -50,11 +50,23 @@ Public Class MyScrollViewer
     End Sub
 
     Private RealContentPresenter As ScrollContentPresenter
+    Private RootGrid As Grid
 
     Protected Overrides Sub OnApplyTemplate(e As TemplateAppliedEventArgs)
         MyBase.OnApplyTemplate(e)
         RealContentPresenter = e.NameScope.Find(Of ScrollContentPresenter)("PART_ContentPresenter")
+        RootGrid = e.NameScope.Find(Of Grid)("PART_Root")
         UpdateScrollCapability()
+        UpdateScrollBarGutter()
+    End Sub
+
+    ''' <summary>
+    ''' 为自动显示的滚动条预留固定宽度，避免内容高度变化时页面宽度来回跳动。
+    ''' </summary>
+    Private Sub UpdateScrollBarGutter()
+        If RootGrid Is Nothing OrElse RootGrid.ColumnDefinitions.Count < 2 Then Return
+        Dim Reserve As Boolean = VerticalScrollBarVisibility = ScrollBarVisibility.Auto OrElse VerticalScrollBarVisibility = ScrollBarVisibility.Visible
+        RootGrid.ColumnDefinitions(1).Width = New GridLength(If(Reserve, 10, 0))
     End Sub
 
     ''' <summary>
@@ -69,12 +81,14 @@ Public Class MyScrollViewer
     Protected Overrides Function MeasureOverride(availableSize As Size) As Size
         'ScrollViewer 会在模板应用后按自身状态重写这两个标志，测量前再同步一次
         UpdateScrollCapability()
+        UpdateScrollBarGutter()
         Return MyBase.MeasureOverride(availableSize)
     End Function
 
     Protected Overrides Sub OnPropertyChanged(change As AvaloniaPropertyChangedEventArgs)
         MyBase.OnPropertyChanged(change)
         If change.Property.Name = "CanVerticallyScroll" OrElse change.Property.Name = "CanHorizontallyScroll" Then UpdateScrollCapability()
+        If change.Property Is VerticalScrollBarVisibilityProperty Then UpdateScrollBarGutter()
         If change.Property Is IsVisibleProperty Then RefreshExtraBack()
     End Sub
 

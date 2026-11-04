@@ -87,6 +87,7 @@ Public Class MyComboBox
         AddHandler Me.DropDownOpened, Sub(sender, e) DropDownOpenedHandler()
         AddHandler Me.DropDownClosed,
             Sub(sender, e)
+                MyCard.SetCardHoverLock(Me, Me, False)
                 RefreshColor()
                 RefreshArrow()
             End Sub
@@ -172,6 +173,7 @@ Public Class MyComboBox
     End Sub
 
     Private Sub DropDownOpenedHandler()
+        MyCard.SetCardHoverLock(Me, Me, True)
         RefreshColor()
         RefreshArrow()
         '将下拉菜单宽度与透明度与主窗口同步

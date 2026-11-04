@@ -8,13 +8,9 @@ Public Module ModBase
 
 #Region "声明"
 
-    Public Const VersionBaseName As String = "2.14.0.0"
+    Public Const VersionBaseName As String = "14.1.0"
     Public Const CommitHash As String = ""
-#If RELEASE Then
-    Public Const VersionCode As Integer = 411
-#Else
-    Public Const VersionCode As Integer = 412
-#End If
+    Public Const VersionCode As Integer = 1410
 
     Public Const VersionDisplay As String = BuildTypeDisplay & " " & VersionBaseName
 #If DEBUG Then
@@ -54,15 +50,93 @@ Public Module ModBase
     ''' </summary>
     Public PathData As String = GetDefaultPathData()
     ''' <summary>
+    ''' 通过 --working-dir 覆盖的基础目录；为空时使用程序目录或 AppImage 所在目录。
+    ''' </summary>
+    Public WorkingDirectoryOverride As String = ""
+    ''' <summary>
+    ''' 可写的基础目录：优先使用 --working-dir，其次为 AppImage 所在目录，最后为程序目录。
+    ''' </summary>
+    Public Function GetWritableBasePath() As String
+        If Not String.IsNullOrWhiteSpace(WorkingDirectoryOverride) Then Return PathUtils.AddSlashSuffix(WorkingDirectoryOverride)
+        Dim AppImage = Environment.GetEnvironmentVariable("APPIMAGE")
+        If Not String.IsNullOrEmpty(AppImage) Then
+            Dim Folder = Path.GetDirectoryName(AppImage)
+            If Not String.IsNullOrWhiteSpace(Folder) Then Return PathUtils.AddSlashSuffix(Folder)
+        End If
+        Return Paths.Base
+    End Function
+    ''' <summary>
     ''' 获取默认的数据文件夹路径，以 \ 结尾。
     ''' </summary>
     Public Function GetDefaultPathData() As String
-        Dim BasePath As String = If(OperatingSystem.IsWindows(),
-            Path.Combine(Paths.Base, "PCL"),
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PCL"))
-        If String.IsNullOrWhiteSpace(BasePath) Then BasePath = Path.Combine(Paths.Base, "PCL")
-        Return PathUtils.AddSlashSuffix(BasePath)
+        Return PathUtils.AddSlashSuffix(Path.Combine(GetWritableBasePath(), "PCL.Avalonia"))
     End Function
+    ''' <summary>
+    ''' Linux 下替代注册表的配置文件夹，位于用户配置目录。
+    ''' </summary>
+    Public ReadOnly Property PathConfigFolder As String
+        Get
+            Dim Root As String = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
+            If String.IsNullOrWhiteSpace(Root) Then
+                Dim Home As String = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+                If String.IsNullOrWhiteSpace(Home) Then Throw New DirectoryNotFoundException("无法获取用户配置文件夹！")
+                Root = Path.Combine(Home, ".config")
+            End If
+            Return PathUtils.AddSlashSuffix(Path.Combine(Root, "PCL.Avalonia"))
+        End Get
+    End Property
+    ''' <summary>
+    ''' Linux 下替代注册表的配置文件路径。
+    ''' </summary>
+    Public ReadOnly Property PathRegistryIni As String
+        Get
+            Return Path.Combine(PathConfigFolder, "Registry.ini")
+        End Get
+    End Property
+    ''' <summary>
+    ''' 创建数据文件夹并检查写入权限；无权限时抛出异常。
+    ''' </summary>
+    Public Sub EnsureDataPath()
+        Dim Folder As String = GetDefaultPathData()
+        DirectoryUtils.Create(Path.Combine(Folder, "Pictures"))
+        DirectoryUtils.Create(Path.Combine(Folder, "Musics"))
+        CheckPermissionWithException(Folder)
+        PathData = Folder
+    End Sub
+    ''' <summary>
+    ''' 读取注册表值；非 Windows 平台从用户配置目录下的 Registry.ini 读取。
+    ''' </summary>
+    Public Function ReadRegistryValue(Folder As String, Key As String, Optional DefaultValue As String = "") As String
+        If OperatingSystem.IsWindows() Then Return If(RegistryUtils.TryRead(Folder, Key, DefaultValue)?.ToString(), DefaultValue)
+        Return ReadIni(PathRegistryIni, Key, DefaultValue)
+    End Function
+    ''' <summary>
+    ''' 写入注册表值；非 Windows 平台写入用户配置目录下的 Registry.ini。
+    ''' </summary>
+    Public Sub WriteRegistryValue(Folder As String, Key As String, Value As String)
+        If OperatingSystem.IsWindows() Then
+            RegistryUtils.Write(Folder, Key, Value)
+        Else
+            WriteIni(PathRegistryIni, Key, Value)
+        End If
+    End Sub
+    ''' <summary>
+    ''' 判断注册表值是否存在；非 Windows 平台检查 Registry.ini。
+    ''' </summary>
+    Public Function HasRegistryValue(Folder As String, Key As String) As Boolean
+        If OperatingSystem.IsWindows() Then Return RegistryUtils.Has(Folder, Key)
+        Return HasIniKey(PathRegistryIni, Key)
+    End Function
+    ''' <summary>
+    ''' 删除注册表值；非 Windows 平台写入 Registry.ini。
+    ''' </summary>
+    Public Sub DeleteRegistryValue(Folder As String, Key As String)
+        If OperatingSystem.IsWindows() Then
+            RegistryUtils.Delete(Folder, Key)
+        Else
+            DeleteIniKey(PathRegistryIni, Key)
+        End If
+    End Sub
     ''' <summary>
     ''' 当前程序的语言。
     ''' </summary>

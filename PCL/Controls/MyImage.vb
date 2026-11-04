@@ -1,4 +1,5 @@
 Imports System.IO
+Imports System.Net
 Imports System.Net.Http
 
 Public Class MyImage
@@ -28,6 +29,7 @@ Public Class MyImage
         End Get
         Set(value As String)
             If value = "" Then value = Nothing
+            If value IsNot Nothing AndAlso value.StartsWith("//", StringComparison.Ordinal) Then value = "https:" & value
             If _Source = value Then Return
             _Source = value
             If Not IsInitialized Then Return '属性读取顺序修正：在完成 XAML 属性读取后再触发图片加载
@@ -44,7 +46,7 @@ Public Class MyImage
     ''' <summary>
     ''' 正在下载网络图片时显示的本地图片。
     ''' </summary>
-    Public Property LoadingSource As String = "pack://application:,,,/images/Icons/NoIcon.png"
+    Public Property LoadingSource As String = "avares://PCL/Assets/Images/Icons/NoIcon.png"
 
 #End Region
 
@@ -133,12 +135,22 @@ Public Class MyImage
                     End Try
                 Else
                     Logger.Error(ex, $"下载图片失败（{Source}，备用：{FallbackSource}）", LogBehavior.Toast)
+                    ActualSource = LoadingSource
                 End If
             End Try
         End Sub, "MyImage PicLoader " & GetUuid() & "#", ThreadPriority.BelowNormal)
     End Sub
 
-    Private Shared ReadOnly HttpClient As New HttpClient()
+    Private Shared ReadOnly HttpClient As HttpClient = CreateHttpClient()
+
+    Private Shared Function CreateHttpClient() As HttpClient
+        Dim Handler As New HttpClientHandler With {.AutomaticDecompression = DecompressionMethods.All}
+        Dim Client As New HttpClient(Handler) With {.Timeout = TimeSpan.FromSeconds(20)}
+        Client.DefaultRequestHeaders.UserAgent.ParseAdd(
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36")
+        Client.DefaultRequestHeaders.Accept.ParseAdd("image/avif,image/webp,image/apng,image/*,*/*;q=0.8")
+        Return Client
+    End Function
 
     ''' <summary>
     ''' 下载图片到指定文件。可选地在主地址失败后使用备用地址。
@@ -148,13 +160,31 @@ Public Class MyImage
         If Not String.IsNullOrEmpty(Folder) Then Directory.CreateDirectory(Folder)
         Dim Bytes As Byte()
         Try
-            Bytes = HttpClient.GetByteArrayAsync(Url).GetAwaiter().GetResult()
+            Bytes = GetImageBytes(Url)
         Catch ex As Exception
             If String.IsNullOrEmpty(FallbackUrl) OrElse FallbackUrl = Url Then Throw
             Logger.Warn(ex, $"图片下载失败，尝试备用地址（{Url}）")
-            Bytes = HttpClient.GetByteArrayAsync(FallbackUrl).GetAwaiter().GetResult()
+            Bytes = GetImageBytes(FallbackUrl)
         End Try
         File.WriteAllBytes(FilePath, Bytes)
     End Sub
+
+    Private Shared Function GetImageBytes(Url As String) As Byte()
+        Dim Request As New HttpRequestMessage(HttpMethod.Get, Url)
+        Dim UriResult As Uri = Nothing
+        If Uri.TryCreate(Url, UriKind.Absolute, UriResult) Then
+            Dim Referer As String = UriResult.GetLeftPart(UriPartial.Authority) & "/"
+            If UriResult.Host.EndsWith("hdslb.com", StringComparison.OrdinalIgnoreCase) Then Referer = "https://www.bilibili.com/"
+            Request.Headers.Referrer = New Uri(Referer)
+        End If
+        Using Response = HttpClient.SendAsync(Request).GetAwaiter().GetResult()
+            Response.EnsureSuccessStatusCode()
+            Dim MediaType = Response.Content.Headers.ContentType?.MediaType
+            If MediaType IsNot Nothing AndAlso MediaType.StartsWith("text/", StringComparison.OrdinalIgnoreCase) Then
+                Throw New Exception($"服务器返回了非图片内容（{MediaType}）")
+            End If
+            Return Response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult()
+        End Using
+    End Function
 
 End Class

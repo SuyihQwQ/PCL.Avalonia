@@ -112,6 +112,9 @@ Public Class Settings
         New Setting("LaunchAdvanceGame", ""),
         New Setting("LaunchAdvanceRun", ""),
         New Setting("LaunchAdvanceRunWait", True),
+        New Setting("LaunchEnvironment", ""),
+        New Setting("LaunchAdvanceWrapper", ""),
+        New Setting("LaunchAdvanceAfterExit", ""),
         New Setting("LaunchAdvanceDisableJLW", False),
         New Setting("LaunchAdvanceDisableLUA", False),
         New Setting("LaunchAdvanceGraphicCard", True, Source:=Sources.Registry),
@@ -177,7 +180,6 @@ Public Class Settings
         New Setting("UiHiddenSetupSystem", False, OnChanged:=Sub(Value) PageSetupUI.HiddenRefresh()),
         New Setting("UiHiddenOtherHelp", False, OnChanged:=Sub(Value) PageSetupUI.HiddenRefresh()),
         New Setting("UiHiddenOtherFeedback", False, OnChanged:=Sub(Value) PageSetupUI.HiddenRefresh()),
-        New Setting("UiHiddenOtherVote", False, OnChanged:=Sub(Value) PageSetupUI.HiddenRefresh()),
         New Setting("UiHiddenOtherAbout", False, OnChanged:=Sub(Value) PageSetupUI.HiddenRefresh()),
         New Setting("UiHiddenOtherTest", False, OnChanged:=Sub(Value) PageSetupUI.HiddenRefresh()),
         New Setting("VersionAdvanceJvm", "", Source:=Sources.Instance),
@@ -186,6 +188,9 @@ Public Class Settings
         New Setting("VersionAdvanceAssetsV2", False, Source:=Sources.Instance),
         New Setting("VersionAdvanceRun", "", Source:=Sources.Instance),
         New Setting("VersionAdvanceRunWait", True, Source:=Sources.Instance),
+        New Setting("VersionEnvironment", "", Source:=Sources.Instance),
+        New Setting("VersionAdvanceWrapper", "", Source:=Sources.Instance),
+        New Setting("VersionAdvanceAfterExit", "", Source:=Sources.Instance),
         New Setting("VersionAdvanceDisableJLW", False, Source:=Sources.Instance),
         New Setting("VersionAdvanceDisableLUA", False, Source:=Sources.Instance),
         New Setting("VersionAdvanceDisableModUpdate", False, Source:=Sources.Instance),
@@ -471,28 +476,18 @@ Public Class Settings
 
     Private Shared ReadOnly RegPath As String = $"HKEY_CURRENT_USER\Software\{RegFolder}"
 
-    '非 Windows 平台没有注册表，使用数据文件夹下的 Registry.ini 代替
+    '非 Windows 平台没有注册表，使用用户配置目录下的 Registry.ini 代替
     Private Shared Function RegistryRead(Key As String, DefaultValue As String) As String
-        If OperatingSystem.IsWindows() Then Return RegistryUtils.TryRead(RegPath, Key, DefaultValue)
-        Return ReadIni("Registry", Key, DefaultValue)
+        Return ReadRegistryValue(RegPath, Key, DefaultValue)
     End Function
     Private Shared Sub RegistryWrite(Key As String, Value As String)
-        If OperatingSystem.IsWindows() Then
-            RegistryUtils.Write(RegPath, Key, Value)
-        Else
-            WriteIni("Registry", Key, Value)
-        End If
+        WriteRegistryValue(RegPath, Key, Value)
     End Sub
     Private Shared Sub RegistryDelete(Key As String)
-        If OperatingSystem.IsWindows() Then
-            RegistryUtils.Delete(RegPath, Key)
-        Else
-            DeleteIniKey("Registry", Key)
-        End If
+        DeleteRegistryValue(RegPath, Key)
     End Sub
     Private Shared Function RegistryHas(Key As String) As Boolean
-        If OperatingSystem.IsWindows() Then Return RegistryUtils.Has(RegPath, Key)
-        Return HasIniKey("Registry", Key)
+        Return HasRegistryValue(RegPath, Key)
     End Function
 
 #End Region

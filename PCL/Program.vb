@@ -8,13 +8,127 @@ Public Module Program
     Public Sub Main(args As String())
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)
         MeloongCore.Main.Init("PCL")
+        Dim RemainingArgs = ParseWorkingDirectory(args)
+        Try
+            EnsureDataPath()
+        Catch ex As Exception
+            ShowStartupError(GetDefaultPathData(), ex)
+            Environment.Exit(4)
+        End Try
         Logger.Instance = New FileLogger With {
             .logFolder = PathData,
             .MinLevel = If(ModeDebug, LogLevel.Trace, LogLevel.Info)
         }
+        If Not OperatingSystem.IsWindows() Then
+            Try
+                DirectoryUtils.Create(PathConfigFolder)
+            Catch ex As Exception
+                Logger.Warn(ex, "创建用户配置文件夹失败")
+            End Try
+        End If
         ApplyLinuxCursorTheme()
-        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args)
+        BuildAvaloniaApp().StartWithClassicDesktopLifetime(RemainingArgs)
     End Sub
+
+    ''' <summary>
+    ''' 解析 --working-dir，覆盖配置文件夹与默认 .minecraft 的基础目录。
+    ''' </summary>
+    Private Function ParseWorkingDirectory(args As String()) As String()
+        Dim Remaining As New List(Of String)
+        Dim Index As Integer = 0
+        While Index < args.Length
+            Dim Arg As String = args(Index)
+            Dim Value As String = Nothing
+            If Arg = "--working-dir" Then
+                If Index + 1 >= args.Length Then
+                    ShowStartupMessage("启动参数 --working-dir 缺少路径。", "启动参数错误")
+                    Environment.Exit(4)
+                End If
+                Value = args(Index + 1)
+                Index += 2
+            ElseIf Arg.StartsWith("--working-dir=", StringComparison.Ordinal) Then
+                Value = Arg.Substring("--working-dir=".Length)
+                Index += 1
+            Else
+                Remaining.Add(Arg)
+                Index += 1
+                Continue While
+            End If
+            If String.IsNullOrWhiteSpace(Value) Then
+                ShowStartupMessage("启动参数 --working-dir 缺少路径。", "启动参数错误")
+                Environment.Exit(4)
+            End If
+            Try
+                WorkingDirectoryOverride = PathUtils.AddSlashSuffix(IO.Path.GetFullPath(Value))
+            Catch ex As Exception
+                ShowStartupMessage($"启动参数 --working-dir 无效（{Value}）：{ex.Message}", "启动参数错误")
+                Environment.Exit(4)
+            End Try
+        End While
+        Return Remaining.ToArray()
+    End Function
+
+    ''' <summary>
+    ''' 配置文件夹不可写时显示与原版一致的错误提示，随后由调用方退出程序。
+    ''' </summary>
+    Private Sub ShowStartupError(Folder As String, ex As Exception)
+        Dim Text As String = $"PCL 没有对当前文件夹的权限（{Folder}），请尝试：" & vbLf &
+            "1. 将 PCL 移动到其他文件夹。" & vbLf &
+            $"2. 删除当前目录中的 PCL.Avalonia 文件夹，然后再试。"
+        If OperatingSystem.IsWindows() Then
+            Text &= vbLf & "3. 右键 PCL 选择属性，打开 兼容性 中的 以管理员身份运行此程序。"
+        Else
+            Text &= vbLf & "3. 检查当前用户对该文件夹是否有写入权限。"
+        End If
+        Console.Error.WriteLine(ex)
+        ShowStartupMessage(Text, "运行环境错误")
+    End Sub
+
+    ''' <summary>
+    ''' 在 Avalonia 启动前显示错误提示；Windows 使用系统消息框，Linux 使用 zenity / kdialog。
+    ''' </summary>
+    Private Sub ShowStartupMessage(Text As String, Title As String)
+        Console.Error.WriteLine(Text)
+        If OperatingSystem.IsWindows() Then
+            MessageBoxW(IntPtr.Zero, Text, Title, &H10UI Or &H10000UI)
+        ElseIf OperatingSystem.IsLinux() Then
+            ShowLinuxStartupMessage(Text, Title)
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' Linux 没有系统级消息框，优先尝试桌面环境自带的 zenity / kdialog。
+    ''' </summary>
+    Private Sub ShowLinuxStartupMessage(Text As String, Title As String)
+        For Each Tool As String In {"zenity", "kdialog"}
+            Try
+                Dim Info As New ProcessStartInfo(Tool) With {
+                    .UseShellExecute = False,
+                    .CreateNoWindow = True
+                }
+                If Tool = "zenity" Then
+                    Info.ArgumentList.Add("--error")
+                    Info.ArgumentList.Add("--title=" & Title)
+                    Info.ArgumentList.Add("--text=" & Text)
+                Else
+                    Info.ArgumentList.Add("--title")
+                    Info.ArgumentList.Add(Title)
+                    Info.ArgumentList.Add("--error")
+                    Info.ArgumentList.Add(Text)
+                End If
+                Using Proc = Process.Start(Info)
+                    If Proc Is Nothing Then Continue For
+                    Proc.WaitForExit()
+                    If Proc.ExitCode = 0 Then Return
+                End Using
+            Catch
+            End Try
+        Next
+    End Sub
+
+    <Runtime.InteropServices.DllImport("user32.dll", CharSet:=Runtime.InteropServices.CharSet.Unicode)>
+    Private Function MessageBoxW(hWnd As IntPtr, Text As String, Caption As String, Flags As UInteger) As Integer
+    End Function
 
     Public Function BuildAvaloniaApp() As AppBuilder
         Dim Builder = AppBuilder.Configure(Of App)() _
@@ -186,7 +300,9 @@ Public Module Program
             Dim DesktopFile = IO.Path.Combine(DataHome, "applications", "PCL.desktop")
             Dim Existing = FindDesktopEntry("PCL.desktop")
             If Existing IsNot Nothing AndAlso Not IO.File.ReadAllText(Existing).Contains("X-PCL-Generated=true") Then Return
-            Dim ExePath = Environment.ProcessPath
+            'AppImage 运行时 ProcessPath 指向临时挂载目录，桌面项应指向 AppImage 文件本身
+            Dim ExePath = Environment.GetEnvironmentVariable("APPIMAGE")
+            If String.IsNullOrWhiteSpace(ExePath) Then ExePath = Environment.ProcessPath
             If String.IsNullOrWhiteSpace(ExePath) Then Return
             '图标放入 hicolor 主题
             Dim IconFile = IO.Path.Combine(DataHome, "icons", "hicolor", "256x256", "apps", "PCL.png")

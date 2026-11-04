@@ -93,29 +93,24 @@ Public Class MyRadioBox
     Private Sub SyncUI()
         If AniControlEnabled = 0 AndAlso IsControlLoaded Then
             If Checked Then
-                If ShapeDot.Opacity < 0.01 Then ShapeDot.Opacity = 1
-                'AaScale 会在放大直径的同时把左边距向左移动一半，从 10 开始才能让直径 9 的小圆居中
-                ShapeDot.Width = 0
-                ShapeDot.Height = 0
-                ShapeDot.Margin = New Thickness(10, 0, 0, 0)
+                ShapeDot.Opacity = 1
                 AniStart({
                           AaScale(ShapeBorder, 10 - ShapeBorder.Width, AnimationTimeOfCheck, , New AniEaseOutFluent(AniEasePower.Weak), , True),
                           AaScale(ShapeBorder, 8, AnimationTimeOfCheck * 2, AnimationTimeOfCheck * 0.6, New AniEaseOutBack, , True)
                      }, "MyRadioBox Border " & Uuid)
                 AniStart({
-                          AaScale(ShapeDot, 9 - ShapeDot.Width, AnimationTimeOfCheck * 2.6, , New AniEaseOutBack(AniEasePower.Weak), , True),
+                          AaScaleTransform(ShapeDot, 1 - AniScaleX(ShapeDot), AnimationTimeOfCheck * 2.6, , New AniEaseOutBack(AniEasePower.Weak), True),
                           AaOpacity(ShapeDot, 1 - ShapeDot.Opacity, AnimationTimeOfCheck * 0.5, AnimationTimeOfCheck * 0.6)
                      }, "MyRadioBox Dot " & Uuid)
                 AniStart({
                           AaColor(ShapeBorder, Shape.StrokeProperty, If(IsPointerOver, "ColorBrush3", If(IsEnabled, "ColorBrush2", "ColorBrushGray5")), AnimationTimeOfCheck)
                      }, "MyRadioBox BorderColor " & Uuid)
             Else
-                ShapeDot.Margin = New Thickness(10, 0, 0, 0)
                 AniStart({
                           AaScale(ShapeBorder, 18 - ShapeBorder.Width, AnimationTimeOfCheck, , New AniEaseOutFluent, , True)
                      }, "MyRadioBox Border " & Uuid)
                 AniStart({
-                          AaScale(ShapeDot, -ShapeDot.Width, AnimationTimeOfCheck, , New AniEaseInFluent, , True),
+                          AaScaleTransform(ShapeDot, -AniScaleX(ShapeDot), AnimationTimeOfCheck, , New AniEaseInFluent, True),
                           AaOpacity(ShapeDot, -ShapeDot.Opacity, AnimationTimeOfCheck * 0.5, AnimationTimeOfCheck * 0.2)
                      }, "MyRadioBox Dot " & Uuid)
                 AniStart({
@@ -126,21 +121,17 @@ Public Class MyRadioBox
             AniStop("MyRadioBox Border " & Uuid)
             AniStop("MyRadioBox Dot " & Uuid)
             AniStop("MyRadioBox BorderColor " & Uuid)
-            '脉冲动画被中断时尺寸会停在中间值，禁用动画时必须复位
             ShapeBorder.Width = 18
             ShapeBorder.Height = 18
             ShapeBorder.Margin = New Thickness(1, 0, 0, 0)
+            ShapeBorder.RenderTransform = Nothing
             If Checked Then
-                ShapeDot.Width = 9
-                ShapeDot.Height = 9
+                ShapeDot.RenderTransform = New ScaleTransform(1, 1)
                 ShapeDot.Opacity = 1
-                ShapeDot.Margin = New Thickness(5.5, 0, 0, 0)
                 ShapeBorder.SetResourceReference(Shape.StrokeProperty, If(IsEnabled, "ColorBrush2", "ColorBrushGray5"))
             Else
-                ShapeDot.Width = 0
-                ShapeDot.Height = 0
+                ShapeDot.RenderTransform = New ScaleTransform(0, 0)
                 ShapeDot.Opacity = 0
-                ShapeDot.Margin = New Thickness(10, 0, 0, 0)
                 ShapeBorder.SetResourceReference(Shape.StrokeProperty, If(IsEnabled, "ColorBrush1", "ColorBrushGray5"))
             End If
         End If

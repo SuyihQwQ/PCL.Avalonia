@@ -168,6 +168,10 @@ Public Class PageDownloadInstall
         VanillaData = sender.Tag
         VanillaIcon = sender.Logo
         LabMinecraftVersion.Text = VanillaName
+        '切换安装的 Minecraft 版本时强制刷新版本名，避免沿用上一个版本手动编辑过的文本
+        IsSelectNameEdited = False
+        TextSelectName.Text = GetSelectName()
+        IsSelectNameEdited = False
         EnterSelectPage()
     End Sub
 

@@ -5,6 +5,7 @@ Imports Avalonia.Input
 Imports Avalonia.Media
 Imports Avalonia.Media.Imaging
 Imports Avalonia.Platform.Storage
+Imports Avalonia.Threading
 Imports Avalonia.VisualTree
 
 Public Class FormMain
@@ -399,11 +400,102 @@ Public Class FormMain
         TextOptions.SetTextRenderingMode(Me, TextRenderingMode.Antialias)
         EnsurePanBackTransform()
         DragDrop.SetAllowDrop(Me, True)
+        '主窗口使用自绘提示层，关闭系统 ToolTip 服务，避免出现两个提示框
+        ToolTip.SetServiceEnabled(Me, False)
         '与原版一致：子控件可能先处理拖拽事件，这里必须监听已处理事件
         MyBase.AddHandler(DragDrop.DragEnterEvent, AddressOf FormMain_HandleDrag, RoutingStrategies.Bubble, True)
         MyBase.AddHandler(DragDrop.DragOverEvent, AddressOf FormMain_HandleDrag, RoutingStrategies.Bubble, True)
         MyBase.AddHandler(DragDrop.DropEvent, AddressOf FormMain_Drop, RoutingStrategies.Bubble, True)
+        MyBase.AddHandler(InputElement.PointerMovedEvent, AddressOf FormMain_PointerMoved, RoutingStrategies.Tunnel, True)
+        MyBase.AddHandler(InputElement.PointerExitedEvent, AddressOf FormMain_PointerExited, RoutingStrategies.Tunnel, True)
+        HoverTipTimer = New DispatcherTimer With {.Interval = TimeSpan.FromMilliseconds(100)}
+        AddHandler HoverTipTimer.Tick, AddressOf HoverTipTimer_Tick
+        AddHandler Closed, AddressOf FormMain_Closed
+        HadSplashOnStart = FrmStart IsNot Nothing
         Opacity = 0
+        PanBack.Opacity = 0
+    End Sub
+
+    Private HadSplashOnStart As Boolean
+    Private ShowAnimationScheduled As Boolean
+
+    '自定义提示框：直接跟随鼠标绘制，避免系统 ToolTip 位置计算带来的偏移
+    Private HoverTipControl As Control
+    Private HoverTipObject As Object
+    Private HoverTipPointer As Point
+    Private ReadOnly HoverTipTimer As DispatcherTimer
+
+    Private Sub FormMain_PointerMoved(sender As Object, e As PointerEventArgs)
+        Dim Pointer = e.GetPosition(Me)
+        Dim TipControl = FindToolTipControl(TryCast(Me.InputHitTest(Pointer), Visual))
+        If TipControl Is Nothing Then
+            HideHoverTip()
+            Return
+        End If
+        If TipControl IsNot HoverTipControl Then
+            HideHoverTip()
+            HoverTipControl = TipControl
+            HoverTipObject = ToolTip.GetTip(TipControl)
+            HoverTipPointer = Pointer
+            If HoverTipObject IsNot Nothing Then HoverTipTimer.Start()
+            Return
+        End If
+        HoverTipPointer = Pointer
+        If BorderToolTip.IsVisible Then PositionHoverTip(Pointer)
+    End Sub
+
+    Private Shared Function FindToolTipControl(Source As Visual) As Control
+        If Source Is Nothing Then Return Nothing
+        For Each Ancestor In Source.GetSelfAndVisualAncestors().OfType(Of Control)()
+            If ToolTip.GetTip(Ancestor) IsNot Nothing AndAlso Ancestor.IsEffectivelyVisible Then Return Ancestor
+        Next
+        Return Nothing
+    End Function
+
+    Private Sub HoverTipTimer_Tick(sender As Object, e As EventArgs)
+        ShowHoverTip()
+    End Sub
+
+    Private Sub FormMain_PointerExited(sender As Object, e As PointerEventArgs)
+        HideHoverTip()
+    End Sub
+
+    Private Sub ShowHoverTip()
+        HoverTipTimer.Stop()
+        If HoverTipControl Is Nothing OrElse Not HoverTipControl.IsEffectivelyVisible Then
+            HideHoverTip()
+            Return
+        End If
+        Dim Text As String = If(TypeOf HoverTipObject Is String, CStr(HoverTipObject), HoverTipObject?.ToString())
+        If String.IsNullOrWhiteSpace(Text) Then
+            HideHoverTip()
+            Return
+        End If
+        LabToolTip.Text = Text
+        BorderToolTip.IsVisible = True
+        PositionHoverTip(HoverTipPointer)
+    End Sub
+
+    Private Sub PositionHoverTip(Pointer As Point)
+        BorderToolTip.Measure(New Size(380, Double.PositiveInfinity))
+        Dim Desired = BorderToolTip.DesiredSize
+        Dim X = Pointer.X + 16
+        Dim Y = Pointer.Y + 20
+        If X + Desired.Width > Bounds.Width - 8 Then X = Pointer.X - Desired.Width - 12
+        If Y + Desired.Height > Bounds.Height - 8 Then Y = Pointer.Y - Desired.Height - 12
+        Canvas.SetLeft(BorderToolTip, Math.Clamp(X, 8, Math.Max(8, Bounds.Width - Desired.Width - 8)))
+        Canvas.SetTop(BorderToolTip, Math.Clamp(Y, 8, Math.Max(8, Bounds.Height - Desired.Height - 8)))
+    End Sub
+
+    Private Sub HideHoverTip()
+        HoverTipTimer.Stop()
+        HoverTipControl = Nothing
+        HoverTipObject = Nothing
+        If BorderToolTip IsNot Nothing Then BorderToolTip.IsVisible = False
+    End Sub
+
+    Private Sub FormMain_Closed(sender As Object, e As EventArgs)
+        HoverTipTimer.Stop()
     End Sub
 
     '窗口加载
@@ -424,10 +516,51 @@ Public Class FormMain
         McFolderListLoader.Start(0)
         AniStart()
         CloseSplash()
+        '兜底：某些平台可能不触发 Activated，也要保证界面最终显示
+        AniStart({AaCode(AddressOf StartWindowShowAnimation, 800)}, "Form Show Fallback")
+        '首次启动或协议更新提示（与原版一致，仅桌面运行环境触发）
+        If TypeOf Application.Current?.ApplicationLifetime Is IClassicDesktopStyleApplicationLifetime Then
+            RunInNewThread(AddressOf CheckEula, "Eula Check", ThreadPriority.Lowest)
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' 首次启动或用户协议更新时显示协议授权弹窗。
+    ''' </summary>
+    Private Shared Sub CheckEula()
+        Const EulaVersion As Integer = 2
+        If Settings.Get(Of Integer)("SystemEulaVersion") >= EulaVersion Then Return
+        Dim Text As String = Localization.GetText(If(Settings.Get(Of Integer)("SystemEulaVersion") = 0,
+                                                     "LangDialogPolicyContent", "LangDialogPolicyContentModified"))
+        Select Case MyMsgBox(Text, Localization.GetText("LangDialogPolicyTitle"),
+                             Localization.GetText("LangDialogBtnAgree"),
+                             Localization.GetText("LangDialogBtnDeny"),
+                             Localization.GetText("LangDialogBtnPolicyContent"),
+                             Button3Action:=Sub() OpenWebsite("https://shimo.im/docs/rGrd8pY8xWkt6ryW"))
+            Case 1
+                Settings.Set("SystemEulaVersion", EulaVersion)
+            Case 2
+                RunInUi(Sub() FrmMain?.EndProgram(False))
+        End Select
+    End Sub
+
+    Private ShowAnimationStarted As Boolean
+
+    ''' <summary>
+    ''' 播放窗口淡入与位置、旋转回正动画。
+    ''' </summary>
+    Private Sub StartWindowShowAnimation()
+        If ShowAnimationStarted OrElse IsProgramEnding OrElse Not IsVisible Then Return
+        ShowAnimationStarted = True
+        AniResetClock()
+        Dim TargetOpacity As Double = (Settings.Get(Of Integer)("UiLauncherTransparent") / 1000 + 0.4).Clamp(0, 1)
+        Opacity = TargetOpacity
+        PanBack.Opacity = 0
+        AniStart()
         AniStart({
-            AaOpacity(Me, Settings.Get(Of Integer)("UiLauncherTransparent") / 1000 + 0.4, 250, 100),
-            AaDouble(Sub(i) TransformPos.Y += i, -TransformPos.Y, 600, 100, New AniEaseOutBack(AniEasePower.Weak)),
-            AaDouble(Sub(i) TransformRotate.Angle += i, -TransformRotate.Angle, 500, 100, New AniEaseOutBack(AniEasePower.Weak)),
+            AaOpacity(PanBack, 1, 500),
+            AaDouble(Sub(i) TransformPos.Y += i, -TransformPos.Y, 600, , New AniEaseOutBack(AniEasePower.Weak)),
+            AaDouble(Sub(i) TransformRotate.Angle += i, -TransformRotate.Angle, 500, , New AniEaseOutBack(AniEasePower.Weak)),
             AaCode(
             Sub()
                 PanBack.RenderTransform = Nothing
@@ -501,7 +634,7 @@ Public Class FormMain
             If ReturnCode = ProcessReturnValues.Exception Then
                 If Not IsLogShown Then
                     FeedbackInfo()
-                    Logger.Info("请在 https://github.com/Meloong-Git/PCL/issues 提交错误报告，以便于作者解决此问题！")
+                    Logger.Info("请在 https://github.com/SuyihQwQ/PCL.Avalonia/issues 提交错误报告，以便于作者解决此问题！")
                     IsLogShown = True
                     StartProcess(PathData & "Log1.txt")
                 End If
@@ -1013,7 +1146,7 @@ Public Class FormMain
             '标题栏显示类型（默认的 PCL 标识使用 PCL English 字体渲染）
             Dim LogoType As Integer = Settings.Get(Of Integer)("UiLogoType")
             LabTitleLogo.IsVisible = LogoType = 1 OrElse LogoType = 2
-            LabTitleLogo.Text = If(LogoType = 1, "PCL", If(LogoType = 2, Settings.Get(Of String)("UiLogoText"), ""))
+            LabTitleLogo.Text = If(LogoType = 1, "PCL.Avalonia", If(LogoType = 2, Settings.Get(Of String)("UiLogoText"), ""))
             ImageTitleLogo.IsVisible = LogoType = 3
             If LogoType = 3 Then RefreshTitleLogo()
             '标题栏文本是否居左
@@ -1397,6 +1530,15 @@ Public Class FormMain
 
     '切回窗口
     Private Sub FormMain_Activated(sender As Object, e As EventArgs) Handles Me.Activated
+        '窗口真正显示并获得焦点时才开始淡入，避免动画在 Show 返回前就播放完毕
+        If Not ShowAnimationScheduled AndAlso Not ShowAnimationStarted Then
+            ShowAnimationScheduled = True
+            If HadSplashOnStart Then
+                AniStart({AaCode(AddressOf StartWindowShowAnimation, 250)}, "Form Show Delay")
+            Else
+                StartWindowShowAnimation()
+            End If
+        End If
         '切回窗口时自动刷新
         Try
             If PageCurrent = PageType.InstanceSetup AndAlso PageCurrentSub = PageSubType.InstanceMod Then

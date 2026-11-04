@@ -202,7 +202,7 @@ Public Module ModMain
                             AaX(DoubleStack, -50, 200, Delay, New AniEaseInFluent),
                             AaOpacity(DoubleStack, -1, 150, Delay),
                             AaCode(Sub() DoubleInfo.Reusable = False, Delay),
-                            AaHeight(DoubleStack, -26, 100, , New AniEaseOutFluent, True),
+                            AaHeight(DoubleStack, -30, 100, , New AniEaseOutFluent, True),
                             AaCode(Sub() FrmMain.PanHint.Children.Remove(DoubleStack), , True)
                         }, "Hint Hide " & DoubleInfo.Uuid)
                     End If
@@ -227,6 +227,7 @@ Public Module ModMain
                     NewHintControl.Child = New TextBlock With {
                         .TextTrimming = TextTrimming.CharacterEllipsis,
                         .FontSize = 13,
+                        .LineHeight = 18,
                         .Text = CurrentHint.Text,
                         .Foreground = Brushes.White,
                         .Margin = New Thickness(33, 5, 8, 5)
@@ -235,9 +236,9 @@ Public Module ModMain
                     '控件动画
                     Dim Animations As New List(Of AniData)
                     If FrmMain.PanHint.Children.Count > 1 Then
-                        Animations.Add(AaHeight(NewHintControl, 26, 150, , New AniEaseOutFluent))
+                        Animations.Add(AaHeight(NewHintControl, 30, 150, , New AniEaseOutFluent))
                     Else
-                        NewHintControl.Height = 26
+                        NewHintControl.Height = 30
                     End If
                     Animations.AddRange({
                         AaX(NewHintControl, 30, 400, , New AniEaseOutElastic(AniEasePower.Weak)),
@@ -257,7 +258,7 @@ Public Module ModMain
                         AaX(NewHintControl, -50, 200, Delay, New AniEaseInFluent),
                         AaOpacity(NewHintControl, -1, 150, Delay),
                         AaCode(Sub() Info.Reusable = False, Delay),
-                        AaHeight(NewHintControl, -26, 100, , New AniEaseOutFluent, True),
+                        AaHeight(NewHintControl, -30, 100, , New AniEaseOutFluent, True),
                         AaCode(Sub() FrmMain.PanHint.Children.Remove(NewHintControl), , True)
                     }, "Hint Hide " & Info.Uuid)
                 End If
@@ -545,7 +546,7 @@ Public Module ModMain
             If ForceOpenLog OrElse (ShowMsgbox AndAlso MyMsgBox("若你在汇报一个 Bug，请点击 打开文件夹 按钮，并上传 Log(1~5).txt 中包含错误信息的文件。" & vbCrLf & "游戏崩溃一般与启动器无关，请不要因为游戏崩溃而提交反馈。", "反馈提交提醒", "打开文件夹", "不需要") = 1) Then
                 OpenExplorer(PathData & "Log1.txt")
             End If
-            OpenWebsite("https://github.com/Meloong-Git/PCL/issues/")
+            OpenWebsite("https://github.com/SuyihQwQ/PCL.Avalonia/issues/")
         Catch ex As Exception
             Logger.Warn(ex, "提交反馈失败")
         End Try

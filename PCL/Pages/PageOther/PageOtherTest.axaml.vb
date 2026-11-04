@@ -18,9 +18,6 @@ Public Class PageOtherTest
     End Sub
     Public Shared Sub MemoryOptimizeInternal(ShowHint As Boolean)
     End Sub
-    Public Shared Function GetRandomCave() As String
-        Return ""
-    End Function
     Public Shared Function GetRandomHint() As String
         Return RandomOne(New List(Of String) From {
             "你可以在 设置 → 启动 中调整游戏内存分配。",

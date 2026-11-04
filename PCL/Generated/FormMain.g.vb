@@ -56,6 +56,9 @@ Namespace Global.PCL
         Friend WithEvents BtnExtraMusic As PCL.MyExtraButton
         Friend WithEvents PanHint As Avalonia.Controls.StackPanel
         Friend WithEvents PanMsg As Avalonia.Controls.Grid
+        Friend WithEvents PanToolTip As Avalonia.Controls.Canvas
+        Friend WithEvents BorderToolTip As Avalonia.Controls.Border
+        Friend WithEvents LabToolTip As Avalonia.Controls.TextBlock
 
         Private Sub InitControls()
             AvaloniaXamlLoader.Load(Me)
@@ -143,6 +146,12 @@ Namespace Global.PCL
             If PanHint Is Nothing Then Throw New InvalidOperationException("找不到控件：PanHint")
             PanMsg = FindControl(Of Avalonia.Controls.Grid)("PanMsg")
             If PanMsg Is Nothing Then Throw New InvalidOperationException("找不到控件：PanMsg")
+            PanToolTip = FindControl(Of Avalonia.Controls.Canvas)("PanToolTip")
+            If PanToolTip Is Nothing Then Throw New InvalidOperationException("找不到控件：PanToolTip")
+            BorderToolTip = FindControl(Of Avalonia.Controls.Border)("BorderToolTip")
+            If BorderToolTip Is Nothing Then Throw New InvalidOperationException("找不到控件：BorderToolTip")
+            LabToolTip = FindControl(Of Avalonia.Controls.TextBlock)("LabToolTip")
+            If LabToolTip Is Nothing Then Throw New InvalidOperationException("找不到控件：LabToolTip")
         End Sub
 
     End Class

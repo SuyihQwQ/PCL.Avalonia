@@ -16,7 +16,7 @@ Public Module ModJava
                     Logger.Warn("正在从老版本迁移 Java 列表")
                     Dim OldJavaList = Settings.Get(Of String)("LaunchArgumentJavaAll").DeserializeJson(Of JArray).
                                       Select(Function(JavaObject) New Java(JavaObject("Path").ToString)).ToList()
-                    OldJavaList = JavaUtils.CheckAllAsync(OldJavaList).Run()
+                    OldJavaList = JavaUtils.SortAsync(OldJavaList).Run()
                     Logger.Info($"已从老版本设置中发现 {OldJavaList.Count} 个 Java")
                     '强制选择的 Java
                     Dim SelectedJavaSetting = Settings.Get(Of String)("LaunchArgumentJavaSelect")
@@ -228,6 +228,11 @@ Public Module ModJava
             AddConstraint(ValueRange(Of Version).AtLeast(New Version(8, 0)))
         ElseIf Instance.ReleaseTime <= New Date(2013, 5, 1) AndAlso Instance.ReleaseTime.Year >= 2001 Then '避免某些版本写个 1960 年
             '1.5.2-：最高 Java 8
+            AddConstraint(ValueRange(Of Version).LessThan(New Version(9, 0)))
+        End If
+
+        '1.12.2 及更早版本使用 LWJGL 2，Java 9+ 在新系统上可能无法加载 libjawt 等原生库
+        If Instance.Version.Valid AndAlso Instance.Version.Vanilla.Major <= 12 Then
             AddConstraint(ValueRange(Of Version).LessThan(New Version(9, 0)))
         End If
 

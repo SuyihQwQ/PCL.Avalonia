@@ -1177,20 +1177,24 @@ Public Module ModDownload
                                  Optional Content As String = Nothing, Optional ContentType As String = Nothing) As JToken
         Dim Urls As New List(Of (Url As String, Timeout As Integer))
         Dim McimUrl As String = DlSourceModGet(Url)
+        '没有 CurseForge API Key 时只走镜像，避免官方接口必然失败带来的额外等待
+        Dim AllowOriginal As Boolean = Not (Url.Contains("api.curseforge.com") AndAlso String.IsNullOrEmpty(CurseForgeAPIKey))
         If McimUrl <> Url Then
             Select Case Settings.Get(Of Integer)("ToolDownloadMod")
                 Case 0
                     Urls.Add((McimUrl, 10))
                     Urls.Add((McimUrl, 10))
-                    Urls.Add((Url, 30))
+                    If AllowOriginal Then Urls.Add((Url, 30))
                 Case 1
-                    Urls.Add((Url, If(Url.Contains("modrinth"), 20, 10))) '至少 20s，要不然 Modrinth 返回不过来
+                    If AllowOriginal Then Urls.Add((Url, If(Url.Contains("modrinth"), 20, 10)))
                     Urls.Add((McimUrl, 10))
-                    Urls.Add((Url, 30))
+                    If AllowOriginal Then Urls.Add((Url, 30))
                     Urls.Add((McimUrl, 30))
                 Case Else
-                    Urls.Add((Url, If(Url.Contains("modrinth"), 20, 10)))
-                    Urls.Add((Url, 30))
+                    If AllowOriginal Then
+                        Urls.Add((Url, If(Url.Contains("modrinth"), 20, 10)))
+                        Urls.Add((Url, 30))
+                    End If
                     Urls.Add((McimUrl, 30))
             End Select
         Else

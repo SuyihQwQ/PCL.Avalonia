@@ -90,6 +90,7 @@ Public Class MySlider
         If Not e.GetCurrentPoint(Me).Properties.IsLeftButtonPressed Then Return
         e.Handled = True
         IsDragging = True
+        MyCard.SetCardHoverLock(Me, Me, True)
         e.Pointer.Capture(Me)
         RefreshColor()
         AniStart({
@@ -111,6 +112,7 @@ Public Class MySlider
 
     Private Sub DragStop()
         IsDragging = False
+        MyCard.SetCardHoverLock(Me, Me, False)
         RefreshColor()
         AniStart({
                  AaScaleTransform(ShapeDot, 1 - AniScaleX(ShapeDot), 200, , New AniEaseOutFluent)

@@ -148,13 +148,11 @@ Public Class PageOtherLeft
         ItemAbout.IsVisible = PageSetupUI.HiddenForceShow OrElse Not Settings.Get(Of Boolean)("UiHiddenOtherAbout")
         ItemTest.IsVisible = PageSetupUI.HiddenForceShow OrElse Not Settings.Get(Of Boolean)("UiHiddenOtherTest")
         ItemFeedback.IsVisible = PageSetupUI.HiddenForceShow OrElse Not Settings.Get(Of Boolean)("UiHiddenOtherFeedback")
-        ItemVote.IsVisible = PageSetupUI.HiddenForceShow OrElse Not Settings.Get(Of Boolean)("UiHiddenOtherVote")
         Dim AvailableCount As Integer = 0
         If ItemHelp.IsVisible Then AvailableCount += 1
         If ItemAbout.IsVisible Then AvailableCount += 1
         If ItemTest.IsVisible Then AvailableCount += 1
         If ItemFeedback.IsVisible Then AvailableCount += 1
-        If ItemVote.IsVisible Then AvailableCount += 1
         PanItem.IsVisible = AvailableCount >= 2 OrElse PageSetupUI.HiddenForceShow
     End Sub
 
@@ -194,22 +192,10 @@ Public Class PageOtherLeft
                     "反馈", "提交新反馈", "查看反馈列表", "取消")
             Case 1
                 Hint("正在打开新反馈页面……")
-                OpenWebsite("https://github.com/Meloong-Git/PCL/issues/new/choose")
+                OpenWebsite("https://github.com/SuyihQwQ/PCL.Avalonia/issues/new/choose")
             Case 2
-                OpenWebsite("https://github.com/Meloong-Git/PCL/issues/")
+                OpenWebsite("https://github.com/SuyihQwQ/PCL.Avalonia/issues/")
         End Select
-    End Sub
-
-    Private Sub TryVote(sender As Object, e As RouteEventArgs) Handles ItemVote.Changed
-        If Not ItemVote.Checked Then Return
-        TryVote()
-        e.Handled = True
-    End Sub
-
-    Public Shared Sub TryVote()
-        If MyMsgBox("是否要打开新功能投票网页？" & vbCrLf & "如果无法打开该网页，请使用 VPN 改善网络环境。",
-                    "新功能投票", "打开", "取消") = 2 Then Return
-        OpenWebsite("https://github.com/Meloong-Git/PCL/discussions/categories/%E5%8A%9F%E8%83%BD%E6%8A%95%E7%A5%A8?discussions_q=category%3A%E5%8A%9F%E8%83%BD%E6%8A%95%E7%A5%A8+sort%3Adate_created")
     End Sub
 
 End Class
