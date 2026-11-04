@@ -2,7 +2,9 @@
 
 English | [简体中文](README.zh-CN.md)
 
-A cross-platform port of [Plain Craft Launcher 2](https://github.com/Meloong-Git/PCL) (PCL 2.14), built with **Avalonia 12.1.4 + .NET 10**. The UI and business logic are rewritten in VB.NET, targeting Linux (Wayland / X11).
+A cross-platform port of [Plain Craft Launcher 2](https://github.com/Meloong-Git/PCL) (based on PCL 2.14), built with **Avalonia 12.1.4 + .NET 10**. The UI and business logic are rewritten in VB.NET, targeting Linux (Wayland / X11).
+
+Current release: **Snapshot-14.1.0**.
 
 > PCL.Avalonia is an independent third-party port of the original PCL, not an official release.
 > This project is not an official Minecraft product. It is not approved by or associated with Mojang or Microsoft.
@@ -11,7 +13,7 @@ A cross-platform port of [Plain Craft Launcher 2](https://github.com/Meloong-Git
 
 - Install, launch, and isolate Minecraft vanilla and mod loaders (Forge / NeoForge / Fabric / Quilt / OptiFine, etc.)
 - Modpack installation (drop `zip` / `mrpack` files onto the window), instance import and export
-- Mods, resource packs, shaders, and datapacks via Modrinth and CurseForge
+- Mods, resource packs, shaders, and datapacks via Modrinth and CurseForge (CurseForge uses the MCIM mirror)
 - Offline, Authlib-Injector, Nide, and Microsoft login; skin management
 - Automatic Java detection and download, memory and JVM argument configuration
 - Music player, themes and UI settings, Chinese/English interface
@@ -32,10 +34,19 @@ dotnet build PCL.sln
 dotnet run --project PCL/PCL.vbproj
 ```
 
-Publish a framework-dependent build into `dist`:
+Publish self-contained single-file builds:
 
 ```bash
-dotnet publish PCL/PCL.vbproj -c Release -r linux-x64 --self-contained false -o dist
+# Linux
+dotnet publish PCL/PCL.vbproj -c Release -r linux-x64 --self-contained true \
+  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
+  -p:EnableCompressionInSingleFile=true -o dist/package/linux-x64
+
+# Windows (can be cross-published from Linux)
+dotnet publish PCL/PCL.vbproj -c Release -r win-x64 --self-contained true \
+  -p:PublishSingleFile=true -p:EnableWindowsTargeting=true \
+  -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true \
+  -o dist/package/win-x64
 ```
 
 ## Tests
@@ -74,16 +85,38 @@ python3 tools/XamlGen/gen_fields.py --check  # Verify generated files are curren
 
 ## Configuration and credentials
 
-Microsoft login and CurseForge require your own credentials, read from environment variables:
+The launcher is portable by default and stores data next to the executable (or next to the AppImage file when running from an AppImage):
 
-| Variable | Purpose |
-| --- | --- |
-| `PCL_MS_CLIENT_ID` | Microsoft OAuth application (client) ID |
-| `PCL_CURSEFORGE_API_KEY` | CurseForge API key |
+- Data folder: `<program folder>/PCL.Avalonia/`
+- Default Minecraft folder: `<program folder>/.minecraft/`
+- Linux settings (registry replacement): `~/.config/PCL.Avalonia/Registry.ini`
+- Windows settings: `HKCU\Software\PCL.Avalonia`
+- Temporary files: `PCL/` under the system temp directory
 
-When unset, the corresponding feature is unavailable; everything else still works.
+Use `--working-dir <path>` or `--working-dir=<path>` to override the base folder used for the data folder and the default `.minecraft` folder. This is useful when the launcher is installed in a read-only location such as `/usr/bin` or `/opt`. The selected Minecraft folder keeps its own `PCL.ini`.
 
-User data is stored in `~/.local/share/PCL/`. Temporary files live under `PCL/` in the system temp directory.
+If the data folder cannot be created, the launcher reports a runtime error and exits, matching the original PCL.
+
+Microsoft login uses a client ID embedded at build time. Put it in `PCL/Modules/ModSecret.Private.vb`, which is excluded by `.gitignore`:
+
+```vb
+Friend Module ModSecretPrivate
+    Public Const PrivateOAuthClientId As String = "<your client id>"
+End Module
+```
+
+If the file is absent, Microsoft login is unavailable and the rest of the launcher still works. CurseForge requests go through the MCIM mirror (`mod.mcimirror.top`) and do not require an API key.
+
+## Release signing
+
+Release binaries are signed with GPG. Verify them with:
+
+```bash
+sha256sum -c SHA256SUMS
+gpg --verify SHA256SUMS.asc SHA256SUMS
+```
+
+The public key is published alongside the release as `PCL.Avalonia-signing-key.asc`.
 
 ## Linux notes
 

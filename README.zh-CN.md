@@ -2,7 +2,9 @@
 
 [English](README.md) | 简体中文
 
-[Plain Craft Launcher 2](https://github.com/Meloong-Git/PCL)（PCL 2.14）的跨平台移植版本，使用 **Avalonia 12.1.4 + .NET 10**，界面与业务逻辑以 VB.NET 重写，主要面向 Linux（Wayland / X11）。
+[Plain Craft Launcher 2](https://github.com/Meloong-Git/PCL)（基于 PCL 2.14 源码）的跨平台移植版本，使用 **Avalonia 12.1.4 + .NET 10**，界面与业务逻辑以 VB.NET 重写，主要面向 Linux（Wayland / X11）。
+
+当前版本：**快照版 14.1.0（Snapshot-14.1.0）**。
 
 > PCL.Avalonia 是第三方基于原版 PCL 独立进行的移植，并非官方作品。
 > 本项目不是 Minecraft 官方产品，未经 Mojang 或 Microsoft 批准，也与它们无关联。
@@ -11,7 +13,7 @@
 
 - Minecraft 原版与模组加载器（Forge / NeoForge / Fabric / Quilt / OptiFine 等）安装、启动与版本隔离
 - 整合包安装（支持拖入 `zip` / `mrpack` 文件）、实例导入导出
-- Mod / 资源包 / 光影 / 数据包下载与更新，支持 Modrinth 与 CurseForge
+- Mod / 资源包 / 光影 / 数据包下载与更新，支持 Modrinth 与 CurseForge（CurseForge 通过 MCIM 镜像访问）
 - 离线、Authlib-Injector、Nide 与 Microsoft 正版登录，皮肤管理
 - Java 自动搜索与下载、内存与 JVM 参数配置
 - 音乐播放器、主题与界面设置、中英文语言切换
@@ -32,10 +34,19 @@ dotnet build PCL.sln
 dotnet run --project PCL/PCL.vbproj
 ```
 
-发布单目录版本：
+发布自包含单文件版本：
 
 ```bash
-dotnet publish PCL/PCL.vbproj -c Release -r linux-x64 --self-contained false -o dist
+# Linux
+dotnet publish PCL/PCL.vbproj -c Release -r linux-x64 --self-contained true \
+  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
+  -p:EnableCompressionInSingleFile=true -o dist/package/linux-x64
+
+# Windows（可在 Linux 上交叉发布）
+dotnet publish PCL/PCL.vbproj -c Release -r win-x64 --self-contained true \
+  -p:PublishSingleFile=true -p:EnableWindowsTargeting=true \
+  -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true \
+  -o dist/package/win-x64
 ```
 
 ## 测试
@@ -74,16 +85,38 @@ python3 tools/XamlGen/gen_fields.py --check  # 仅校验是否最新
 
 ## 配置与凭据
 
-Microsoft 登录与 CurseForge 需要自行提供凭据，通过环境变量读取：
+启动器默认以便携模式运行，数据保存在可执行文件旁（使用 AppImage 时为 AppImage 文件旁）：
 
-| 环境变量 | 用途 |
-| --- | --- |
-| `PCL_MS_CLIENT_ID` | Microsoft OAuth 应用（客户端）ID |
-| `PCL_CURSEFORGE_API_KEY` | CurseForge API Key |
+- 数据文件夹：`<程序目录>/PCL.Avalonia/`
+- 默认游戏文件夹：`<程序目录>/.minecraft/`
+- Linux 设置（替代注册表）：`~/.config/PCL.Avalonia/Registry.ini`
+- Windows 设置：`HKCU\Software\PCL.Avalonia`
+- 临时文件：系统临时目录下的 `PCL/`
 
-未设置时对应功能不可用，其余功能不受影响。
+使用 `--working-dir <路径>` 或 `--working-dir=<路径>` 可以覆盖数据文件夹与默认 `.minecraft` 的基础目录，适用于启动器安装在 `/usr/bin`、`/opt` 等只读位置的情况。当前选中的游戏文件夹内会保存各自的 `PCL.ini`。
 
-用户数据保存在 `~/.local/share/PCL/`，临时文件位于系统临时目录下的 `PCL/`。
+数据文件夹创建失败时，启动器会提示运行环境错误并退出，与原版 PCL 行为一致。
+
+Microsoft 登录使用构建时嵌入的客户端 ID，放在被 `.gitignore` 排除的 `PCL/Modules/ModSecret.Private.vb` 中：
+
+```vb
+Friend Module ModSecretPrivate
+    Public Const PrivateOAuthClientId As String = "<你的客户端 ID>"
+End Module
+```
+
+缺少该文件时正版登录不可用，其余功能不受影响。CurseForge 请求通过 MCIM 镜像（`mod.mcimirror.top`）访问，不需要 API Key。
+
+## 发布签名
+
+发布产物使用 GPG 签名，可通过以下命令校验：
+
+```bash
+sha256sum -c SHA256SUMS
+gpg --verify SHA256SUMS.asc SHA256SUMS
+```
+
+公钥随版本发布，文件名为 `PCL.Avalonia-signing-key.asc`。
 
 ## Linux 说明
 
