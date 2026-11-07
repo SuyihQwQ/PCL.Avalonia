@@ -111,13 +111,20 @@ Use `--working-dir <path>` or `--working-dir=<path>` to override the base folder
 
 If the data folder cannot be created (for example when a file with the same name exists, or the folder is read-only), the launcher reports the same runtime error as the original PCL and exits; it does not fall back to another directory.
 
-Microsoft login uses the OAuth Client ID included in the source. A CurseForge API key can be injected at build time without storing it in the repository:
+### Build-time credentials
+
+| Branch | Microsoft Client ID | CurseForge API key |
+| --- | --- | --- |
+| `main` | Included in the source | Injected at build time through `PCL_CURSEFORGE_API_KEY` |
+| `dev` | `PCL_MS_CLIENT_ID` at runtime | `PCL_CURSEFORGE_API_KEY` at build time or runtime |
+
+Stable builds can inject the CurseForge key without storing it in the repository:
 
 ```bash
 PCL_CURSEFORGE_API_KEY="<your key>" dotnet publish PCL/PCL.vbproj -c Release ...
 ```
 
-The key is written only to a generated file under `obj/` during the build. Without it, CurseForge API requests use the MCIM mirror (`mod.mcimirror.top`). The separate private repository used for stable releases can provide the key through this environment variable.
+The key is written only to a generated file under `obj/` and compiled into the binary; it must not be committed. Without a key, CurseForge API requests use the MCIM mirror (`mod.mcimirror.top`). Build-time injection takes priority over the runtime environment variable on `dev`. The private repository used for stable builds can provide the key through this environment variable. The old `ModSecret.Private.vb` file is no longer read by the build.
 
 The UI language follows the system language by default. Only Simplified Chinese and English are available; unsupported system languages fall back to Simplified Chinese.
 

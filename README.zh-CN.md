@@ -111,13 +111,20 @@ python3 tools/XamlGen/gen_fields.py --check  # 仅校验是否最新
 
 数据文件夹创建失败时（例如同名文件已存在、目录只读等），启动器会提示与原版相同的运行环境错误并退出，不会回退到其他目录。
 
-Microsoft 登录使用源码中内置的 OAuth Client ID。CurseForge API Key 可在构建时注入，不需要写入仓库：
+### 构建时凭据
+
+| 分支 | Microsoft Client ID | CurseForge API Key |
+| --- | --- | --- |
+| `main` | 写入源码 | 构建时通过 `PCL_CURSEFORGE_API_KEY` 注入 |
+| `dev` | 运行时读取 `PCL_MS_CLIENT_ID` | 构建时注入或运行时读取 `PCL_CURSEFORGE_API_KEY` |
+
+稳定版可以在不把 Key 写入仓库的情况下于构建时注入：
 
 ```bash
 PCL_CURSEFORGE_API_KEY="<你的 Key>" dotnet publish PCL/PCL.vbproj -c Release ...
 ```
 
-构建时只会把 Key 写入 `obj/` 下的临时生成文件。未注入时，CurseForge API 请求只走 MCIM 镜像（`mod.mcimirror.top`）。构建稳定版的独立私密仓库也可以通过该环境变量提供 Key。
+Key 只会写入 `obj/` 下的临时生成文件并编译进产物，不能提交到仓库。未提供 Key 时，CurseForge API 请求走 MCIM 镜像（`mod.mcimirror.top`）。`dev` 分支中构建时注入优先于运行时环境变量。构建稳定版的私密仓库也可以通过该环境变量提供 Key。旧的 `ModSecret.Private.vb` 文件不再被构建读取。
 
 界面语言默认跟随系统，目前仅支持简体中文与英文，其他系统语言会回退为简体中文。
 
@@ -144,7 +151,7 @@ gpg --verify SHA256SUMS.asc SHA256SUMS
 
 ## 许可与致谢
 
-- 原版 PCL：Copyright © 成都瓜皮龙科技有限公司（计算机软件著作权登记号：2020SR0875133），开发者龙腾猫跃
+- 原版 PCL：Copyright © 成都瓜皮龙科技有限公司（计算机软件著作权登记号：2020SR0875133），开发者 LTCat（龙腾猫跃）
 - PCL.Avalonia：Copyright © 2026 SuyihQwQ
 - PCL 派生代码（`PCL/`、`PCLCS/`）遵循 [LICENCE](LICENCE)（《PCL 分发有限许可》及其合理使用指南）。
 - 完全新写的代码（`PCL.Compat/`、`MeloongCore.Shared/`、`PCL.Tests/`、`tools/XamlGen/`）使用 [Apache License 2.0](LICENSE-APACHE)，这些目录中的源文件带有 SPDX 标识；完整范围见 [NOTICE](NOTICE)。
