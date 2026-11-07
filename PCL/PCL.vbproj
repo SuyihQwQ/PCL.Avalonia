@@ -32,6 +32,20 @@
     <Delete Files="$(PublishDir)$(AssemblyName)" />
   </Target>
 
+  <!-- 构建时注入 CurseForge API Key：只写入 obj/，不进入仓库 -->
+  <Target Name="GenerateBuildSecrets" BeforeTargets="CoreCompile">
+    <PropertyGroup>
+      <_PclBuildSecretsFile>$(IntermediateOutputPath)PCL.BuildSecrets.g.vb</_PclBuildSecretsFile>
+    </PropertyGroup>
+    <ItemGroup>
+      <_PclBuildSecretLines Include="Friend Module PCLBuildSecrets" />
+      <_PclBuildSecretLines Include="    Public Const InjectedCurseForgeAPIKey As String = &quot;$(PCL_CURSEFORGE_API_KEY)&quot;" />
+      <_PclBuildSecretLines Include="End Module" />
+      <Compile Include="$(_PclBuildSecretsFile)" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(_PclBuildSecretsFile)" Lines="@(_PclBuildSecretLines)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+  </Target>
+
   <ItemGroup>
     <InternalsVisibleTo Include="PCL.Tests" />
   </ItemGroup>
