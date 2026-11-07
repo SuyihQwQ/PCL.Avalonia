@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 namespace MeloongCore;
 public readonly struct OneOf<T1, T2> {
     private readonly int _index = -1; // -1 表示未初始化（这是一个 struct，所以这可以让默认值不为 0）

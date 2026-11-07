@@ -1,0 +1,14 @@
+PCL.Avalonia
+Copyright © 2026 SuyihQwQ
+
+This repository contains both PCL-derived code and original code.
+
+License scope
+- PCL/ (including PCL/Generated/ and PCL/Assets/) and PCLCS/: PCL Limited Distribution License and reasonable-use guidelines. See LICENCE.
+- PCL.Compat/, MeloongCore.Shared/, PCL.Tests/ and tools/XamlGen/: Apache License 2.0. See LICENSE-APACHE. Source files in these directories carry SPDX-License-Identifier: Apache-2.0.
+- Files that do not carry an SPDX identifier or a directory-specific license are covered by LICENCE.
+
+Upstream attribution
+- Original PCL: Copyright © Chengdu Guapilong Technology Co., Ltd. (Software Copyright Registration No. 2020SR0875133), developed by Long Teng Maoyue (龙腾猫跃).
+- PCL.Avalonia: Copyright © 2026 SuyihQwQ.
+- PCL.Avalonia is an independent third-party port, not an official PCL release, and is not affiliated with Mojang or Microsoft.

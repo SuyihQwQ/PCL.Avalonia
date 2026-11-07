@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """
 为 Avalonia .axaml 中的 x:Name 生成 VB 字段与 InitControls()。
 

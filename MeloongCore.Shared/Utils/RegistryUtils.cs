@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 using System.Runtime.Versioning;
 using Microsoft.Win32;
 namespace MeloongCore;

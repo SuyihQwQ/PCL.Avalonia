@@ -13,15 +13,15 @@ Current release: **Stable 14.1.2** (`v14.1.2-Stable`).
 
 - Install, launch, and isolate Minecraft vanilla and mod loaders (Forge / NeoForge / Fabric / Quilt / OptiFine, etc.)
 - Modpack installation (drop `zip` / `mrpack` files onto the window), instance import and export
-- Mods, resource packs, shaders, and datapacks via Modrinth and CurseForge (official API or MCIM mirror)
+- Mods, resource packs, shaders, and datapacks via Modrinth and CurseForge (MCIM mirror for CurseForge)
 - Offline, Authlib-Injector, Nide, and Microsoft login; skin management
 - Automatic Java detection and download (Azul Zulu), memory and JVM argument configuration
 - Music player, themes and UI settings, Chinese/English interface (follows the system language by default)
 
 ## Branches
 
-- `main`: stable releases. The Microsoft OAuth Client ID is included in the source.
-- `dev`: snapshot builds. The Microsoft OAuth Client ID is read from the `PCL_MS_CLIENT_ID` environment variable instead of being embedded in the source.
+- `main`: public stable source. The Microsoft OAuth Client ID is included in the source, and CurseForge requests use the MCIM mirror only. Release binaries for stable versions are built in a separate private repository.
+- `dev`: snapshot builds. The Microsoft OAuth Client ID and the optional CurseForge API key are read from the `PCL_MS_CLIENT_ID` and `PCL_CURSEFORGE_API_KEY` environment variables. Snapshot builds do not enforce the genuine-account requirement.
 
 ## Roadmap
 
@@ -111,19 +111,11 @@ Use `--working-dir <path>` or `--working-dir=<path>` to override the base folder
 
 If the data folder cannot be created (for example when a file with the same name exists, or the folder is read-only), the launcher reports the same runtime error as the original PCL and exits; it does not fall back to another directory.
 
-Microsoft login uses the OAuth Client ID included in the stable source. CurseForge uses a key embedded at build time from `PCL/Modules/ModSecret.Private.vb`, which is excluded by `.gitignore`:
-
-```vb
-Friend Module ModSecretPrivate
-    Public Const PrivateCurseForgeApiKey As String = "<your CurseForge API key>"
-End Module
-```
-
-Public source builds read the key from the `PCL_CURSEFORGE_API_KEY` environment variable. Without a key, CurseForge requests fall back to the MCIM mirror (`mod.mcimirror.top`); with a key, the official API is used first.
+Microsoft login uses the OAuth Client ID included in the source. This public repository does not embed a CurseForge API key; CurseForge requests use the MCIM mirror (`mod.mcimirror.top`). Official CurseForge API credentials, if used, are supplied in the separate private repository used to build stable releases.
 
 The UI language follows the system language by default. Only Simplified Chinese and English are available; unsupported system languages fall back to Simplified Chinese.
 
-Stable builds require signing in with at least one genuine Microsoft account before other login methods can be used. Snapshot (`dev`) builds do not enforce this requirement; they read the Microsoft OAuth Client ID from the `PCL_MS_CLIENT_ID` environment variable and cannot use Microsoft login when it is unset.
+Stable builds require signing in with at least one genuine Microsoft account before other login methods can be used. Snapshot (`dev`) builds do not enforce this requirement; they read the Microsoft OAuth Client ID and the optional CurseForge API key from `PCL_MS_CLIENT_ID` and `PCL_CURSEFORGE_API_KEY`.
 
 ## Release signing
 
@@ -148,4 +140,6 @@ The public key is published alongside the release as `PCL.Avalonia-signing-key.a
 
 - Original PCL: Copyright © Chengdu Guapilong Technology Co., Ltd. (Software Copyright Registration No. 2020SR0875133), developed by Long Teng Maoyue (龙腾猫跃)
 - PCL.Avalonia: Copyright © 2026 SuyihQwQ
-- This project follows the [LICENCE](LICENCE) in this repository (the PCL Limited Distribution License and its reasonable-use guidelines) and is distributed as a third-party port with source code available.
+- PCL-derived code (`PCL/`, `PCLCS/`) follows the [LICENCE](LICENCE) (the PCL Limited Distribution License and its reasonable-use guidelines).
+- Original code (`PCL.Compat/`, `MeloongCore.Shared/`, `PCL.Tests/`, `tools/XamlGen/`) is licensed under the [Apache License 2.0](LICENSE-APACHE). Files in these directories carry an SPDX identifier; see [NOTICE](NOTICE) for the full scope.
+- This project is a third-party port with source code available.

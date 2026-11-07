@@ -13,15 +13,15 @@
 
 - Minecraft 原版与模组加载器（Forge / NeoForge / Fabric / Quilt / OptiFine 等）安装、启动与版本隔离
 - 整合包安装（支持拖入 `zip` / `mrpack` 文件）、实例导入导出
-- Mod / 资源包 / 光影 / 数据包下载与更新，支持 Modrinth 与 CurseForge（官方 API 或 MCIM 镜像）
+- Mod / 资源包 / 光影 / 数据包下载与更新，支持 Modrinth 与 CurseForge（CurseForge 使用 MCIM 镜像）
 - 离线、Authlib-Injector、Nide 与 Microsoft 正版登录，皮肤管理
 - Java 自动搜索与下载（Azul Zulu）、内存与 JVM 参数配置
 - 音乐播放器、主题与界面设置、中英文语言切换（默认跟随系统语言）
 
 ## 分支
 
-- `main`：稳定版，源代码中包含 Microsoft OAuth Client ID。
-- `dev`：快照版，Microsoft OAuth Client ID 从环境变量 `PCL_MS_CLIENT_ID` 读取，不写入源代码中。
+- `main`：公开的稳定版源码，Microsoft OAuth Client ID 写入源码，CurseForge 请求只走 MCIM 镜像；稳定版发布产物由另一个私密仓库构建。
+- `dev`：快照版，Microsoft OAuth Client ID 与可选的 CurseForge API Key 分别从环境变量 `PCL_MS_CLIENT_ID`、`PCL_CURSEFORGE_API_KEY` 读取；快照版不强制正版验证。
 
 ## 未来计划
 
@@ -111,19 +111,11 @@ python3 tools/XamlGen/gen_fields.py --check  # 仅校验是否最新
 
 数据文件夹创建失败时（例如同名文件已存在、目录只读等），启动器会提示与原版相同的运行环境错误并退出，不会回退到其他目录。
 
-Microsoft 登录使用稳定版源码中内置的 OAuth Client ID。CurseForge 使用构建时从被 `.gitignore` 排除的 `PCL/Modules/ModSecret.Private.vb` 中嵌入的密钥：
-
-```vb
-Friend Module ModSecretPrivate
-    Public Const PrivateCurseForgeApiKey As String = "<你的 CurseForge API Key>"
-End Module
-```
-
-公开源码构建从环境变量 `PCL_CURSEFORGE_API_KEY` 读取密钥。没有密钥时请求回退到 MCIM 镜像（`mod.mcimirror.top`），有密钥时优先使用官方 API。
+Microsoft 登录使用源码中内置的 OAuth Client ID。本公开仓库不包含 CurseForge API Key，CurseForge 请求只走 MCIM 镜像（`mod.mcimirror.top`）；如需使用官方 CurseForge API，凭据由构建稳定版的另一个私密仓库提供。
 
 界面语言默认跟随系统，目前仅支持简体中文与英文，其他系统语言会回退为简体中文。
 
-稳定版需要至少登录一个正版 Microsoft 账号，之后才能使用其他登录方式。快照版（`dev`）不强制该校验，其 Microsoft OAuth Client ID 从环境变量 `PCL_MS_CLIENT_ID` 读取；未设置该变量时无法使用微软登录。
+稳定版需要至少登录一个正版 Microsoft 账号，之后才能使用其他登录方式。快照版（`dev`）不强制该校验，其 Microsoft OAuth Client ID 与可选的 CurseForge API Key 从环境变量 `PCL_MS_CLIENT_ID`、`PCL_CURSEFORGE_API_KEY` 读取。
 
 ## 发布签名
 
@@ -148,4 +140,6 @@ gpg --verify SHA256SUMS.asc SHA256SUMS
 
 - 原版 PCL：Copyright © 成都瓜皮龙科技有限公司（计算机软件著作权登记号：2020SR0875133），开发者龙腾猫跃
 - PCL.Avalonia：Copyright © 2026 SuyihQwQ
-- 本项目遵循仓库中的 [LICENCE](LICENCE)（《PCL 分发有限许可》及其合理使用指南），并作为第三方移植作品公开源代码
+- PCL 派生代码（`PCL/`、`PCLCS/`）遵循 [LICENCE](LICENCE)（《PCL 分发有限许可》及其合理使用指南）。
+- 完全新写的代码（`PCL.Compat/`、`MeloongCore.Shared/`、`PCL.Tests/`、`tools/XamlGen/`）使用 [Apache License 2.0](LICENSE-APACHE)，这些目录中的源文件带有 SPDX 标识；完整范围见 [NOTICE](NOTICE)。
+- 本项目为公开源代码的第三方移植作品。
