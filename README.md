@@ -20,7 +20,7 @@ Current release: **Stable 14.1.2** (`v14.1.2-Stable`).
 
 ## Branches
 
-- `main`: public stable source. The Microsoft OAuth Client ID is included in the source, and CurseForge requests use the MCIM mirror only. Release binaries for stable versions are built in a separate private repository.
+- `main`: public stable source. The Microsoft OAuth Client ID is included in the source, and CurseForge API requests use the MCIM mirror only. Release binaries for stable versions are built in a separate private repository.
 - `dev`: snapshot builds. The Microsoft OAuth Client ID and the optional CurseForge API key are read from the `PCL_MS_CLIENT_ID` and `PCL_CURSEFORGE_API_KEY` environment variables. Snapshot builds do not enforce the genuine-account requirement.
 
 ## Roadmap
@@ -111,7 +111,7 @@ Use `--working-dir <path>` or `--working-dir=<path>` to override the base folder
 
 If the data folder cannot be created (for example when a file with the same name exists, or the folder is read-only), the launcher reports the same runtime error as the original PCL and exits; it does not fall back to another directory.
 
-Microsoft login uses the OAuth Client ID included in the source. This public repository does not embed a CurseForge API key; CurseForge requests use the MCIM mirror (`mod.mcimirror.top`). Official CurseForge API credentials, if used, are supplied in the separate private repository used to build stable releases.
+Microsoft login uses the OAuth Client ID included in the source. This public repository does not embed a CurseForge API key; CurseForge API requests use the MCIM mirror (`mod.mcimirror.top`). Official CurseForge API credentials, if used, are supplied in the separate private repository used to build stable releases.
 
 The UI language follows the system language by default. Only Simplified Chinese and English are available; unsupported system languages fall back to Simplified Chinese.
 

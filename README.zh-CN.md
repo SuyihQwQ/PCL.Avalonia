@@ -20,7 +20,7 @@
 
 ## 分支
 
-- `main`：公开的稳定版源码，Microsoft OAuth Client ID 写入源码，CurseForge 请求只走 MCIM 镜像；稳定版发布产物由另一个私密仓库构建。
+- `main`：公开的稳定版源码，Microsoft OAuth Client ID 写入源码，CurseForge API 请求只走 MCIM 镜像；稳定版发布产物由另一个私密仓库构建。
 - `dev`：快照版，Microsoft OAuth Client ID 与可选的 CurseForge API Key 分别从环境变量 `PCL_MS_CLIENT_ID`、`PCL_CURSEFORGE_API_KEY` 读取；快照版不强制正版验证。
 
 ## 未来计划
@@ -111,7 +111,7 @@ python3 tools/XamlGen/gen_fields.py --check  # 仅校验是否最新
 
 数据文件夹创建失败时（例如同名文件已存在、目录只读等），启动器会提示与原版相同的运行环境错误并退出，不会回退到其他目录。
 
-Microsoft 登录使用源码中内置的 OAuth Client ID。本公开仓库不包含 CurseForge API Key，CurseForge 请求只走 MCIM 镜像（`mod.mcimirror.top`）；如需使用官方 CurseForge API，凭据由构建稳定版的另一个私密仓库提供。
+Microsoft 登录使用源码中内置的 OAuth Client ID。本公开仓库不包含 CurseForge API Key，CurseForge API 请求只走 MCIM 镜像（`mod.mcimirror.top`）；如需使用官方 CurseForge API，凭据由构建稳定版的另一个私密仓库提供。
 
 界面语言默认跟随系统，目前仅支持简体中文与英文，其他系统语言会回退为简体中文。
 
