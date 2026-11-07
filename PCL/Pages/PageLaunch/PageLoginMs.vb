@@ -67,6 +67,20 @@ Public Class PageLoginMs
     End Sub
 
     ''' <summary>
+    ''' 是否至少登录过一个微软正版账号。
+    ''' </summary>
+    Public Shared Function HasLoggedInAccount() As Boolean
+        If Not String.IsNullOrEmpty(Settings.Get(Of String)("CacheMsV2OAuthRefresh")) Then Return True
+        Try
+            Dim MsJson As JObject = Settings.Get(Of String)("LoginMsJson").DeserializeJson()
+            Return MsJson IsNot Nothing AndAlso MsJson.HasValues
+        Catch ex As Exception
+            Logger.Warn(ex, "读取微软登录账号列表失败")
+            Return False
+        End Try
+    End Function
+
+    ''' <summary>
     ''' 获取当前页面的登录信息。
     ''' </summary>
     Public Shared Function GetLoginData() As McLoginMs

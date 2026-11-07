@@ -587,8 +587,58 @@ Public Class FormMain
         AniStart({AaCode(AddressOf StartWindowShowAnimation, 800)}, "Form Show Fallback")
         '首次启动或协议更新提示（与原版一致，仅桌面运行环境触发）
         If TypeOf Application.Current?.ApplicationLifetime Is IClassicDesktopStyleApplicationLifetime Then
-            RunInNewThread(AddressOf CheckEula, "Eula Check", ThreadPriority.Lowest)
+            RunInNewThread(AddressOf CheckStartupRequirements, "Startup Check", ThreadPriority.Lowest)
         End If
+    End Sub
+
+    ''' <summary>
+    ''' 启动检查：先确认用户协议，再要求至少登录一个微软正版账号。
+    ''' </summary>
+    Private Shared Sub CheckStartupRequirements()
+        CheckEula()
+        If IsProgramEnding Then Return
+        RequirePremiumLogin()
+    End Sub
+
+    ''' <summary>
+    ''' 确认用户已登录过至少一个微软正版账号；否则提示登录，用户拒绝时退出程序。
+    ''' 仅稳定版强制校验；快照版与未配置 Client ID 的构建跳过。
+    ''' </summary>
+    Public Shared Function RequirePremiumLogin() As Boolean
+        If BuildType <> BuildTypes.Release Then Return True
+        If String.IsNullOrEmpty(OAuthClientId) Then Return True
+        If PageLoginMs.HasLoggedInAccount() Then Return True
+        Dim Result As Integer = MyMsgBox(
+            Localization.GetText("LangDialogPremiumRequiredContent"),
+            Localization.GetText("LangDialogPremiumRequiredTitle"),
+            Localization.GetText("LangDialogBtnLogin"),
+            Localization.GetText("LangDialogBtnExit"))
+        If Result = 1 Then
+            NavigateToMicrosoftLogin()
+        Else
+            RunInUi(Sub() FrmMain?.EndProgram(False))
+        End If
+        Return False
+    End Function
+
+    ''' <summary>
+    ''' 跳转到启动页的微软正版登录界面。
+    ''' </summary>
+    Private Shared Sub NavigateToMicrosoftLogin()
+        RunInUi(
+        Sub()
+            Try
+                If FrmMain Is Nothing Then Return
+                Settings.Set("LoginType", McLoginType.Ms)
+                Settings.Set("LoginPageType", 0)
+                If FrmMain.PageCurrent.Page <> FormMain.PageType.Launch Then FrmMain.PageChange(FormMain.PageType.Launch)
+                If FrmLaunchLeft Is Nothing Then Return
+                FrmLaunchLeft.RadioLoginType5.Checked = True
+                FrmLaunchLeft.RefreshPage(True, True, ForceReload:=True, IgnoreInstanceLoginType:=True)
+            Catch ex As Exception
+                Logger.Warn(ex, "跳转到微软登录页面失败")
+            End Try
+        End Sub)
     End Sub
 
     ''' <summary>

@@ -432,11 +432,11 @@ Public Class PageLaunchLeft
     ''' <summary>
     ''' 确认当前显示的子页面正确，并刷新该页面。
     ''' </summary>
-    Public Sub RefreshPage(KeepInput As Boolean, Anim As Boolean, Optional ForceReload As Boolean = False)
+    Public Sub RefreshPage(KeepInput As Boolean, Anim As Boolean, Optional ForceReload As Boolean = False, Optional IgnoreInstanceLoginType As Boolean = False)
         '获取页面的可用种类并回写缓存
         Dim Type As PageType
         Dim LoginPageType As Integer
-        If McInstanceSelected IsNot Nothing Then
+        If McInstanceSelected IsNot Nothing AndAlso Not IgnoreInstanceLoginType Then
             LoginPageType = Settings.Get(Of Integer)("VersionServerLogin", Instance:=McInstanceSelected)
             '缓存当前版本的页面种类，下一次打开 McInstanceSelected 为空时才能加载出正确的页面
             Settings.Set("LoginPageType", LoginPageType)
@@ -775,6 +775,7 @@ Finish:
         End If
         '实际的启动
         If BtnLaunch.Text = "启动游戏" Then
+            If Not FormMain.RequirePremiumLogin() Then Return
             McLaunchStart()
         ElseIf BtnLaunch.Text = "下载游戏" Then
             FrmMain.PageChange(FormMain.PageType.Download, FormMain.PageSubType.DownloadInstall)

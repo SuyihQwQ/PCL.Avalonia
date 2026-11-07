@@ -16,12 +16,13 @@
     <ApplicationIcon>Assets\Images\icon.ico</ApplicationIcon>
     <AssemblyTitle>PCL.Avalonia</AssemblyTitle>
     <Product>PCL.Avalonia</Product>
-    <Version>14.1.0</Version>
-    <AssemblyVersion>14.1.0.0</AssemblyVersion>
-    <FileVersion>14.1.0.0</FileVersion>
-    <InformationalVersion>Snapshot-14.1.0</InformationalVersion>
+    <Version>14.1.2</Version>
+    <AssemblyVersion>14.1.2.0</AssemblyVersion>
+    <FileVersion>14.1.2.0</FileVersion>
+    <InformationalVersion>14.1.2-Stable</InformationalVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
-    <DefineConstants>$(DefineConstants),SNAPSHOT</DefineConstants>
+    <!-- main 为稳定版；dev 分支移除该定义即为快照版 -->
+    <DefineConstants>$(DefineConstants),STABLE</DefineConstants>
     <DefineConstants Condition="Exists('$(MSBuildProjectDirectory)/Modules/ModSecret.Private.vb')">$(DefineConstants),PCL_PRIVATE_SECRETS</DefineConstants>
     <NoWarn>$(NoWarn);BC40000;BC40056;BC42016;BC42017;BC42018;BC42019;BC42020;BC42021;BC42022;BC42024;BC42025;BC42029;BC42030;BC42032;BC42036;BC42104;BC42314;BC42353;BC42356;BC42358</NoWarn>
   </PropertyGroup>

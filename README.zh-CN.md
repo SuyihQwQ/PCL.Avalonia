@@ -4,7 +4,7 @@
 
 [Plain Craft Launcher 2](https://github.com/Meloong-Git/PCL)（基于 PCL 2.14 源码）的跨平台移植版本，使用 **Avalonia 12.1.4 + .NET 10**，界面与业务逻辑以 VB.NET 重写，主要面向 Linux（Wayland / X11）。
 
-当前版本：**快照版 14.1.0（Snapshot-14.1.0）**。
+当前版本：**稳定版 14.1.2（Stable 14.1.2，标签 `v14.1.2-Stable`）**。
 
 > PCL.Avalonia 是第三方基于原版 PCL 独立进行的移植，并非官方作品。
 > 本项目不是 Minecraft 官方产品，未经 Mojang 或 Microsoft 批准，也与它们无关联。
@@ -17,6 +17,16 @@
 - 离线、Authlib-Injector、Nide 与 Microsoft 正版登录，皮肤管理
 - Java 自动搜索与下载（Azul Zulu）、内存与 JVM 参数配置
 - 音乐播放器、主题与界面设置、中英文语言切换（默认跟随系统语言）
+
+## 分支
+
+- `main`：稳定版，源代码中包含 Microsoft OAuth Client ID。
+- `dev`：快照版，Microsoft OAuth Client ID 从环境变量 `PCL_MS_CLIENT_ID` 读取，不写入源代码中。
+
+## 未来计划
+
+- 优化 macOS 支持。
+- 完全重写为 C#。
 
 ## 环境要求
 
@@ -101,18 +111,19 @@ python3 tools/XamlGen/gen_fields.py --check  # 仅校验是否最新
 
 数据文件夹创建失败时（例如同名文件已存在、目录只读等），启动器会提示与原版相同的运行环境错误并退出，不会回退到其他目录。
 
-Microsoft 登录与 CurseForge 使用构建时嵌入的凭据，放在被 `.gitignore` 排除的 `PCL/Modules/ModSecret.Private.vb` 中：
+Microsoft 登录使用稳定版源码中内置的 OAuth Client ID。CurseForge 使用构建时从被 `.gitignore` 排除的 `PCL/Modules/ModSecret.Private.vb` 中嵌入的密钥：
 
 ```vb
 Friend Module ModSecretPrivate
-    Public Const PrivateOAuthClientId As String = "<你的客户端 ID>"
     Public Const PrivateCurseForgeApiKey As String = "<你的 CurseForge API Key>"
 End Module
 ```
 
+公开源码构建从环境变量 `PCL_CURSEFORGE_API_KEY` 读取密钥。没有密钥时请求回退到 MCIM 镜像（`mod.mcimirror.top`），有密钥时优先使用官方 API。
+
 界面语言默认跟随系统，目前仅支持简体中文与英文，其他系统语言会回退为简体中文。
 
-缺少该文件时正版登录不可用；没有 CurseForge API Key 时请求回退到 MCIM 镜像（`mod.mcimirror.top`），有 Key 时优先使用官方 API。
+稳定版需要至少登录一个正版 Microsoft 账号，之后才能使用其他登录方式。快照版（`dev`）不强制该校验，其 Microsoft OAuth Client ID 从环境变量 `PCL_MS_CLIENT_ID` 读取；未设置该变量时无法使用微软登录。
 
 ## 发布签名
 

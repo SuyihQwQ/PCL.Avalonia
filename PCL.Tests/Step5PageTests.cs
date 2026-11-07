@@ -21,7 +21,7 @@ public class AboutPageTests {
             Assert.NotNull(page.PanMain);
             Assert.NotNull(page.ItemAboutPcl);
 
-            Assert.Contains("14.1.0", page.ItemAboutPcl.Info);
+            Assert.Contains("14.1.2", page.ItemAboutPcl.Info);
             Assert.Contains("PCL.Avalonia 是原版 PCL 的跨平台移植版本。", page.ItemAboutPcl.Info);
             var items = page.PanMain.GetVisualDescendants().OfType<global::PCL.MyListItem>().ToList();
             Assert.Contains(items, i => i.Title == "SuyihQwQ" && i.Info == "PCL.Avalonia 的开发者");
@@ -492,5 +492,24 @@ public class ToolboxPageTests {
         Assert.True((bool)method.Invoke(null, new object[] { "China" })!);
         Assert.False((bool)method.Invoke(null, new object[] { "United States" })!);
         Assert.False((bool)method.Invoke(null, new object[] { null! })!);
+    }
+}
+
+public class PremiumLoginTests {
+    [Fact]
+    public void Premium_login_state_requires_a_stored_microsoft_account() {
+        var oldRefresh = global::PCL.Settings.Get<string>("CacheMsV2OAuthRefresh");
+        var oldJson = global::PCL.Settings.Get<string>("LoginMsJson");
+        try {
+            global::PCL.Settings.Set("CacheMsV2OAuthRefresh", "");
+            global::PCL.Settings.Set("LoginMsJson", "{}");
+            Assert.False(global::PCL.PageLoginMs.HasLoggedInAccount());
+
+            global::PCL.Settings.Set("LoginMsJson", "{\"Player\":\"refresh-token\"}");
+            Assert.True(global::PCL.PageLoginMs.HasLoggedInAccount());
+        } finally {
+            global::PCL.Settings.Set("CacheMsV2OAuthRefresh", oldRefresh);
+            global::PCL.Settings.Set("LoginMsJson", oldJson);
+        }
     }
 }

@@ -8,16 +8,16 @@ Public Module ModBase
 
 #Region "声明"
 
-    Public Const VersionBaseName As String = "14.1.0"
+    Public Const VersionBaseName As String = "14.1.2"
     Public Const CommitHash As String = ""
-    Public Const VersionCode As Integer = 1410
+    Public Const VersionCode As Integer = 1412
 
     Public Const VersionDisplay As String = BuildTypeDisplay & " " & VersionBaseName
 #If DEBUG Then
     Public Const BuildTypeDisplay As String = "开发版"
     Public Const BuildType As BuildTypes = BuildTypes.Debug
-#ElseIf RELEASE Then
-    Public Const BuildTypeDisplay As String = "正式版"
+#ElseIf STABLE Then
+    Public Const BuildTypeDisplay As String = "稳定版"
     Public Const BuildType As BuildTypes = BuildTypes.Release
 #Else
     Public Const BuildTypeDisplay As String = "快照版"

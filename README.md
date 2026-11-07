@@ -4,7 +4,7 @@ English | [简体中文](README.zh-CN.md)
 
 A cross-platform port of [Plain Craft Launcher 2](https://github.com/Meloong-Git/PCL) (based on PCL 2.14), built with **Avalonia 12.1.4 + .NET 10**. The UI and business logic are rewritten in VB.NET, targeting Linux (Wayland / X11).
 
-Current release: **Snapshot-14.1.0**.
+Current release: **Stable 14.1.2** (`v14.1.2-Stable`).
 
 > PCL.Avalonia is an independent third-party port of the original PCL, not an official release.
 > This project is not an official Minecraft product. It is not approved by or associated with Mojang or Microsoft.
@@ -17,6 +17,16 @@ Current release: **Snapshot-14.1.0**.
 - Offline, Authlib-Injector, Nide, and Microsoft login; skin management
 - Automatic Java detection and download (Azul Zulu), memory and JVM argument configuration
 - Music player, themes and UI settings, Chinese/English interface (follows the system language by default)
+
+## Branches
+
+- `main`: stable releases. The Microsoft OAuth Client ID is included in the source.
+- `dev`: snapshot builds. The Microsoft OAuth Client ID is read from the `PCL_MS_CLIENT_ID` environment variable instead of being embedded in the source.
+
+## Roadmap
+
+- Improve macOS support.
+- Rewrite the launcher entirely in C#.
 
 ## Requirements
 
@@ -101,18 +111,19 @@ Use `--working-dir <path>` or `--working-dir=<path>` to override the base folder
 
 If the data folder cannot be created (for example when a file with the same name exists, or the folder is read-only), the launcher reports the same runtime error as the original PCL and exits; it does not fall back to another directory.
 
-Microsoft login and CurseForge use credentials embedded at build time. Put them in `PCL/Modules/ModSecret.Private.vb`, which is excluded by `.gitignore`:
+Microsoft login uses the OAuth Client ID included in the stable source. CurseForge uses a key embedded at build time from `PCL/Modules/ModSecret.Private.vb`, which is excluded by `.gitignore`:
 
 ```vb
 Friend Module ModSecretPrivate
-    Public Const PrivateOAuthClientId As String = "<your client id>"
     Public Const PrivateCurseForgeApiKey As String = "<your CurseForge API key>"
 End Module
 ```
 
+Public source builds read the key from the `PCL_CURSEFORGE_API_KEY` environment variable. Without a key, CurseForge requests fall back to the MCIM mirror (`mod.mcimirror.top`); with a key, the official API is used first.
+
 The UI language follows the system language by default. Only Simplified Chinese and English are available; unsupported system languages fall back to Simplified Chinese.
 
-If the file is absent, Microsoft login is unavailable. Without a CurseForge API key, CurseForge requests fall back to the MCIM mirror (`mod.mcimirror.top`); with a key, the official API is used first.
+Stable builds require signing in with at least one genuine Microsoft account before other login methods can be used. Snapshot (`dev`) builds do not enforce this requirement; they read the Microsoft OAuth Client ID from the `PCL_MS_CLIENT_ID` environment variable and cannot use Microsoft login when it is unset.
 
 ## Release signing
 
