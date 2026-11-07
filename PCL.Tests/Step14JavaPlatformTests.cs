@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Avalonia.Headless.XUnit;
 using Newtonsoft.Json.Linq;
@@ -9,6 +11,67 @@ using Xunit;
 namespace PCL.Tests;
 
 public class Step14JavaPlatformTests {
+
+    [Fact]
+    public void Java_priority_sort_prefers_version_closest_to_21() {
+        var list = new List<PCLCS.Java> {
+            new("/tmp/pcl-java-8", new Version(8, 0)),
+            new("/tmp/pcl-java-25", new Version(25, 0)),
+            new("/tmp/pcl-java-21", new Version(21, 0)),
+            new("/tmp/pcl-java-17", new Version(17, 0))
+        };
+        PCLCS.JavaUtils.SortByPriority(list);
+        Assert.Equal(21, list[0].Version!.Major);
+        Assert.Equal(8, list[3].Version!.Major);
+        Assert.Equal(new[] { 17, 25 }, list.Skip(1).Take(2).Select(j => j.Version!.Major).OrderBy(x => x));
+    }
+
+    [Fact]
+    public void Java_priority_sort_prefers_candidate_folders() {
+        if (OperatingSystem.IsWindows()) return;
+        var candidate = new PCLCS.Java("/usr/lib/jvm/pcl-test-jdk8", new Version(8, 0));
+        var other = new PCLCS.Java("/tmp/pcl-test-jdk21", new Version(21, 0));
+        var list = new List<PCLCS.Java> { other, candidate };
+        PCLCS.JavaUtils.SortByPriority(list);
+        Assert.Same(candidate, list[0]);
+        Assert.Same(other, list[1]);
+    }
+
+    [Fact]
+    public void Zulu_archive_extracts_and_flattens_single_folder() {
+        var temp = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "pcl-zulu-" + Guid.NewGuid().ToString("N"));
+        var source = System.IO.Path.Combine(temp, "src", "zulu-test");
+        var archive = System.IO.Path.Combine(temp, "zulu-test.tar.gz");
+        var target = System.IO.Path.Combine(temp, "target");
+        System.IO.Directory.CreateDirectory(System.IO.Path.Combine(source, "bin"));
+        System.IO.File.WriteAllText(System.IO.Path.Combine(source, "bin", "java"), "x");
+        try {
+            using (var file = System.IO.File.Create(archive))
+            using (var gzip = new System.IO.Compression.GZipStream(file, System.IO.Compression.CompressionLevel.SmallestSize)) {
+                System.Formats.Tar.TarFile.CreateFromDirectory(System.IO.Path.Combine(temp, "src"), gzip, includeBaseDirectory: false);
+            }
+            var extract = typeof(global::PCL.ModJava).GetMethod("ExtractJavaArchive", BindingFlags.NonPublic | BindingFlags.Static)!;
+            extract.Invoke(null, new object?[] { archive, target });
+            var flatten = typeof(global::PCL.ModJava).GetMethod("FlattenSingleJavaFolder", BindingFlags.NonPublic | BindingFlags.Static)!;
+            flatten.Invoke(null, new object?[] { target });
+            Assert.True(System.IO.File.Exists(System.IO.Path.Combine(target, "bin", "java")));
+        } finally {
+            try { System.IO.Directory.Delete(temp, true); } catch { }
+        }
+    }
+
+    [Fact]
+    public void Java_priority_can_be_reordered_manually() {
+        var a = new PCLCS.Java("/tmp/pcl-java-a", new Version(21, 0));
+        var b = new PCLCS.Java("/tmp/pcl-java-b", new Version(17, 0));
+        var c = new PCLCS.Java("/tmp/pcl-java-c", new Version(8, 0));
+        var list = new List<PCLCS.Java> { a, b, c };
+        Assert.True(PCLCS.JavaUtils.MoveInList(list, c, -1));
+        Assert.Equal(new[] { a, c, b }, list);
+        Assert.False(PCLCS.JavaUtils.MoveInList(list, a, -1));
+        Assert.False(PCLCS.JavaUtils.MoveInList(list, b, 1));
+        Assert.Equal(new[] { a, c, b }, list);
+    }
 
     [Fact]
     public void Java_launch_wrapper_is_never_used_or_config_read_on_non_windows() {

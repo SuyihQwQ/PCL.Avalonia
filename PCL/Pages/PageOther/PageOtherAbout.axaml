@@ -19,12 +19,12 @@
                     </Grid.ColumnDefinitions>
                     <local:MyListItem IsHitTestVisible="False" Title="{DynamicResource LangAvalonia0150}" Margin="-5,0,15,0" Info="{DynamicResource LangAvalonia0051}" Grid.Row="0" Grid.Column="1" />
                     <local:MyListItem IsHitTestVisible="False" Title="HerobrineXia" Margin="-5,0,15,0" Info="{DynamicResource LangAvalonia0050}" Grid.Row="1" Grid.Column="1" />
-                    <Image Source="avares://PCL/Assets/Images/Heads/LTCat.jpg" Grid.Row="0" Margin="3">
+                    <Image Source="avares://PCL.Avalonia/Assets/Images/Heads/LTCat.jpg" Grid.Row="0" Margin="3">
                         <Image.Clip>
                             <EllipseGeometry Center="17,17" RadiusX="17" RadiusY="17" />
                         </Image.Clip>
                     </Image>
-                    <Image Source="avares://PCL/Assets/Images/Heads/HerobrineXia.png" Grid.Row="1" Margin="3">
+                    <Image Source="avares://PCL.Avalonia/Assets/Images/Heads/HerobrineXia.png" Grid.Row="1" Margin="3">
                         <Image.Clip>
                             <EllipseGeometry Center="17,17" RadiusX="17" RadiusY="17" />
                         </Image.Clip>
@@ -46,12 +46,12 @@
                     </Grid.ColumnDefinitions>
                     <local:MyListItem IsHitTestVisible="False" Title="SuyihQwQ" Margin="-5,0,15,0" Info="{DynamicResource LangAvalonia0012}" Grid.Row="0" Grid.Column="1" />
                     <local:MyListItem IsHitTestVisible="False" Title="PCL.Avalonia" Margin="-5,0,15,0" Info="{DynamicResource LangAvalonia0010}" Grid.Row="1" Grid.Column="1" x:Name="ItemAboutPcl" />
-                    <Image Source="avares://PCL/Assets/Images/Heads/SuyihQwQ.png" Grid.Row="0" Margin="3">
+                    <Image Source="avares://PCL.Avalonia/Assets/Images/Heads/SuyihQwQ.png" Grid.Row="0" Margin="3">
                         <Image.Clip>
                             <EllipseGeometry Center="17,17" RadiusX="17" RadiusY="17" />
                         </Image.Clip>
                     </Image>
-                    <Image Source="avares://PCL/Assets/Images/Heads/Logo.png" Grid.Row="1" Margin="3">
+                    <Image Source="avares://PCL.Avalonia/Assets/Images/Heads/Logo.png" Grid.Row="1" Margin="3">
                         <Image.Clip>
                             <EllipseGeometry Center="17,17" RadiusX="17" RadiusY="17" />
                         </Image.Clip>
@@ -91,52 +91,52 @@
                     <local:MyListItem Title="Hao_Tian" Margin="-5,0,0,0" IsHitTestVisible="False" Grid.ColumnSpan="2" Info="{DynamicResource LangPageOtherAboutThanksHao_Tian}" Grid.Row="7" Grid.Column="1" />
                     <local:MyListItem Title="{DynamicResource LangPageOtherAboutThanksMCBBSTitle}" Margin="-5,0,15,0" IsHitTestVisible="False" Info="{DynamicResource LangPageOtherAboutThanksMCBBS}" Grid.Row="8" Grid.Column="1" />
                     <local:MyListItem Title="{DynamicResource LangPageOtherAboutThanksUsersTitle}" Margin="-5,0,0,0" IsHitTestVisible="False" Grid.ColumnSpan="2" Info="{DynamicResource LangPageOtherAboutThanksUsers}" Grid.Row="9" Grid.Column="1" />
-                    <Image Source="avares://PCL/Assets/Images/Heads/bangbang93.png" Grid.Row="0" Margin="3">
+                    <Image Source="avares://PCL.Avalonia/Assets/Images/Heads/bangbang93.png" Grid.Row="0" Margin="3">
                         <Image.Clip>
                             <EllipseGeometry Center="17,17" RadiusX="17" RadiusY="17" />
                         </Image.Clip>
                     </Image>
-                    <Image Source="avares://PCL/Assets/Images/Heads/wiki.png" Grid.Row="1" Margin="3">
+                    <Image Source="avares://PCL.Avalonia/Assets/Images/Heads/wiki.png" Grid.Row="1" Margin="3">
                         <Image.Clip>
                             <EllipseGeometry Center="17,17" RadiusX="17" RadiusY="17" />
                         </Image.Clip>
                     </Image>
-                    <Image Source="avares://PCL/Assets/Images/Heads/z0z0r4.png" Grid.Row="2" Margin="3">
+                    <Image Source="avares://PCL.Avalonia/Assets/Images/Heads/z0z0r4.png" Grid.Row="2" Margin="3">
                         <Image.Clip>
                             <EllipseGeometry Center="17,17" RadiusX="17" RadiusY="17" />
                         </Image.Clip>
                     </Image>
-                    <Image Source="avares://PCL/Assets/Images/Heads/EasyTier.png" Grid.Row="3" Margin="3">
+                    <Image Source="avares://PCL.Avalonia/Assets/Images/Heads/EasyTier.png" Grid.Row="3" Margin="3">
                         <Image.Clip>
                             <EllipseGeometry Center="17,17" RadiusX="17" RadiusY="17" />
                         </Image.Clip>
                     </Image>
-                    <Image Source="avares://PCL/Assets/Images/Heads/ChongQing.png" Grid.Row="4" Margin="3">
+                    <Image Source="avares://PCL.Avalonia/Assets/Images/Heads/ChongQing.png" Grid.Row="4" Margin="3">
                         <Image.Clip>
                             <EllipseGeometry Center="17,17" RadiusX="17" RadiusY="17" />
                         </Image.Clip>
                     </Image>
-                    <Image Source="avares://PCL/Assets/Images/Heads/00ll00.png" Grid.Row="5" Margin="3">
+                    <Image Source="avares://PCL.Avalonia/Assets/Images/Heads/00ll00.png" Grid.Row="5" Margin="3">
                         <Image.Clip>
                             <EllipseGeometry Center="17,17" RadiusX="17" RadiusY="17" />
                         </Image.Clip>
                     </Image>
-                    <Image Source="avares://PCL/Assets/Images/Heads/Patrick.png" Grid.Row="6" Margin="3">
+                    <Image Source="avares://PCL.Avalonia/Assets/Images/Heads/Patrick.png" Grid.Row="6" Margin="3">
                         <Image.Clip>
                             <EllipseGeometry Center="17,17" RadiusX="17" RadiusY="17" />
                         </Image.Clip>
                     </Image>
-                    <Image Source="avares://PCL/Assets/Images/Heads/Hao_Tian.jpg" Grid.Row="7" Margin="3">
+                    <Image Source="avares://PCL.Avalonia/Assets/Images/Heads/Hao_Tian.jpg" Grid.Row="7" Margin="3">
                         <Image.Clip>
                             <EllipseGeometry Center="17,17" RadiusX="17" RadiusY="17" />
                         </Image.Clip>
                     </Image>
-                    <Image Source="avares://PCL/Assets/Images/Heads/MCBBS.png" Grid.Row="8" Margin="3">
+                    <Image Source="avares://PCL.Avalonia/Assets/Images/Heads/MCBBS.png" Grid.Row="8" Margin="3">
                         <Image.Clip>
                             <EllipseGeometry Center="17,17" RadiusX="17" RadiusY="17" />
                         </Image.Clip>
                     </Image>
-                    <Image Source="avares://PCL/Assets/Images/Heads/PCL2.png" Grid.Row="9" Margin="3">
+                    <Image Source="avares://PCL.Avalonia/Assets/Images/Heads/PCL2.png" Grid.Row="9" Margin="3">
                         <Image.Clip>
                             <EllipseGeometry Center="17,17" RadiusX="17" RadiusY="17" />
                         </Image.Clip>

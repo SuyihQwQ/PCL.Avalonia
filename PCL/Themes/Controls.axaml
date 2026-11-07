@@ -215,6 +215,7 @@
                                     BorderThickness="1"
                                     MaxHeight="{TemplateBinding MaxDropDownHeight}">
                                 <local:MyScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                                      ReserveScrollBarSpace="False"
                                                       VerticalScrollBarVisibility="Auto">
                                     <ItemsPresenter />
                                 </local:MyScrollViewer>

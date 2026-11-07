@@ -16,6 +16,7 @@ Namespace Global.PCL
 
         Friend WithEvents PanBack As PCL.MyScrollViewer
         Friend WithEvents PanMain As Avalonia.Controls.StackPanel
+        Friend WithEvents BtnDetectChinaUser As PCL.MyButton
 
         Private Sub InitControls()
             AvaloniaXamlLoader.Load(Me)
@@ -23,6 +24,8 @@ Namespace Global.PCL
             If PanBack Is Nothing Then Throw New InvalidOperationException("找不到控件：PanBack")
             PanMain = FindControl(Of Avalonia.Controls.StackPanel)("PanMain")
             If PanMain Is Nothing Then Throw New InvalidOperationException("找不到控件：PanMain")
+            BtnDetectChinaUser = FindControl(Of PCL.MyButton)("BtnDetectChinaUser")
+            If BtnDetectChinaUser Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnDetectChinaUser")
         End Sub
 
     End Class

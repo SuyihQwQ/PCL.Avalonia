@@ -63,7 +63,8 @@ Public Class SettingService
     ''' 当控件对应的设置改变时，将内容保存到设置中。
     ''' </summary>
     Public Shared Sub SaveSetting(sender As Object)
-        If AniControlEnabled <> 0 Then Return
+        '用户正在输入时即使处于页面切换动画中也应当保存，避免修改丢失
+        If AniControlEnabled <> 0 AndAlso (TypeOf sender IsNot Control OrElse Not DirectCast(sender, Control).IsFocused) Then Return
         If TypeOf sender IsNot ISettingControl Then Return
         Dim Control = TryCast(sender, Control)
         If Control Is Nothing Then Return

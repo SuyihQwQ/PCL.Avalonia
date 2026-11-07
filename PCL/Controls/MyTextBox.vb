@@ -120,7 +120,7 @@ Public Class MyTextBox
                 labWrong.IsVisible = True
                 AniStart({
                      AaOpacity(labWrong, 1 - labWrong.Opacity, 150),
-                     AaHeight(labWrong, 21 - labWrong.Height, 150, , New AniEaseOutFluent)
+                     AaHeight(labWrong, 24 - labWrong.Height, 150, , New AniEaseOutFluent)
                 }, "MyTextBox Validate " & Uuid)
             Else
                 ShownValidateResult = ValidateState.FailedAndHideDetail
@@ -273,6 +273,8 @@ Public Class MyTextBox
     Protected Overrides Sub OnLostFocus(e As FocusChangedEventArgs)
         MyBase.OnLostFocus(e)
         RefreshColor()
+        '离开输入框时兜底保存，避免页面切换期间漏写设置
+        SettingService.SaveSetting(Me)
     End Sub
 
     Protected Overrides Sub OnPointerEntered(e As PointerEventArgs)

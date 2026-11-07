@@ -49,6 +49,11 @@ Public Module Localization
             Return
         End If
 
+        '跟随系统：读取系统 UI 语言，没有对应翻译时回退简体中文
+        If String.IsNullOrWhiteSpace(Language) OrElse String.Equals(Language, "auto", StringComparison.OrdinalIgnoreCase) Then
+            Language = GetSystemLanguage()
+        End If
+
         Dim NormalizedLanguage As String
         If String.Equals(Language, "en-US", StringComparison.OrdinalIgnoreCase) Then
             NormalizedLanguage = "en-US"
@@ -89,6 +94,22 @@ Public Module Localization
         Return String.Format(CultureInfo.CurrentCulture, Value, Arguments)
     End Function
 
+    ''' <summary>
+    ''' 跟随系统时使用的界面语言。仅支持简体中文与英文，其他语言回退简体中文。
+    ''' </summary>
+    Private Function GetSystemLanguage() As String
+        Try
+            Dim Name As String = CultureInfo.CurrentUICulture.Name
+            If String.IsNullOrEmpty(Name) Then Name = CultureInfo.CurrentCulture.Name
+            If Name.StartsWith("zh", StringComparison.OrdinalIgnoreCase) Then Return "zh-CN"
+            If Name.StartsWith("en", StringComparison.OrdinalIgnoreCase) Then Return "en-US"
+            Logger.Info($"系统语言 {Name} 没有可用的翻译，界面语言回退为简体中文")
+        Catch ex As Exception
+            Logger.Warn(ex, "读取系统语言失败，界面语言回退为简体中文")
+        End Try
+        Return "zh-CN"
+    End Function
+
     Public Function TranslateText(Text As String) As String
         If Text Is Nothing OrElse _CurrentLanguage <> "en-US" Then Return Text
         Dim Translation As String = Nothing
@@ -97,7 +118,7 @@ Public Module Localization
     End Function
 
     Private Sub LoadLanguage(Language As String, Values As Dictionary(Of String, String))
-        Dim ResourceUri As New Uri($"avares://PCL/Assets/Language/{Language}.json")
+        Dim ResourceUri As New Uri($"avares://PCL.Avalonia/Assets/Language/{Language}.json")
         Using Reader As New IO.StreamReader(AssetLoader.Open(ResourceUri))
             Dim Loaded = JsonConvert.DeserializeObject(Of Dictionary(Of String, String))(Reader.ReadToEnd())
             If Loaded Is Nothing Then Throw New InvalidDataException($"语言资源 {Language} 为空")
@@ -133,7 +154,7 @@ Public Module Localization
     End Sub
 
     Private Sub LoadCustomTranslations()
-        Dim ResourceUri As New Uri("avares://PCL/Assets/Language/overrides.json")
+        Dim ResourceUri As New Uri("avares://PCL.Avalonia/Assets/Language/overrides.json")
         Using Reader As New IO.StreamReader(AssetLoader.Open(ResourceUri))
             Dim Loaded = JsonConvert.DeserializeObject(Of Dictionary(Of String, String))(Reader.ReadToEnd())
             If Loaded Is Nothing Then Throw New InvalidDataException("自定义英文词条为空")

@@ -204,7 +204,7 @@ Public Module ModHelp
             If Settings.Get(Of Integer)("SystemHelpVersion") <> VersionCode OrElse Not FileUtils.Exists(Path.Combine(HelpFolder, "启动器", "备份设置.xaml")) Then
                 DirectoryUtils.Delete(HelpFolder)
                 DirectoryUtils.Create(HelpFolder)
-                Using Stream As IO.Stream = AssetLoader.Open(New Uri("avares://PCL/Assets/Help.zip"))
+                Using Stream As IO.Stream = AssetLoader.Open(New Uri("avares://PCL.Avalonia/Assets/Help.zip"))
                     Using Archive As New ZipArchive(Stream, ZipArchiveMode.Read)
                         For Each Entry As ZipArchiveEntry In Archive.Entries
                             If String.IsNullOrEmpty(Entry.Name) Then Continue For
@@ -365,6 +365,7 @@ Public Module ModHelp
         '可见性
         Content = Content.Replace("Visibility=""Collapsed""", "IsVisible=""False""")
         Content = Content.Replace("Visibility=""Visible""", "IsVisible=""True""")
+        Content = Content.Replace("Visibility=""Hidden""", "IsVisible=""False""")
         'WPF 样式、文档与模板等结构转换
         Content = ConvertWpfStyleMarkup(Content)
         Return Content
@@ -376,17 +377,28 @@ Public Module ModHelp
     ''' 将 WPF 特有的 Style、ControlTemplate、FlowDocument 等结构转换为 Avalonia 可加载的写法。
     ''' 复杂样式会被展开为元素属性，无法映射的属性会被忽略。
     ''' </summary>
+    Private Class LegacyStyle
+        Public TargetType As String = ""
+        Public BasedOn As String = Nothing
+        Public Setters As New List(Of KeyValuePair(Of String, String))
+    End Class
+
+    ''' <summary>
+    ''' 将 WPF 特有的 Style、ControlTemplate、FlowDocument 等结构转换为 Avalonia 可加载的写法。
+    ''' 复杂样式会被展开为元素属性，无法映射的属性会被忽略。
+    ''' </summary>
     Private Function ConvertWpfStyleMarkup(Content As String) As String
         Try
             Dim Doc = XDocument.Parse("<root xmlns:x=""http://schemas.microsoft.com/winfx/2006/xaml"" xmlns:local=""using:PCL"" xmlns:sys=""using:System"">" & Content & "</root>")
             Dim Root = Doc.Root
             Dim ConvertedParagraphs As New HashSet(Of XElement)()
             '收集样式定义
-            Dim KeyedStyles As New Dictionary(Of String, List(Of KeyValuePair(Of String, String)))
+            Dim KeyedStyles As New Dictionary(Of String, LegacyStyle)(StringComparer.Ordinal)
             Dim ImplicitStyles As New List(Of Tuple(Of String, List(Of KeyValuePair(Of String, String))))
             For Each StyleEl In Root.Descendants().Where(Function(e) e.Name.LocalName = "Style").ToList()
                 Dim TargetType As String = If(CStr(StyleEl.Attribute("TargetType")), "")
                 Dim Key As String = CStr(StyleEl.Attribute(XName.Get("Key", WpfXamlNs)))
+                Dim BasedOn As String = ParseStaticResourceKey(CStr(StyleEl.Attribute("BasedOn")))
                 Dim Setters As New List(Of KeyValuePair(Of String, String))
                 For Each SetterEl In StyleEl.Elements().Where(Function(e) e.Name.LocalName = "Setter")
                     Dim Prop As String = CStr(SetterEl.Attribute("Property"))
@@ -401,13 +413,28 @@ Public Module ModHelp
                 If String.IsNullOrEmpty(Key) Then
                     ImplicitStyles.Add(Tuple.Create(TargetType, Setters))
                 Else
-                    KeyedStyles(Key) = Setters
+                    KeyedStyles(Key) = New LegacyStyle With {.TargetType = TargetType, .BasedOn = BasedOn, .Setters = Setters}
                 End If
                 StyleEl.Remove()
             Next
             '移除模板与触发器
             For Each El In Root.Descendants().Where(Function(e) e.Name.LocalName.EndsWith(".Triggers") OrElse e.Name.LocalName = "ControlTemplate").ToList()
                 El.Remove()
+            Next
+            '记录列表序号与标记颜色，供 ListItem 使用
+            Dim ListMarkers As New Dictionary(Of XElement, String)()
+            Dim ListMarkerColors As New Dictionary(Of XElement, String)()
+            Dim ListForeground As String = GetImplicitStyleValue(ImplicitStyles, "List", "Foreground")
+            For Each ListEl In Root.Descendants().Where(Function(e) e.Name.LocalName = "List").ToList()
+                Dim MarkerStyle As String = If(CStr(ListEl.Attribute("MarkerStyle")), "Disc")
+                Dim Index As Integer = 1
+                Dim StartIndex As String = CStr(ListEl.Attribute("StartIndex"))
+                If StartIndex IsNot Nothing Then Integer.TryParse(StartIndex, Index)
+                For Each ItemEl In ListEl.Elements().Where(Function(e) e.Name.LocalName = "ListItem")
+                    ListMarkers(ItemEl) = GetListMarker(MarkerStyle, Index)
+                    If ListForeground IsNot Nothing Then ListMarkerColors(ItemEl) = ListForeground
+                    Index += 1
+                Next
             Next
             '元素类型映射
             For Each El In Root.Descendants().ToList()
@@ -416,17 +443,21 @@ Public Module ModHelp
                         El.Name = XName.Get("ScrollViewer")
                     Case "FlowDocument"
                         El.Name = XName.Get("StackPanel")
+                        ApplyImplicitStyleAttributes(El, "FlowDocument", ImplicitStyles)
+                    Case "Section"
+                        'Avalonia 没有 FlowDocument 的 Section，用它作为带边框的块容器
+                        ConvertLegacySection(El)
+                    Case "BlockUIContainer"
+                        ConvertLegacyBlockUI(El)
                     Case "List"
                         'WPF FlowDocument 的列表在 Avalonia 中没有对应控件，映射为纵向容器
                         El.Name = XName.Get("StackPanel")
+                        ApplyImplicitStyleAttributes(El, "List", ImplicitStyles)
+                        El.Attribute("MarkerStyle")?.Remove()
+                        El.Attribute("StartIndex")?.Remove()
                         If El.Attribute("Margin") Is Nothing Then El.SetAttributeValue("Margin", "0,4")
                     Case "ListItem"
-                        El.Name = XName.Get("StackPanel")
-                        If El.Attribute("Margin") Is Nothing Then El.SetAttributeValue("Margin", "20,2,0,2")
-                        El.AddFirst(New XElement(XName.Get("TextBlock"),
-                            New XAttribute("Text", "•"),
-                            New XAttribute("Margin", "0,0,6,0"),
-                            New XAttribute("HorizontalAlignment", "Left")))
+                        ConvertLegacyListItem(El, ListMarkers, ListMarkerColors, ImplicitStyles)
                     Case "Paragraph"
                         El.Name = XName.Get("TextBlock")
                         ConvertedParagraphs.Add(El)
@@ -448,6 +479,24 @@ Public Module ModHelp
                             El.SetAttributeValue("Margin", "0,10")
                             If El.Attribute("Foreground") Is Nothing Then El.SetAttributeValue("Foreground", "{DynamicResource ColorBrush4}")
                         End If
+                    Case "Image"
+                        '普通 Image 无法直接加载网址，交给 MyImage 处理
+                        Dim IsInlineImage As Boolean = El.Ancestors().Any(Function(a) a.Name.LocalName = "TextBlock")
+                        El.Name = XName.Get("MyImage", "using:PCL")
+                        If IsInlineImage Then
+                            Dim ImageContainer As New XElement(XName.Get("InlineUIContainer"))
+                            El.ReplaceWith(ImageContainer)
+                            ImageContainer.Add(El)
+                        End If
+                    Case "MyImage"
+                        '行内图片必须放进 InlineUIContainer，否则不能作为文本块的子元素
+                        If El.Name.NamespaceName = "using:PCL" AndAlso El.Ancestors().Any(Function(a) a.Name.LocalName = "TextBlock") Then
+                            Dim ImageContainer As New XElement(XName.Get("InlineUIContainer"))
+                            El.ReplaceWith(ImageContainer)
+                            ImageContainer.Add(El)
+                        End If
+                    Case "TextBox"
+                        ConvertLegacyTextBox(El, KeyedStyles)
                     Case "Line"
                         Dim AttrX1 = El.Attribute("X1"), AttrY1 = El.Attribute("Y1"), AttrX2 = El.Attribute("X2"), AttrY2 = El.Attribute("Y2")
                         If AttrX1 IsNot Nothing AndAlso AttrX2 IsNot Nothing Then
@@ -458,6 +507,19 @@ Public Module ModHelp
                             Next
                         End If
                 End Select
+            Next
+            '属性元素（如 Paragraph.Foreground）跟随所属元素改名
+            For Each El In Root.Descendants().ToList()
+                Dim LocalName As String = El.Name.LocalName
+                If LocalName.StartsWith("Paragraph.", StringComparison.Ordinal) Then
+                    El.Name = XName.Get("TextBlock." & LocalName.Substring(10))
+                ElseIf LocalName.StartsWith("Section.", StringComparison.Ordinal) Then
+                    El.Name = XName.Get("Border." & LocalName.Substring(8))
+                ElseIf LocalName.StartsWith("ListItem.", StringComparison.Ordinal) Then
+                    El.Name = XName.Get("StackPanel." & LocalName.Substring(9))
+                ElseIf LocalName.StartsWith("List.", StringComparison.Ordinal) Then
+                    El.Name = XName.Get("StackPanel." & LocalName.Substring(5))
+                End If
             Next
             '文本块内的自定义按钮改用 InlineUIContainer 承载，保留点击与悬停效果
             For Each El In Root.Descendants().Where(Function(e) e.Name.LocalName = "MyTextButton" AndAlso e.Name.NamespaceName = "using:PCL").ToList()
@@ -482,22 +544,22 @@ Public Module ModHelp
                     UnderlineParent.ReplaceWith(Container)
                 End If
             Next
-            '展开显式引用的样式
+            '展开显式引用的样式（支持 BasedOn 继承）
             For Each El In Root.Descendants().ToList()
                 Dim StyleAttr = El.Attribute("Style")
                 If StyleAttr Is Nothing Then Continue For
-                Dim Ref As String = StyleAttr.Value.Trim()
-                If Ref.StartsWith("{StaticResource ") AndAlso Ref.EndsWith("}") Then
-                    Dim Key As String = Ref.Substring(16).TrimEnd("}"c).Trim()
-                    Dim Setters As List(Of KeyValuePair(Of String, String)) = Nothing
-                    If KeyedStyles.TryGetValue(Key, Setters) Then
-                        For Each Setter In Setters
-                            If ConvertedParagraphs.Contains(El) AndAlso Setter.Key = "LineHeight" Then Continue For
-                            If El.Attribute(Setter.Key) Is Nothing AndAlso IsWpfStylePropertySupported(El.Name.LocalName, Setter.Key) Then
-                                El.SetAttributeValue(Setter.Key, Setter.Value)
-                            End If
-                        Next
-                    End If
+                Dim Key As String = ParseStaticResourceKey(StyleAttr.Value)
+                If Key IsNot Nothing Then
+                    Dim Values As New Dictionary(Of String, String)(StringComparer.Ordinal)
+                    For Each Setter In ResolveStyleSetters(Key, KeyedStyles)
+                        If ConvertedParagraphs.Contains(El) AndAlso Setter.Key = "LineHeight" Then Continue For
+                        Values(Setter.Key) = Setter.Value
+                    Next
+                    For Each Pair In Values
+                        If El.Attribute(Pair.Key) Is Nothing AndAlso IsWpfStylePropertySupported(El.Name.LocalName, Pair.Key) Then
+                            El.SetAttributeValue(Pair.Key, Pair.Value)
+                        End If
+                    Next
                 End If
                 StyleAttr.Remove()
             Next
@@ -505,12 +567,16 @@ Public Module ModHelp
             For Each El In Root.Descendants().ToList()
                 For Each Attr In El.Attributes().ToList()
                     Select Case Attr.Name.LocalName
-                        Case "TextIndent", "IsSelectionEnabled", "MarkerStyle", "PagePadding", "SnapsToDevicePixels", "UseLayoutRounding", "ShowGridLines", "CacheMode", "BitmapEffect", "BitmapEffectInput", "FontStretch", "ContentStringFormat"
+                        Case "TextIndent", "IsSelectionEnabled", "MarkerStyle", "StartIndex", "PagePadding", "SnapsToDevicePixels", "UseLayoutRounding", "ShowGridLines", "CacheMode", "BitmapEffect", "BitmapEffectInput", "FontStretch", "ContentStringFormat", "UpdateSourceTrigger", "NotifyOnTargetUpdated", "NotifyOnSourceUpdated", "BindingGroupName"
                             Attr.Remove()
                         Case Else
                             If Attr.Name.LocalName.StartsWith("TextOptions.") OrElse Attr.Name.LocalName.StartsWith("RenderOptions.") Then Attr.Remove()
                     End Select
                 Next
+            Next
+            '移除样式被清空后残留的空 Resources
+            For Each El In Root.Descendants().Where(Function(e) e.Name.LocalName.EndsWith(".Resources") AndAlso Not e.HasElements).ToList()
+                El.Remove()
             Next
             '隐式样式改为作用域样式
             Dim StyleXml As New Text.StringBuilder
@@ -541,6 +607,274 @@ Public Module ModHelp
     End Function
 
     ''' <summary>
+    ''' 解析 {StaticResource Key} 形式的样式引用。
+    ''' </summary>
+    Private Function ParseStaticResourceKey(Value As String) As String
+        If String.IsNullOrWhiteSpace(Value) Then Return Nothing
+        Value = Value.Trim()
+        If Value.StartsWith("{StaticResource ") AndAlso Value.EndsWith("}") Then
+            Return Value.Substring(16).TrimEnd("}"c).Trim()
+        End If
+        Return Nothing
+    End Function
+
+    ''' <summary>
+    ''' 解析样式及其 BasedOn 链，按“基类在前、派生在后”返回所有 Setter。
+    ''' </summary>
+    Private Function ResolveStyleSetters(Key As String, Styles As Dictionary(Of String, LegacyStyle), Optional Visited As HashSet(Of String) = Nothing) As List(Of KeyValuePair(Of String, String))
+        Dim Result As New List(Of KeyValuePair(Of String, String))
+        Dim Info As LegacyStyle = Nothing
+        If String.IsNullOrEmpty(Key) OrElse Not Styles.TryGetValue(Key, Info) Then Return Result
+        If Visited Is Nothing Then Visited = New HashSet(Of String)(StringComparer.Ordinal)
+        If Not Visited.Add(Key) Then Return Result
+        If Info.BasedOn IsNot Nothing Then Result.AddRange(ResolveStyleSetters(Info.BasedOn, Styles, Visited))
+        Result.AddRange(Info.Setters)
+        Return Result
+    End Function
+
+    Private Function GetStyleValue(Setters As List(Of KeyValuePair(Of String, String)), Key As String) As String
+        Dim Result As String = Nothing
+        For Each Pair In Setters
+            If String.Equals(Pair.Key, Key, StringComparison.Ordinal) Then Result = Pair.Value
+        Next
+        Return Result
+    End Function
+
+    ''' <summary>
+    ''' Section、BlockUIContainer、ListItem 等 WPF 文档结构到 Avalonia 控件的转换。
+    ''' </summary>
+    Private Sub ConvertLegacySection(El As XElement)
+        'Section 会被替换为 Border，相关绑定需要同步修改祖先类型
+        For Each Desc In El.Descendants()
+            For Each Attr In Desc.Attributes()
+                If Attr.Value.Contains("AncestorType=Section") Then
+                    Attr.Value = Attr.Value.Replace("AncestorType=Section", "AncestorType=Border")
+                End If
+            Next
+        Next
+        Dim BorderEl As New XElement(XName.Get("Border"))
+        For Each Attr In El.Attributes().ToList()
+            Attr.Remove()
+            BorderEl.SetAttributeValue(Attr.Name, Attr.Value)
+        Next
+        Dim Panel As New XElement(XName.Get("StackPanel"))
+        For Each Node In El.Nodes().ToList()
+            Node.Remove()
+            Panel.Add(Node)
+        Next
+        If Panel.HasElements Then BorderEl.Add(Panel)
+        El.ReplaceWith(BorderEl)
+    End Sub
+
+    Private Sub ConvertLegacyBlockUI(El As XElement)
+        Dim Children = El.Elements().ToList()
+        Dim HasText As Boolean = El.Nodes().OfType(Of XText)().Any(Function(t) Not String.IsNullOrWhiteSpace(t.Value))
+        If Children.Count = 1 AndAlso Not HasText Then
+            Dim Child = Children(0)
+            Child.Remove()
+            For Each Name In {"Grid.Column", "Grid.Row", "Grid.ColumnSpan", "Grid.RowSpan", "VerticalAlignment"}
+                Dim Attr = El.Attribute(Name)
+                If Attr IsNot Nothing AndAlso Child.Attribute(Name) Is Nothing Then Child.SetAttributeValue(Name, Attr.Value)
+            Next
+            El.ReplaceWith(Child)
+            Return
+        End If
+        Dim Panel As New XElement(XName.Get("StackPanel"))
+        For Each Node In El.Nodes().ToList()
+            Node.Remove()
+            Panel.Add(Node)
+        Next
+        For Each Name In {"Grid.Column", "Grid.Row", "Grid.ColumnSpan", "Grid.RowSpan"}
+            Dim Attr = El.Attribute(Name)
+            If Attr IsNot Nothing Then Panel.SetAttributeValue(Name, Attr.Value)
+        Next
+        El.ReplaceWith(Panel)
+    End Sub
+
+    Private Sub ConvertLegacyListItem(El As XElement, Markers As Dictionary(Of XElement, String), MarkerColors As Dictionary(Of XElement, String), ImplicitStyles As List(Of Tuple(Of String, List(Of KeyValuePair(Of String, String)))))
+        Dim Marker As String = Nothing
+        If Not Markers.TryGetValue(El, Marker) Then Marker = "•"
+        Dim Implicit As List(Of KeyValuePair(Of String, String)) = Nothing
+        For Each Entry In ImplicitStyles
+            If Entry.Item1 = "ListItem" Then Implicit = Entry.Item2
+        Next
+        '使用两列 Grid，让正文占据剩余宽度并正常换行（横向 StackPanel 会给无穷宽度）
+        Dim Outer As New XElement(XName.Get("Grid"), New XAttribute("ColumnDefinitions", "Auto,*"))
+        If Implicit IsNot Nothing Then
+            For Each Pair In Implicit
+                If {"Margin", "Padding", "Background", "MinWidth", "MinHeight", "MaxWidth", "MaxHeight"}.Contains(Pair.Key) Then
+                    Outer.SetAttributeValue(Pair.Key, Pair.Value)
+                End If
+            Next
+        End If
+        Dim Bullet As New XElement(XName.Get("TextBlock"),
+            New XAttribute("Text", Marker),
+            New XAttribute("Margin", "0,0,6,0"),
+            New XAttribute("VerticalAlignment", "Top"),
+            New XAttribute("Grid.Column", "0"))
+        Dim BulletForeground As String = Nothing
+        If Not MarkerColors.TryGetValue(El, BulletForeground) Then
+            BulletForeground = If(Implicit Is Nothing, Nothing, GetStyleValue(Implicit, "Foreground"))
+        End If
+        If BulletForeground IsNot Nothing Then Bullet.SetAttributeValue("Foreground", BulletForeground)
+        Outer.Add(Bullet)
+        Dim Nodes = El.Nodes().ToList()
+        Dim InlineNames = {"Run", "Span", "Bold", "Italic", "Underline", "LineBreak", "MyTextButton", "MyImage"}
+        Dim IsInlineOnly As Boolean = Nodes.Count > 0 AndAlso Nodes.All(
+            Function(n)
+                If TypeOf n Is XText Then Return True
+                Dim E = TryCast(n, XElement)
+                Return E IsNot Nothing AndAlso InlineNames.Contains(E.Name.LocalName)
+            End Function)
+        If IsInlineOnly Then
+            Dim Content As New XElement(XName.Get("TextBlock"), New XAttribute("Grid.Column", "1"))
+            For Each Node In Nodes
+                Node.Remove()
+                Content.Add(Node)
+            Next
+            Outer.Add(Content)
+        ElseIf Nodes.Count = 1 AndAlso TypeOf Nodes(0) Is XElement Then
+            Dim Child = DirectCast(Nodes(0), XElement)
+            Child.Remove()
+            Child.SetAttributeValue("Grid.Column", "1")
+            Outer.Add(Child)
+        Else
+            Dim Content As New XElement(XName.Get("StackPanel"), New XAttribute("Grid.Column", "1"))
+            For Each Node In Nodes
+                Node.Remove()
+                Content.Add(Node)
+            Next
+            Outer.Add(Content)
+        End If
+        '显式属性优先于隐式样式
+        For Each Attr In El.Attributes().ToList()
+            Attr.Remove()
+            Outer.SetAttributeValue(Attr.Name, Attr.Value)
+        Next
+        El.ReplaceWith(Outer)
+    End Sub
+
+    ''' <summary>
+    ''' 将 WPF 中当作代码块的 TextBox 转换为可选中文本，避免默认输入框样式与内联布局问题。
+    ''' </summary>
+    Private Sub ConvertLegacyTextBox(El As XElement, KeyedStyles As Dictionary(Of String, LegacyStyle))
+        If El.Attribute("Text") Is Nothing AndAlso El.Nodes().Any() Then
+            El.SetAttributeValue("Text", El.Value)
+            El.RemoveNodes()
+        End If
+        Dim IsInline As Boolean = El.Ancestors().Any(Function(a) a.Name.LocalName = "TextBlock")
+        Dim StyleKey As String = ParseStaticResourceKey(CStr(El.Attribute("Style")))
+        Dim Setters As New List(Of KeyValuePair(Of String, String))
+        If StyleKey IsNot Nothing Then Setters = ResolveStyleSetters(StyleKey, KeyedStyles)
+        If StyleKey <> "InlineCode" AndAlso StyleKey <> "BlockCode" Then
+            '未知样式的文本框仍然要保证能放在文本块内
+            If IsInline Then
+                Dim InnerContainer As New XElement(XName.Get("InlineUIContainer"))
+                El.ReplaceWith(InnerContainer)
+                InnerContainer.Add(El)
+            End If
+            Return
+        End If
+        Dim BorderEl As New XElement(XName.Get("Border"))
+        For Each Name In {"Grid.Column", "Grid.Row", "Grid.ColumnSpan", "Grid.RowSpan", "VerticalAlignment"}
+            Dim Attr = El.Attribute(Name)
+            If Attr IsNot Nothing Then BorderEl.SetAttributeValue(Name, Attr.Value)
+        Next
+        Dim Background As String = GetStyleValue(Setters, "Background")
+        If Background Is Nothing Then Background = If(StyleKey = "InlineCode", "{DynamicResource ColorBrush6}", "{DynamicResource ColorBrush7}")
+        BorderEl.SetAttributeValue("Background", Background)
+        Dim CornerRadius As String = GetStyleValue(Setters, "CornerRadius")
+        If CornerRadius Is Nothing Then CornerRadius = If(StyleKey = "InlineCode", "5", "0,0,5,5")
+        BorderEl.SetAttributeValue("CornerRadius", CornerRadius)
+        Dim Padding As String = GetStyleValue(Setters, "Padding")
+        If Padding Is Nothing Then Padding = If(StyleKey = "InlineCode", "4,0", "16,8,16,12")
+        BorderEl.SetAttributeValue("Padding", Padding)
+        Dim Margin As String = GetStyleValue(Setters, "Margin")
+        If Margin IsNot Nothing Then BorderEl.SetAttributeValue("Margin", Margin)
+        If StyleKey = "BlockCode" Then BorderEl.SetAttributeValue("Opacity", "0.8")
+        If StyleKey = "InlineCode" Then BorderEl.SetAttributeValue("Opacity", "0.9")
+        Dim TextEl As XElement = If(IsInline, New XElement(XName.Get("TextBlock")), New XElement(XName.Get("SelectableTextBlock")))
+        TextEl.SetAttributeValue("Text", If(CStr(El.Attribute("Text")), ""))
+        Dim FontFamily As String = GetStyleValue(Setters, "FontFamily")
+        If FontFamily IsNot Nothing Then TextEl.SetAttributeValue("FontFamily", FontFamily)
+        Dim FontSize As String = GetStyleValue(Setters, "FontSize")
+        If FontSize IsNot Nothing Then TextEl.SetAttributeValue("FontSize", FontSize)
+        Dim Foreground As String = GetStyleValue(Setters, "Foreground")
+        If Foreground IsNot Nothing Then TextEl.SetAttributeValue("Foreground", Foreground)
+        If Not IsInline Then TextEl.SetAttributeValue("TextWrapping", "NoWrap")
+        For Each Attr In El.Attributes().Where(Function(a) a.Name.LocalName <> "Style" AndAlso a.Name.LocalName <> "Text").ToList()
+            If Attr.Name.LocalName = "IsReadOnly" Then Continue For
+            TextEl.SetAttributeValue(Attr.Name, Attr.Value)
+        Next
+        BorderEl.Add(TextEl)
+        If IsInline Then
+            Dim InlineContainer As New XElement(XName.Get("InlineUIContainer"), BorderEl)
+            El.ReplaceWith(InlineContainer)
+        Else
+            El.ReplaceWith(BorderEl)
+        End If
+    End Sub
+
+    Private Function GetImplicitStyleValue(ImplicitStyles As List(Of Tuple(Of String, List(Of KeyValuePair(Of String, String)))), TargetType As String, Key As String) As String
+        For Each Entry In ImplicitStyles
+            If Entry.Item1 = TargetType Then Return GetStyleValue(Entry.Item2, Key)
+        Next
+        Return Nothing
+    End Function
+
+    Private Sub ApplyImplicitStyleAttributes(El As XElement, TargetType As String, ImplicitStyles As List(Of Tuple(Of String, List(Of KeyValuePair(Of String, String)))))
+        For Each Entry In ImplicitStyles
+            If Entry.Item1 <> TargetType Then Continue For
+            For Each Pair In Entry.Item2
+                If {"Margin", "Padding", "Background", "MinWidth", "MinHeight", "MaxWidth", "MaxHeight"}.Contains(Pair.Key) AndAlso El.Attribute(Pair.Key) Is Nothing Then
+                    El.SetAttributeValue(Pair.Key, Pair.Value)
+                End If
+            Next
+        Next
+    End Sub
+
+    Private Function GetListMarker(Style As String, Index As Integer) As String
+        Select Case Style
+            Case "Decimal"
+                Return Index.ToString & "."
+            Case "Circle"
+                Return "○"
+            Case "Square", "Box"
+                Return "▪"
+            Case "LowerLatin"
+                Return Chr(96 + ((Index - 1) Mod 26) + 1) & "."
+            Case "UpperLatin"
+                Return Chr(64 + ((Index - 1) Mod 26) + 1) & "."
+            Case "LowerRoman"
+                Return ToRoman(Index).ToLower & "."
+            Case "UpperRoman"
+                Return ToRoman(Index) & "."
+            Case Else
+                Return "•"
+        End Select
+    End Function
+
+    Private Function ToRoman(Value As Integer) As String
+        If Value <= 0 OrElse Value >= 4000 Then Return Value.ToString
+        Dim Pairs = {
+            New KeyValuePair(Of Integer, String)(1000, "M"), New KeyValuePair(Of Integer, String)(900, "CM"),
+            New KeyValuePair(Of Integer, String)(500, "D"), New KeyValuePair(Of Integer, String)(400, "CD"),
+            New KeyValuePair(Of Integer, String)(100, "C"), New KeyValuePair(Of Integer, String)(90, "XC"),
+            New KeyValuePair(Of Integer, String)(50, "L"), New KeyValuePair(Of Integer, String)(40, "XL"),
+            New KeyValuePair(Of Integer, String)(10, "X"), New KeyValuePair(Of Integer, String)(9, "IX"),
+            New KeyValuePair(Of Integer, String)(5, "V"), New KeyValuePair(Of Integer, String)(4, "IV"),
+            New KeyValuePair(Of Integer, String)(1, "I")}
+        Dim Result As New Text.StringBuilder
+        For Each Pair In Pairs
+            Do While Value >= Pair.Key
+                Result.Append(Pair.Value)
+                Value -= Pair.Key
+            Loop
+        Next
+        Return Result.ToString
+    End Function
+
+    ''' <summary>
     ''' 将 WPF 样式属性转换为 Avalonia 属性名，不支持时返回 Nothing。
     ''' </summary>
     Private Function MapWpfStyleProperty(Prop As String) As String
@@ -557,7 +891,7 @@ Public Module ModHelp
 
     Private Function MapWpfImplicitSelector(TargetType As String) As String
         Select Case TargetType
-            Case "TextBlock"
+            Case "TextBlock", "Paragraph"
                 Return "TextBlock"
             Case "FlowDocument"
                 Return "StackPanel"
@@ -579,13 +913,13 @@ Public Module ModHelp
             Case "Margin", "Width", "Height", "MinWidth", "MinHeight", "MaxWidth", "MaxHeight", "HorizontalAlignment", "VerticalAlignment", "Opacity", "IsVisible", "IsEnabled", "ToolTip.Tip", "EventType", "EventData", "LogoScale", "Logo", "IsReadOnly"
                 Return True
             Case "Padding"
-                Return TypeName = "Border" OrElse TypeName = "TextBox" OrElse TypeName = "TextBlock" OrElse TypeName = "ScrollViewer" OrElse TypeName = "MyCard"
+                Return TypeName = "Border" OrElse TypeName = "TextBox" OrElse TypeName = "TextBlock" OrElse TypeName = "SelectableTextBlock" OrElse TypeName = "ScrollViewer" OrElse TypeName = "MyCard"
             Case "Background"
-                Return TypeName = "StackPanel" OrElse TypeName = "Border" OrElse TypeName = "Grid" OrElse TypeName = "TextBox" OrElse TypeName = "ScrollViewer" OrElse TypeName = "MyCard" OrElse TypeName = "WrapPanel" OrElse TypeName = "ContentControl"
+                Return TypeName = "StackPanel" OrElse TypeName = "Border" OrElse TypeName = "Grid" OrElse TypeName = "TextBox" OrElse TypeName = "TextBlock" OrElse TypeName = "SelectableTextBlock" OrElse TypeName = "ScrollViewer" OrElse TypeName = "MyCard" OrElse TypeName = "WrapPanel" OrElse TypeName = "ContentControl"
             Case "BorderThickness", "BorderBrush", "CornerRadius"
-                Return TypeName = "Border" OrElse TypeName = "TextBox" OrElse TypeName = "MyCard"
+                Return TypeName = "Border" OrElse TypeName = "TextBox" OrElse TypeName = "SelectableTextBlock" OrElse TypeName = "MyCard"
             Case "FontSize", "FontWeight", "FontStyle", "FontFamily", "Foreground", "TextWrapping", "TextAlignment", "LineHeight", "Text", "TextTrimming"
-                Return TypeName = "TextBlock" OrElse TypeName = "MyIconTextButton" OrElse TypeName = "MyTextButton" OrElse TypeName = "MyListItem" OrElse TypeName = "ContentControl"
+                Return TypeName = "TextBlock" OrElse TypeName = "SelectableTextBlock" OrElse TypeName = "TextBox" OrElse TypeName = "MyTextBox" OrElse TypeName = "MyIconTextButton" OrElse TypeName = "MyTextButton" OrElse TypeName = "MyListItem" OrElse TypeName = "ContentControl"
             Case "Stretch"
                 Return TypeName = "MyImage" OrElse TypeName = "Image"
             Case "VerticalScrollBarVisibility", "HorizontalScrollBarVisibility"

@@ -21,7 +21,7 @@ Public Class FormSplash
         CanMaximize = False
         WindowStartupLocation = WindowStartupLocation.CenterScreen
         SizeToContent = SizeToContent.WidthAndHeight
-        Using Stream = AssetLoader.Open(New Uri("avares://PCL/Assets/Images/icon.png"))
+        Using Stream = AssetLoader.Open(New Uri("avares://PCL.Avalonia/Assets/Images/icon.png"))
             Dim IconBitmap As New Bitmap(Stream)
             Icon = New WindowIcon(IconBitmap)
             Content = New Image With {

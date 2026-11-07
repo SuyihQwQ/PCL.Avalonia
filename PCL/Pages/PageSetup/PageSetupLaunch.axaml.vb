@@ -475,14 +475,29 @@ Public Class PageSetupLaunch
         LabAdvanceJava.Text = If(Entries.Count > 0, $"共有 {Entries.Count} 个 Java …", "未找到 Java，点击以导入已有的 Java")
         '更新列表
         Try
-            For Each Entry In Entries
+            For Index = 0 To Entries.Count - 1
+                Dim Entry = Entries(Index)
                 Dim Item As New MyListItem With {
                     .FontSize = 13, .Height = 24, .IsScaleAnimationEnabled = False, .Type = MyListItem.CheckType.Clickable,
                     .Tag = Entry, .Title = Entry.ToString()}
                 AddHandler Item.PointerReleased, Sub(s, e) e.Handled = True
-                AddHandler Item.Click, Sub() ComboAdvanceJava.IsDropDownOpen = False
+                AddHandler Item.Click, Sub() Hint("点击选项右侧的箭头可以进行排序，以控制 PCL 优先选择哪个 Java！")
                 ComboAdvanceJava.Items.Add(Item)
                 Dim Buttons As New List(Of MyIconButton)
+                '提高优先级
+                Dim UpButton As New MyIconButton With {.Logo = Logo.IconButtonArrowUp, .LogoScale = 0.95, .Height = 24, .Width = 24}
+                UpButton.IsEnabled = Index > 0
+                UpButton.ToolTip = "提高优先级"
+                ToolTip.SetShowOnDisabled(UpButton, True)
+                AddHandler UpButton.Click, Sub() MoveJavaInList(Entry, -1)
+                Buttons.Add(UpButton)
+                '降低优先级
+                Dim DownButton As New MyIconButton With {.Logo = Logo.IconButtonArrowDown, .LogoScale = 0.95, .Height = 24, .Width = 24}
+                DownButton.IsEnabled = Index < Entries.Count - 1
+                DownButton.ToolTip = "降低优先级"
+                ToolTip.SetShowOnDisabled(DownButton, True)
+                AddHandler DownButton.Click, Sub() MoveJavaInList(Entry, 1)
+                Buttons.Add(DownButton)
                 '从列表中移除按钮
                 Dim IsOfficial As Boolean = PathUtils.IsParentOf($"{Paths.AppData}.minecraft\runtime\", Entry.Folder)
                 Dim DeleteButton As New MyIconButton With {.Logo = Logo.IconButtonStop, .Height = 24, .Width = 24}
@@ -509,6 +524,14 @@ Public Class PageSetupLaunch
         Catch ex As Exception
             Logger.Error(ex, "更新 Java 列表下拉框失败")
         End Try
+    End Sub
+
+    Private Sub MoveJavaInList(JavaEntry As Java, Offset As Integer)
+        Configs.JavaList.Edit(
+        Sub(ByRef List As ConcurrentList(Of Java))
+            JavaUtils.MoveInList(List, JavaEntry, Offset)
+        End Sub)
+        ModJava.UpdateJavaLists()
     End Sub
 
     Private Sub BtnAdvanceJavaSearch_Click(sender As Object, e As EventArgs) Handles BtnAdvanceJavaSearch.Click

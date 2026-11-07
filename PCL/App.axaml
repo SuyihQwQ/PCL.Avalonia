@@ -4,14 +4,14 @@
              RequestedThemeVariant="Default">
     <Application.Styles>
         <FluentTheme />
-        <StyleInclude Source="avares://PCL/Themes/Controls.axaml" />
+        <StyleInclude Source="avares://PCL.Avalonia/Themes/Controls.axaml" />
     </Application.Styles>
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceInclude Source="avares://PCL/Themes/Colors.axaml" />
+                <ResourceInclude Source="avares://PCL.Avalonia/Themes/Colors.axaml" />
             </ResourceDictionary.MergedDictionaries>
-            <FontFamily x:Key="PCLFont">avares://PCL/Assets/Fonts/PCLEnglish.ttf#PCL English, Noto Sans CJK SC, MiSans TC</FontFamily>
+            <FontFamily x:Key="PCLFont">avares://PCL.Avalonia/Assets/Fonts/PCLEnglish.ttf#PCL English, Noto Sans CJK SC, MiSans TC</FontFamily>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

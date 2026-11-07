@@ -46,7 +46,7 @@ Public Class MyImage
     ''' <summary>
     ''' 正在下载网络图片时显示的本地图片。
     ''' </summary>
-    Public Property LoadingSource As String = "avares://PCL/Assets/Images/Icons/NoIcon.png"
+    Public Property LoadingSource As String = "avares://PCL.Avalonia/Assets/Images/Icons/NoIcon.png"
 
 #End Region
 

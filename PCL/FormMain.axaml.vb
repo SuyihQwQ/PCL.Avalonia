@@ -408,6 +408,18 @@ Public Class FormMain
         MyBase.AddHandler(DragDrop.DropEvent, AddressOf FormMain_Drop, RoutingStrategies.Bubble, True)
         MyBase.AddHandler(InputElement.PointerMovedEvent, AddressOf FormMain_PointerMoved, RoutingStrategies.Tunnel, True)
         MyBase.AddHandler(InputElement.PointerExitedEvent, AddressOf FormMain_PointerExited, RoutingStrategies.Tunnel, True)
+        '与原版一致：点击（包括右键打开菜单）时关闭悬停提示，点击输入框以外的地方退出输入状态
+        MyBase.AddHandler(InputElement.PointerPressedEvent,
+            Sub(sender, e)
+                Dim Pressed = TryCast(e.Source, Visual)
+                '点击当前悬停的控件本身时保留提示（例如点击输入框后仍保持悬停信息）
+                Dim PressedOwnTip As Boolean = HoverTipControl IsNot Nothing AndAlso Pressed IsNot Nothing AndAlso
+                                               Pressed.GetSelfAndVisualAncestors().Contains(HoverTipControl)
+                If Not PressedOwnTip Then HideHoverTip()
+                ExitTextInputOnBlankClick(Pressed)
+            End Sub, RoutingStrategies.Tunnel, True)
+        MyBase.AddHandler(InputElement.PointerReleasedEvent,
+            Sub(sender, e) PointerCaptureActive = False, RoutingStrategies.Tunnel, True)
         HoverTipTimer = New DispatcherTimer With {.Interval = TimeSpan.FromMilliseconds(100)}
         AddHandler HoverTipTimer.Tick, AddressOf HoverTipTimer_Tick
         AddHandler Closed, AddressOf FormMain_Closed
@@ -423,9 +435,38 @@ Public Class FormMain
     Private HoverTipControl As Control
     Private HoverTipObject As Object
     Private HoverTipPointer As Point
+    '指针被控件捕获（如拖动滑块）期间不显示悬停提示
+    Private PointerCaptureActive As Boolean
+    Private HoverTipHiding As Boolean
     Private ReadOnly HoverTipTimer As DispatcherTimer
 
+    ''' <summary>
+    ''' 点击文本框以外的区域时退出输入状态，与原版一致。
+    ''' </summary>
+    Private Sub ExitTextInputOnBlankClick(Source As Visual)
+        If Source Is Nothing Then Return
+        Dim Top = TopLevel.GetTopLevel(Me)
+        If Top Is Nothing OrElse Top.FocusManager Is Nothing Then Return
+        Dim Focused = TryCast(Top.FocusManager.GetFocusedElement(), Visual)
+        If Focused Is Nothing Then Return
+        If TypeOf Focused IsNot TextBox AndAlso TypeOf Focused IsNot MyComboBox Then Return
+        Dim Chain = Source.GetSelfAndVisualAncestors().ToList()
+        '点击仍在当前输入控件内部（例如移动光标）时保持焦点
+        If Chain.Contains(Focused) Then Return
+        '可编辑下拉框的焦点在内部文本框上，点击同一控件的箭头等区域也不应退出
+        Dim Combo = Focused.GetSelfAndVisualAncestors().OfType(Of MyComboBox)().FirstOrDefault()
+        If Combo IsNot Nothing AndAlso Chain.Contains(Combo) Then Return
+        Top.FocusManager.Focus(Nothing)
+    End Sub
+
     Private Sub FormMain_PointerMoved(sender As Object, e As PointerEventArgs)
+        '拖动滑块等捕获指针的操作期间，指针移到其他控件也不显示悬停提示
+        PointerCaptureActive = e.Pointer.Captured IsNot Nothing
+        '下拉菜单展开期间不显示悬停提示
+        If PointerCaptureActive OrElse MyComboBox.OpenDropDowns.Count > 0 Then
+            HideHoverTip()
+            Return
+        End If
         Dim Pointer = e.GetPosition(Me)
         Dim TipControl = FindToolTipControl(TryCast(Me.InputHitTest(Pointer), Visual))
         If TipControl Is Nothing Then
@@ -457,11 +498,17 @@ Public Class FormMain
     End Sub
 
     Private Sub FormMain_PointerExited(sender As Object, e As PointerEventArgs)
+        PointerCaptureActive = False
         HideHoverTip()
     End Sub
 
     Private Sub ShowHoverTip()
         HoverTipTimer.Stop()
+        '计时器触发前可能已开始拖动或展开下拉菜单
+        If PointerCaptureActive OrElse MyComboBox.OpenDropDowns.Count > 0 Then
+            HideHoverTip()
+            Return
+        End If
         If HoverTipControl Is Nothing OrElse Not HoverTipControl.IsEffectivelyVisible Then
             HideHoverTip()
             Return
@@ -472,8 +519,14 @@ Public Class FormMain
             Return
         End If
         LabToolTip.Text = Text
-        BorderToolTip.IsVisible = True
+        If Not BorderToolTip.IsVisible Then
+            BorderToolTip.Opacity = 0
+            BorderToolTip.IsVisible = True
+        End If
+        HoverTipHiding = False
+        AniStop("Form HoverTip")
         PositionHoverTip(HoverTipPointer)
+        AniStart(AaOpacity(BorderToolTip, 1 - BorderToolTip.Opacity, 100, , New AniEaseOutFluent), "Form HoverTip")
     End Sub
 
     Private Sub PositionHoverTip(Pointer As Point)
@@ -487,15 +540,29 @@ Public Class FormMain
         Canvas.SetTop(BorderToolTip, Math.Clamp(Y, 8, Math.Max(8, Bounds.Height - Desired.Height - 8)))
     End Sub
 
-    Private Sub HideHoverTip()
+    Friend Sub HideHoverTip()
         HoverTipTimer.Stop()
         HoverTipControl = Nothing
         HoverTipObject = Nothing
-        If BorderToolTip IsNot Nothing Then BorderToolTip.IsVisible = False
+        If BorderToolTip Is Nothing OrElse Not BorderToolTip.IsVisible OrElse HoverTipHiding Then Return
+        HoverTipHiding = True
+        Dim Tip = BorderToolTip
+        AniStop("Form HoverTip")
+        AniStart({
+            AaOpacity(Tip, -Tip.Opacity, 100, , New AniEaseOutFluent),
+            AaCode(
+            Sub()
+                Tip.IsVisible = False
+                Tip.Opacity = 0
+                HoverTipHiding = False
+            End Sub, , True)
+        }, "Form HoverTip")
     End Sub
 
     Private Sub FormMain_Closed(sender As Object, e As EventArgs)
         HoverTipTimer.Stop()
+        AniStop("Form HoverTip")
+        HoverTipHiding = False
     End Sub
 
     '窗口加载

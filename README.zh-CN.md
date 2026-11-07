@@ -13,10 +13,10 @@
 
 - Minecraft 原版与模组加载器（Forge / NeoForge / Fabric / Quilt / OptiFine 等）安装、启动与版本隔离
 - 整合包安装（支持拖入 `zip` / `mrpack` 文件）、实例导入导出
-- Mod / 资源包 / 光影 / 数据包下载与更新，支持 Modrinth 与 CurseForge（CurseForge 通过 MCIM 镜像访问）
+- Mod / 资源包 / 光影 / 数据包下载与更新，支持 Modrinth 与 CurseForge（官方 API 或 MCIM 镜像）
 - 离线、Authlib-Injector、Nide 与 Microsoft 正版登录，皮肤管理
-- Java 自动搜索与下载、内存与 JVM 参数配置
-- 音乐播放器、主题与界面设置、中英文语言切换
+- Java 自动搜索与下载（Azul Zulu）、内存与 JVM 参数配置
+- 音乐播放器、主题与界面设置、中英文语言切换（默认跟随系统语言）
 
 ## 环境要求
 
@@ -37,7 +37,7 @@ dotnet run --project PCL/PCL.vbproj
 发布自包含单文件版本：
 
 ```bash
-# Linux
+# Linux（独立可执行文件命名为 pcl-avalonia）
 dotnet publish PCL/PCL.vbproj -c Release -r linux-x64 --self-contained true \
   -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
   -p:EnableCompressionInSingleFile=true -o dist/package/linux-x64
@@ -48,6 +48,8 @@ dotnet publish PCL/PCL.vbproj -c Release -r win-x64 --self-contained true \
   -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true \
   -o dist/package/win-x64
 ```
+
+Linux 独立发布的程序名与 AppImage 内部的程序名均为 `pcl-avalonia`；Windows 产物为 `PCL.Avalonia.exe`。
 
 ## 测试
 
@@ -89,23 +91,28 @@ python3 tools/XamlGen/gen_fields.py --check  # 仅校验是否最新
 
 - 数据文件夹：`<程序目录>/PCL.Avalonia/`
 - 默认游戏文件夹：`<程序目录>/.minecraft/`
+- 可执行文件：Windows 为 `PCL.Avalonia.exe`，Linux 独立版本与 AppImage 内部均为 `pcl-avalonia`
 - Linux 设置（替代注册表）：`~/.config/PCL.Avalonia/Registry.ini`
+- Java 扫描缓存与其他启动器配置：`~/.config/PCL.Avalonia/config.json`
 - Windows 设置：`HKCU\Software\PCL.Avalonia`
 - 临时文件：系统临时目录下的 `PCL/`
 
 使用 `--working-dir <路径>` 或 `--working-dir=<路径>` 可以覆盖数据文件夹与默认 `.minecraft` 的基础目录，适用于启动器安装在 `/usr/bin`、`/opt` 等只读位置的情况。当前选中的游戏文件夹内会保存各自的 `PCL.ini`。
 
-数据文件夹创建失败时，启动器会提示运行环境错误并退出，与原版 PCL 行为一致。
+数据文件夹创建失败时（例如同名文件已存在、目录只读等），启动器会提示与原版相同的运行环境错误并退出，不会回退到其他目录。
 
-Microsoft 登录使用构建时嵌入的客户端 ID，放在被 `.gitignore` 排除的 `PCL/Modules/ModSecret.Private.vb` 中：
+Microsoft 登录与 CurseForge 使用构建时嵌入的凭据，放在被 `.gitignore` 排除的 `PCL/Modules/ModSecret.Private.vb` 中：
 
 ```vb
 Friend Module ModSecretPrivate
     Public Const PrivateOAuthClientId As String = "<你的客户端 ID>"
+    Public Const PrivateCurseForgeApiKey As String = "<你的 CurseForge API Key>"
 End Module
 ```
 
-缺少该文件时正版登录不可用，其余功能不受影响。CurseForge 请求通过 MCIM 镜像（`mod.mcimirror.top`）访问，不需要 API Key。
+界面语言默认跟随系统，目前仅支持简体中文与英文，其他系统语言会回退为简体中文。
+
+缺少该文件时正版登录不可用；没有 CurseForge API Key 时请求回退到 MCIM 镜像（`mod.mcimirror.top`），有 Key 时优先使用官方 API。
 
 ## 发布签名
 
@@ -124,6 +131,7 @@ gpg --verify SHA256SUMS.asc SHA256SUMS
 - Wayland 下使用自绘标题栏，避免启动时闪现服务端标题栏
 - Avalonia 的 Wayland 后端不支持 `DragDropEffects.Link`，因此文件拖放统一使用 `Copy` 效果
 - X11 下通过独立的窗口监听实现实例文件夹变更监控
+- 生成并安装名为 `PCL.Avalonia.desktop` 的桌面项
 
 ## 许可与致谢
 

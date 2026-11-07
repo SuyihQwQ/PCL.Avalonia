@@ -13,10 +13,10 @@ Current release: **Snapshot-14.1.0**.
 
 - Install, launch, and isolate Minecraft vanilla and mod loaders (Forge / NeoForge / Fabric / Quilt / OptiFine, etc.)
 - Modpack installation (drop `zip` / `mrpack` files onto the window), instance import and export
-- Mods, resource packs, shaders, and datapacks via Modrinth and CurseForge (CurseForge uses the MCIM mirror)
+- Mods, resource packs, shaders, and datapacks via Modrinth and CurseForge (official API or MCIM mirror)
 - Offline, Authlib-Injector, Nide, and Microsoft login; skin management
-- Automatic Java detection and download, memory and JVM argument configuration
-- Music player, themes and UI settings, Chinese/English interface
+- Automatic Java detection and download (Azul Zulu), memory and JVM argument configuration
+- Music player, themes and UI settings, Chinese/English interface (follows the system language by default)
 
 ## Requirements
 
@@ -37,7 +37,7 @@ dotnet run --project PCL/PCL.vbproj
 Publish self-contained single-file builds:
 
 ```bash
-# Linux
+# Linux (the standalone executable is named pcl-avalonia)
 dotnet publish PCL/PCL.vbproj -c Release -r linux-x64 --self-contained true \
   -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
   -p:EnableCompressionInSingleFile=true -o dist/package/linux-x64
@@ -48,6 +48,8 @@ dotnet publish PCL/PCL.vbproj -c Release -r win-x64 --self-contained true \
   -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true \
   -o dist/package/win-x64
 ```
+
+On Linux, both the standalone published executable and the executable inside the AppImage are named `pcl-avalonia`; the Windows build produces `PCL.Avalonia.exe`.
 
 ## Tests
 
@@ -89,23 +91,28 @@ The launcher is portable by default and stores data next to the executable (or n
 
 - Data folder: `<program folder>/PCL.Avalonia/`
 - Default Minecraft folder: `<program folder>/.minecraft/`
+- Executables: `PCL.Avalonia.exe` on Windows, `pcl-avalonia` for standalone Linux builds and inside the AppImage
 - Linux settings (registry replacement): `~/.config/PCL.Avalonia/Registry.ini`
+- Java scan cache and other launcher config: `~/.config/PCL.Avalonia/config.json`
 - Windows settings: `HKCU\Software\PCL.Avalonia`
 - Temporary files: `PCL/` under the system temp directory
 
 Use `--working-dir <path>` or `--working-dir=<path>` to override the base folder used for the data folder and the default `.minecraft` folder. This is useful when the launcher is installed in a read-only location such as `/usr/bin` or `/opt`. The selected Minecraft folder keeps its own `PCL.ini`.
 
-If the data folder cannot be created, the launcher reports a runtime error and exits, matching the original PCL.
+If the data folder cannot be created (for example when a file with the same name exists, or the folder is read-only), the launcher reports the same runtime error as the original PCL and exits; it does not fall back to another directory.
 
-Microsoft login uses a client ID embedded at build time. Put it in `PCL/Modules/ModSecret.Private.vb`, which is excluded by `.gitignore`:
+Microsoft login and CurseForge use credentials embedded at build time. Put them in `PCL/Modules/ModSecret.Private.vb`, which is excluded by `.gitignore`:
 
 ```vb
 Friend Module ModSecretPrivate
     Public Const PrivateOAuthClientId As String = "<your client id>"
+    Public Const PrivateCurseForgeApiKey As String = "<your CurseForge API key>"
 End Module
 ```
 
-If the file is absent, Microsoft login is unavailable and the rest of the launcher still works. CurseForge requests go through the MCIM mirror (`mod.mcimirror.top`) and do not require an API key.
+The UI language follows the system language by default. Only Simplified Chinese and English are available; unsupported system languages fall back to Simplified Chinese.
+
+If the file is absent, Microsoft login is unavailable. Without a CurseForge API key, CurseForge requests fall back to the MCIM mirror (`mod.mcimirror.top`); with a key, the official API is used first.
 
 ## Release signing
 
@@ -124,6 +131,7 @@ The public key is published alongside the release as `PCL.Avalonia-signing-key.a
 - Uses client-side decorations on Wayland to avoid a flash of server-side title bars
 - Avalonia's Wayland backend does not support `DragDropEffects.Link`, so file drag-and-drop uses the `Copy` effect
 - Watches instance folders on X11 through a separate window listener
+- Installs a generated desktop entry named `PCL.Avalonia.desktop`
 
 ## License and credits
 

@@ -116,7 +116,10 @@ public class LaunchPageTests {
                 for (var i = 0; i < javaEntries.Count; i++) {
                     var javaItem = Assert.IsType<global::PCL.MyListItem>(page.ComboAdvanceJava.Items[i]);
                     Assert.Equal(javaEntries[i].ToString(), javaItem.Title);
-                    Assert.Equal(2, javaItem.Buttons!.Count());
+                    var buttons = javaItem.Buttons!.ToList();
+                    Assert.Equal(4, buttons.Count);
+                    Assert.Equal(i > 0, buttons[0].IsEnabled);
+                    Assert.Equal(i < javaEntries.Count - 1, buttons[1].IsEnabled);
                 }
 
                 Settle();
@@ -326,8 +329,8 @@ public class LaunchPageTests {
                 for (var i = 0; i < entries.Count; i++) {
                     var item = Assert.IsType<global::PCL.MyListItem>(realized[i].Content);
                     Assert.Equal(entries[i].ToString(), item.Title);
-                    Assert.Equal(2, item.Buttons!.Count());
-                    Assert.Equal(2, item.GetVisualDescendants().OfType<global::PCL.MyIconButton>().Count());
+                    Assert.Equal(4, item.Buttons!.Count());
+                    Assert.Equal(4, item.GetVisualDescendants().OfType<global::PCL.MyIconButton>().Count());
                 }
                 page.ComboAdvanceJava.IsDropDownOpen = false;
                 Settle();

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless.XUnit;
 using Avalonia.Platform;
@@ -13,7 +14,7 @@ namespace PCL.Tests;
 public class Step12CustomHomeTests {
 
     private static string ReadTutorialAsset() {
-        using var stream = AssetLoader.Open(new Uri("avares://PCL/Assets/Custom.xaml.txt"));
+        using var stream = AssetLoader.Open(new Uri("avares://PCL.Avalonia/Assets/Custom.xaml.txt"));
         using var reader = new StreamReader(stream);
         return reader.ReadToEnd();
     }
@@ -41,7 +42,7 @@ public class Step12CustomHomeTests {
         Assert.DoesNotContain("DropShadowEffect", converted);
         Assert.DoesNotContain("Effect", converted);
         Assert.Contains("ToolTip.Tip=", converted);
-        Assert.Contains("avares://PCL/Assets/Images/Blocks/CobbleStone.png", converted);
+        Assert.Contains("avares://PCL.Avalonia/Assets/Images/Blocks/CobbleStone.png", converted);
         Assert.Contains("IsVisible=\"False\"", converted);
         Assert.Contains("IsVisible=\"True\"", converted);
     }
@@ -111,6 +112,89 @@ public class Step12CustomHomeTests {
             Assert.Contains("模板", texts);
         } finally {
             window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Homepage_builder_output_loads_with_document_markup() {
+        var imagePath = Path.Combine(Path.GetTempPath(), "pcl-builder-" + Guid.NewGuid().ToString("N") + ".png");
+        File.WriteAllBytes(imagePath, Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="));
+        try {
+            var source = """
+                <StackPanel Margin="0,-10,0,0" xmlns:sys="clr-namespace:System;assembly=mscorlib" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:PCL;assembly=Plain Craft Launcher 2">
+                <StackPanel.Triggers></StackPanel.Triggers>
+                <StackPanel.Resources>
+                <Style TargetType="local:MyCard" x:Key="Card"><Setter Property="Margin" Value="0,5" /></Style>
+                <Style TargetType="Image" x:Key="InnerImage"><Setter Property="MaxHeight" Value="500" /><Setter Property="HorizontalAlignment" Value="Center" /></Style>
+                <Style TargetType="TextBlock"><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="FontSize" Value="14" /><Setter Property="Foreground" Value="{DynamicResource ColorBrush1}" /></Style>
+                <Style TargetType="Paragraph"><Setter Property="LineHeight" Value="12" /><Setter Property="TextIndent" Value="0" /><Setter Property="Margin" Value="0,8" /></Style>
+                <Style TargetType="Paragraph" x:Key="H1"><Setter Property="FontSize" Value="24" /><Setter Property="FontWeight" Value="Bold" /></Style>
+                <Style TargetType="Paragraph" x:Key="Lp"><Setter Property="Margin" Value="0,8" /></Style>
+                <Style TargetType="Section" x:Key="Quote"><Setter Property="BorderThickness" Value="5,0,0,0" /><Setter Property="BorderBrush" Value="{DynamicResource ColorBrush4}" /><Setter Property="Padding" Value="10,0" /><Setter Property="Margin" Value="0,12" /></Style>
+                <Style TargetType="Section" x:Key="typedQuote" BasedOn="{StaticResource Quote}"><Setter Property="Padding" Value="10,2" /></Style>
+                <Style TargetType="Section" x:Key="Hr"><Setter Property="Margin" Value="0,4,0,0" /><Setter Property="BorderThickness" Value="0,1.5,0,0" /><Setter Property="BorderBrush" Value="{StaticResource ColorBrush4}" /></Style>
+                <Style TargetType="Border" x:Key="BlockCodeBorder"><Setter Property="Background" Value="{DynamicResource ColorBrush4}" /><Setter Property="CornerRadius" Value="5" /><Setter Property="Margin" Value="2" /></Style>
+                <Style TargetType="TextBox" x:Key="InlineCode"><Setter Property="FontSize" Value="14" /><Setter Property="Foreground" Value="{DynamicResource ColorBrush1}" /><Setter Property="Margin" Value="2,0,2,-4" /></Style>
+                <Style TargetType="TextBox" x:Key="BlockCode"><Setter Property="Foreground" Value="White" /><Setter Property="FontSize" Value="14" /><Setter Property="IsReadOnly" Value="True" /></Style>
+                </StackPanel.Resources>
+                <local:MyCard Title="Builder" CanSwap="True" IsSwaped="False" Style="{StaticResource Card}">
+                <FlowDocumentScrollViewer><FlowDocument>
+                <Paragraph Style="{StaticResource H1}">Heading</Paragraph>
+                <Paragraph>Text <Bold>bold</Bold> and <Underline><local:MyTextButton EventType="打开网页" EventData="https://example.com">link</local:MyTextButton></Underline> and <TextBox Style="{StaticResource InlineCode}">code</TextBox></Paragraph>
+                <List MarkerStyle="Decimal"><ListItem><Paragraph Style="{StaticResource Lp}">one</Paragraph></ListItem><ListItem>two</ListItem></List>
+                <Section Style="{StaticResource typedQuote}"><Paragraph FontWeight="Bold">Quote<Paragraph.Foreground><Binding Path="BorderBrush" RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType=Section}" /></Paragraph.Foreground></Paragraph><Paragraph>quote body</Paragraph></Section>
+                <Section Style="{StaticResource Hr}" />
+                <BlockUIContainer><local:MyHint Margin="0,4,0,8" IsWarn="False" Text="hint" /></BlockUIContainer>
+                <BlockUIContainer><Border Style="{StaticResource BlockCodeBorder}"><StackPanel><TextBlock Foreground="White" FontSize="14" Text="txt" Margin="10,4" /><TextBox Style="{StaticResource BlockCode}" Text="echo hi" /></StackPanel></Border></BlockUIContainer>
+                <Paragraph><Image Style="{StaticResource InnerImage}" Source="__IMAGE__" /></Paragraph>
+                </FlowDocument></FlowDocumentScrollViewer>
+                </local:MyCard>
+                </StackPanel>
+                """.Replace("__IMAGE__", imagePath);
+            var converted = global::PCL.ModHelp.ConvertLegacyXaml(source);
+            Assert.DoesNotContain("<Section", converted);
+            Assert.DoesNotContain("BlockUIContainer", converted);
+            Assert.Contains("local:MyImage", converted);
+            Assert.Contains("AncestorType=Border", converted);
+            var wrapped = "<StackPanel xmlns=\"https://github.com/avaloniaui\" xmlns:x=\"http://schemas.microsoft.com/winfx/2006/xaml\" xmlns:local=\"using:PCL\" xmlns:sys=\"using:System\">" + converted + "</StackPanel>";
+            var control = global::PCL.ModHelp.GetObjectFromXML(wrapped) as Control;
+            Assert.NotNull(control);
+            var panel = Assert.IsType<StackPanel>(control);
+            var window = new Window { Width = 800, Height = 600, Content = panel };
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            try {
+                Assert.Contains(panel.GetVisualDescendants().OfType<global::PCL.MyCard>(), c => c.Title == "Builder");
+                var texts = panel.GetVisualDescendants().OfType<TextBlock>().ToList();
+                var heading = Assert.Single(texts, t => t.Text == "Heading");
+                Assert.Equal(24, heading.FontSize);
+                Assert.Contains(texts, t => t.Text == "1.");
+                Assert.Contains(texts, t => t.Text == "2.");
+                Assert.Contains(texts, t => t.Text == "code");
+                Assert.Contains(texts, t => t.Text == "link");
+                Assert.Single(panel.GetVisualDescendants().OfType<SelectableTextBlock>(), t => t.Text == "echo hi");
+                var hint = Assert.Single(panel.GetVisualDescendants().OfType<global::PCL.MyHint>());
+                Assert.Contains("hint", hint.Text);
+                var image = Assert.Single(panel.GetVisualDescendants().OfType<global::PCL.MyImage>());
+                Assert.Equal(500, image.MaxHeight);
+                var quote = panel.GetVisualDescendants().OfType<Border>().First(b => b.BorderThickness.Left == 5);
+                Assert.Equal(new Thickness(10, 2, 10, 2), quote.Padding);
+                var quoteText = texts.First(t => t.Text == "Quote");
+                Assert.Same(quote.BorderBrush, quoteText.Foreground);
+                //列表项使用两列 Grid：标记在左列，正文在右列并占满剩余宽度
+                var listGrid = panel.GetVisualDescendants().OfType<Grid>().First(
+                    g => g.ColumnDefinitions.Count == 2 && g.Children.OfType<TextBlock>().Any(t => t.Text == "1."));
+                var marker = listGrid.Children.OfType<TextBlock>().First(t => t.Text == "1.");
+                var listContent = listGrid.Children.OfType<TextBlock>().First(t => t.Text == "one");
+                Assert.Equal(0, Grid.GetColumn(marker));
+                Assert.Equal(1, Grid.GetColumn(listContent));
+                Assert.Contains(panel.GetVisualDescendants().OfType<Border>(),
+                    b => b.BorderThickness.Left == 0 && Math.Abs(b.BorderThickness.Top - 1.5) < 0.01);
+            } finally {
+                window.Close();
+            }
+        } finally {
+            try { File.Delete(imagePath); } catch { }
         }
     }
 

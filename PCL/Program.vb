@@ -7,7 +7,7 @@ Public Module Program
     <STAThread>
     Public Sub Main(args As String())
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance)
-        MeloongCore.Main.Init("PCL")
+        MeloongCore.Main.Init("PCL.Avalonia")
         Dim RemainingArgs = ParseWorkingDirectory(args)
         Try
             EnsureDataPath()
@@ -136,7 +136,7 @@ Public Module Program
         'Skia 在某些 Linux 系统上会把无法渲染的位图字体（如 8514fix）当作默认字体，
         '未显式指定字体的控件一旦提前排版就会抛出 glyphTypeface 异常，因此固定使用 PCL 字体
         Builder = Builder.With(New FontManagerOptions With {
-            .DefaultFamilyName = "avares://PCL/Assets/Fonts/PCLEnglish.ttf#PCL English, Noto Sans CJK SC, MiSans TC"
+            .DefaultFamilyName = "avares://PCL.Avalonia/Assets/Fonts/PCLEnglish.ttf#PCL English, Noto Sans CJK SC, MiSans TC"
         })
         'Wayland 下禁止协商服务端标题栏，避免启动时先闪出系统标题栏再被移除
         If OperatingSystem.IsLinux() Then
@@ -297,16 +297,23 @@ Public Module Program
     Public Sub EnsureLinuxDesktopEntry()
         If Not OperatingSystem.IsLinux() Then Return
         Try
-            Dim DesktopFile = IO.Path.Combine(DataHome, "applications", "PCL.desktop")
-            Dim Existing = FindDesktopEntry("PCL.desktop")
+            Dim DesktopFile = IO.Path.Combine(DataHome, "applications", "PCL.Avalonia.desktop")
+            Dim Existing = FindDesktopEntry("PCL.Avalonia.desktop")
             If Existing IsNot Nothing AndAlso Not IO.File.ReadAllText(Existing).Contains("X-PCL-Generated=true") Then Return
+            '清理旧版本生成的 PCL.desktop，避免开始菜单出现两个图标
+            Try
+                Dim LegacyEntry = FindDesktopEntry("PCL.desktop")
+                If LegacyEntry IsNot Nothing AndAlso IO.File.ReadAllText(LegacyEntry).Contains("X-PCL-Generated=true") Then IO.File.Delete(LegacyEntry)
+            Catch ex As Exception
+                Logger.Warn(ex, "清理旧桌面图标项失败")
+            End Try
             'AppImage 运行时 ProcessPath 指向临时挂载目录，桌面项应指向 AppImage 文件本身
             Dim ExePath = Environment.GetEnvironmentVariable("APPIMAGE")
             If String.IsNullOrWhiteSpace(ExePath) Then ExePath = Environment.ProcessPath
             If String.IsNullOrWhiteSpace(ExePath) Then Return
             '图标放入 hicolor 主题
-            Dim IconFile = IO.Path.Combine(DataHome, "icons", "hicolor", "256x256", "apps", "PCL.png")
-            Using Stream = Platform.AssetLoader.Open(New Uri("avares://PCL/Assets/Images/icon.png"))
+            Dim IconFile = IO.Path.Combine(DataHome, "icons", "hicolor", "256x256", "apps", "PCL.Avalonia.png")
+            Using Stream = Platform.AssetLoader.Open(New Uri("avares://PCL.Avalonia/Assets/Images/icon.png"))
                 Using Memory As New IO.MemoryStream()
                     Stream.CopyTo(Memory)
                     Dim Bytes = Memory.ToArray()
@@ -326,13 +333,13 @@ Public Module Program
             Dim Content = String.Join(vbLf, {
                 "[Desktop Entry]",
                 "Type=Application",
-                "Name=PCL",
+                "Name=PCL.Avalonia",
                 "Comment=Plain Craft Launcher",
                 "Exec=" & ExecPath,
                 "Icon=" & IconFile,
                 "Terminal=false",
                 "Categories=Game;",
-                "StartupWMClass=PCL",
+                "StartupWMClass=PCL.Avalonia",
                 "X-PCL-Generated=true",
                 ""
             })

@@ -10,6 +10,8 @@
                 <StackPanel Margin="25,38,25,15">
                     <TextBlock Text="{DynamicResource LangAvalonia0120}" Margin="0,0,0,8" />
                     <WrapPanel>
+                        <local:MyRadioBox local:SettingService.Key="UiLanguage" local:SettingService.Value="auto"
+                                          Text="{DynamicResource LangSetLanguageFollowSystem}" Margin="0,0,20,0" />
                         <local:MyRadioBox local:SettingService.Key="UiLanguage" local:SettingService.Value="zh-CN"
                                           Text="{DynamicResource LangAvalonia0123}" Margin="0,0,20,0" />
                         <local:MyRadioBox local:SettingService.Key="UiLanguage" local:SettingService.Value="en-US"

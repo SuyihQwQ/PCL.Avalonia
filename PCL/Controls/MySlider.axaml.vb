@@ -90,7 +90,7 @@ Public Class MySlider
         If Not e.GetCurrentPoint(Me).Properties.IsLeftButtonPressed Then Return
         e.Handled = True
         IsDragging = True
-        MyCard.SetCardHoverLock(Me, Me, True)
+        MyCard.SetCardHoverLock(Me, Me, True, KeepWhenPointerLeaves:=False)
         e.Pointer.Capture(Me)
         RefreshColor()
         AniStart({

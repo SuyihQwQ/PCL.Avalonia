@@ -8,6 +8,7 @@ Public Class MyCard
 
     '控件
     Private ReadOnly MainGrid As Grid
+    Public ReadOnly Property MainChrome As MyDropShadow
     Private ReadOnly MainBorder As Border
     Public Property BorderChild As Control
         Get
@@ -53,6 +54,7 @@ Public Class MyCard
         Set(value As CornerRadius)
             _CornerRadius = value
             MainBorder.CornerRadius = value
+            If MainChrome IsNot Nothing Then MainChrome.CornerRadius = value
         End Set
     End Property
     Public Property Title As String
@@ -84,17 +86,27 @@ Public Class MyCard
     Public Sub New()
         'Avalonia 中背景为空的 Panel 不参与命中测试，会导致无法点击卡片标题栏
         Background = Brushes.Transparent
+        '与原版一致：卡片四周始终有一层淡阴影，悬停时加深
+        '阴影与卡片同尺寸，避免卡片边缘和阴影之间出现一圈透明间隙
+        MainChrome = New MyDropShadow With {
+            .Margin = New Thickness(0),
+            .ShadowRadius = 3,
+            .Opacity = DropShadowIdleOpacity,
+            .CornerRadius = New CornerRadius(5)}
+        MainChrome.SetResourceReference(MyDropShadow.ColorProperty, "ColorObject1")
+        Children.Insert(0, MainChrome)
         MainBorder = New Border With {
             .CornerRadius = New CornerRadius(5),
             .IsHitTestVisible = False}
         MainBorder.SetResourceReference(Border.BackgroundProperty, "ColorBrushCard")
-        Children.Insert(0, MainBorder)
+        Children.Insert(1, MainBorder)
         MainGrid = New Grid
         Children.Add(MainGrid)
         AddHandler PointerEntered, AddressOf MyCard_MouseEnter
         AddHandler PointerExited, AddressOf MyCard_MouseLeave
         AddHandler PointerExited, AddressOf MyCard_MouseLeave_Swap
         AddHandler PointerMoved, AddressOf UpdateCursorStyle
+        AddHandler PointerMoved, AddressOf MyCard_PointerMovedWhileLocked
         AddHandler PointerPressed, AddressOf MyCard_MouseLeftButtonDown
         AddHandler PointerReleased, AddressOf MyCard_MouseLeftButtonUp
         AddHandler SizeChanged, AddressOf MySizeChanged
@@ -120,14 +132,14 @@ Public Class MyCard
             Return
         End If
         For Each ChildControl As Control In Children
-            If ChildControl Is MainBorder OrElse ChildControl Is MainGrid Then Continue For
+            If ChildControl Is MainChrome OrElse ChildControl Is MainBorder OrElse ChildControl Is MainGrid Then Continue For
             ChildControl.Clip = Nothing
         Next
     End Sub
 
     Private Sub UpdateContentClips(Width As Double, Height As Double)
         For Each ChildControl As Control In Children
-            If ChildControl Is MainBorder OrElse ChildControl Is MainGrid Then Continue For
+            If ChildControl Is MainChrome OrElse ChildControl Is MainBorder OrElse ChildControl Is MainGrid Then Continue For
             Dim ChildBounds = ChildControl.Bounds
             ChildControl.Clip = New RectangleGeometry(New Rect(-ChildBounds.X, -ChildBounds.Y, Width, Height))
         Next
@@ -225,7 +237,7 @@ Public Class MyCard
             MainGrid.Children.Add(_MainTextBlock)
         End If
         If CanSwap OrElse SwapControl IsNot Nothing Then
-            If SwapControl Is Nothing AndAlso Children.Count > 2 Then SwapControl = Children(2)
+            If SwapControl Is Nothing AndAlso Children.Count > 3 Then SwapControl = Children(3)
             _MainSwap = New Path With {
                 .HorizontalAlignment = HorizontalAlignment.Right,
                 .Stretch = Stretch.Uniform,
@@ -301,36 +313,111 @@ Public Class MyCard
     '动画
     Public Property HasMouseAnimation As Boolean = True
 
-    Private Sub MyCard_MouseEnter(sender As Object, e As PointerEventArgs)
+    Private Const DropShadowIdleOpacity As Double = 0.07
+    Private Const DropShadowHoverOpacity As Double = 0.4
+
+    Private HoverLeavePending As Boolean
+    Private HoverRemovedDuringInteraction As Boolean
+
+    Private Function IsPositionInsideCard(Position As Point) As Boolean
+        Return Position.X >= 0 AndAlso Position.Y >= 0 AndAlso Position.X <= Bounds.Width AndAlso Position.Y <= Bounds.Height
+    End Function
+
+    Private Sub ApplyHoverShadow()
+        AniStart({
+            AaColor(MainChrome, MyDropShadow.ColorProperty, "ColorObject4", 90),
+            AaOpacity(MainChrome, DropShadowHoverOpacity - MainChrome.Opacity, 90)
+        }, "MyCard Shadow " & Uuid)
+    End Sub
+
+    Private Sub ApplyIdleShadow()
+        AniStart({
+            AaColor(MainChrome, MyDropShadow.ColorProperty, "ColorObject1", 90),
+            AaOpacity(MainChrome, DropShadowIdleOpacity - MainChrome.Opacity, 90)
+        }, "MyCard Shadow " & Uuid)
+    End Sub
+
+    Private Sub RestoreHoverState()
+        HoverLeavePending = False
+        HoverRemovedDuringInteraction = False
+        AniStop("MyCard HoverLeave " & Uuid)
+        ApplyHoverShadow()
         ApplyHoverColor()
     End Sub
 
-    Private Sub MyCard_MouseLeave(sender As Object, e As PointerEventArgs)
-        If HoverLocks.Count = 0 Then RemoveHoverColor()
+    Private Sub ScheduleHoverLeave()
+        If HoverLeavePending OrElse HoverRemovedDuringInteraction Then Return
+        HoverLeavePending = True
+        '指针捕获切换（如点击文本框）可能产生瞬时的离开事件，延迟确认避免标题与阴影闪烁
+        AniStart(
+            AaCode(
+            Sub()
+                HoverLeavePending = False
+                If HoverRemovedDuringInteraction Then Return
+                If IsPointerOver Then
+                    HoverRemovedDuringInteraction = False
+                    Return
+                End If
+                HoverRemovedDuringInteraction = True
+                ApplyIdleShadow()
+                '滑块拖动离开卡片时恢复标题颜色；下拉框等交互仍保持高亮
+                If HoverLocks.Count = 0 OrElse Not HoverLocks.Values.Any(Function(v) v) Then RemoveHoverColor()
+            End Sub, 60), "MyCard HoverLeave " & Uuid)
     End Sub
 
-    '拖动滑块或展开下拉框时指针可能离开卡片，原版会保持标题高亮直到交互结束
-    Private ReadOnly HoverLocks As New HashSet(Of Object)()
+    Private Sub MyCard_MouseEnter(sender As Object, e As PointerEventArgs)
+        RestoreHoverState()
+    End Sub
 
-    Friend Sub SetHoverLock(Key As Object, Active As Boolean)
+    Private Sub MyCard_MouseLeave(sender As Object, e As PointerEventArgs)
+        '指针被滑块等子控件捕获时，离开子控件也会触发卡片的离开事件；此时指针仍在卡片内，视同普通悬停
+        If IsPositionInsideCard(e.GetPosition(Me)) Then
+            RestoreHoverState()
+            Return
+        End If
+        ScheduleHoverLeave()
+    End Sub
+
+    ''' <summary>
+    ''' 拖动滑块等捕获指针的交互期间，卡片的悬停事件不再可靠，按真实指针位置更新悬停状态。
+    ''' </summary>
+    Private Sub MyCard_PointerMovedWhileLocked(sender As Object, e As PointerEventArgs)
+        If HoverLocks.Count = 0 OrElse HoverLocks.Values.Any(Function(v) v) Then Return
+        If IsPositionInsideCard(e.GetPosition(Me)) Then
+            If HoverLeavePending OrElse HoverRemovedDuringInteraction Then RestoreHoverState()
+        Else
+            ScheduleHoverLeave()
+        End If
+    End Sub
+
+    '拖动滑块或展开下拉框时指针可能离开卡片；值为 True 表示离开卡片后仍保持标题高亮
+    Private ReadOnly HoverLocks As New Dictionary(Of Object, Boolean)()
+
+    Friend Sub SetHoverLock(Key As Object, Active As Boolean, Optional KeepWhenPointerLeaves As Boolean = True)
         If Active Then
-            HoverLocks.Add(Key)
+            AniStop("MyCard HoverRelease " & Uuid)
+            AniStop("MyCard HoverLeave " & Uuid)
+            HoverLeavePending = False
+            HoverRemovedDuringInteraction = False
+            HoverLocks(Key) = KeepWhenPointerLeaves
             ApplyHoverColor()
         Else
             HoverLocks.Remove(Key)
             If HoverLocks.Count = 0 Then
-                '下拉框关闭后 PointerOver 状态可能稍后才更新，延迟一帧再决定是否取消高亮
-                Dispatcher.UIThread.Post(
+                '下拉框关闭后指针状态会短暂抖动，延迟一小段时间再决定是否取消高亮，避免标题颜色闪一下
+                AniStop("MyCard HoverRelease " & Uuid)
+                AniStart(
+                    AaCode(
                     Sub()
                         If HoverLocks.Count = 0 AndAlso Not IsPointerOver Then RemoveHoverColor()
-                    End Sub, DispatcherPriority.Background)
+                    End Sub, 120), "MyCard HoverRelease " & Uuid)
             End If
         End If
     End Sub
 
-    Friend Shared Sub SetCardHoverLock(Source As Visual, Key As Object, Active As Boolean)
+    Friend Shared Sub SetCardHoverLock(Source As Visual, Key As Object, Active As Boolean, Optional KeepWhenPointerLeaves As Boolean = True)
         Dim Card = Source?.GetVisualAncestors().OfType(Of MyCard)().FirstOrDefault()
-        Card?.SetHoverLock(Key, Active)
+        Card?.SetHoverLock(Key, Active, KeepWhenPointerLeaves)
     End Sub
 
     Private Sub ApplyHoverColor()

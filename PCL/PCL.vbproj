@@ -3,7 +3,9 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <RootNamespace>PCL</RootNamespace>
-    <AssemblyName>PCL</AssemblyName>
+    <AssemblyName>PCL.Avalonia</AssemblyName>
+    <!-- 本地构建不生成 apphost，避免 dotnet run 的可执行文件与 PCL.Avalonia 数据文件夹同名；发布单文件时仍生成 -->
+    <UseAppHost Condition="'$(PublishSingleFile)' != 'true'">false</UseAppHost>
     <StartupObject>PCL.Program</StartupObject>
     <OptionExplicit>On</OptionExplicit>
     <OptionCompare>Binary</OptionCompare>
@@ -13,6 +15,7 @@
     <AvaloniaNameGeneratorIsEnabled>false</AvaloniaNameGeneratorIsEnabled>
     <ApplicationIcon>Assets\Images\icon.ico</ApplicationIcon>
     <AssemblyTitle>PCL.Avalonia</AssemblyTitle>
+    <Product>PCL.Avalonia</Product>
     <Version>14.1.0</Version>
     <AssemblyVersion>14.1.0.0</AssemblyVersion>
     <FileVersion>14.1.0.0</FileVersion>
@@ -22,6 +25,12 @@
     <DefineConstants Condition="Exists('$(MSBuildProjectDirectory)/Modules/ModSecret.Private.vb')">$(DefineConstants),PCL_PRIVATE_SECRETS</DefineConstants>
     <NoWarn>$(NoWarn);BC40000;BC40056;BC42016;BC42017;BC42018;BC42019;BC42020;BC42021;BC42022;BC42024;BC42025;BC42029;BC42030;BC42032;BC42036;BC42104;BC42314;BC42353;BC42356;BC42358</NoWarn>
   </PropertyGroup>
+
+  <Target Name="RenameLinuxExecutable" AfterTargets="Publish" Condition="$(RuntimeIdentifier.StartsWith('linux'))">
+    <!-- Linux 独立可执行文件命名为 pcl-avalonia，避免与 PCL.Avalonia 配置文件夹同名 -->
+    <Copy SourceFiles="$(PublishDir)$(AssemblyName)" DestinationFiles="$(PublishDir)pcl-avalonia" />
+    <Delete Files="$(PublishDir)$(AssemblyName)" />
+  </Target>
 
   <ItemGroup>
     <InternalsVisibleTo Include="PCL.Tests" />

@@ -120,6 +120,15 @@ public static class JavaUtils {
     /// </summary>
     public static async Task<List<Java>> SortAsync(List<Java> javas, CancellationToken cancellationToken = default, ProgressProvider? progress = null) {
         javas = await CheckAllAsync(javas, cancellationToken, progress).NoCapture();
+        SortByPriority(javas);
+        return javas;
+    }
+
+    /// <summary>
+    /// 仅按原版优先级排序，不检查 Java 版本。
+    /// 候选文件夹中的优先，其次优先主版本接近 21 的 Java。
+    /// </summary>
+    public static void SortByPriority(List<Java> javas) {
         javas.Sort((left, right) => {
             var isLeftInCandidateFolder = CandidateFolders.Value.Any(folder => PathUtils.IsParentOf(folder, left.Folder));
             var isRightInCandidateFolder = CandidateFolders.Value.Any(folder => PathUtils.IsParentOf(folder, right.Folder));
@@ -128,7 +137,18 @@ public static class JavaUtils {
             var rightDistance = right.Version is null ? int.MaxValue : Math.Abs(right.Version.Major - 21);
             return leftDistance.CompareTo(rightDistance);
         });
-        return javas;
+    }
+
+    /// <summary>
+    /// 在列表中移动一项，返回是否发生了移动。
+    /// </summary>
+    public static bool MoveInList(IList<Java> list, Java entry, int offset) {
+        var index = list.IndexOf(entry);
+        var newIndex = index + offset;
+        if (index < 0 || newIndex < 0 || newIndex >= list.Count) return false;
+        list.RemoveAt(index);
+        list.Insert(newIndex, entry);
+        return true;
     }
 
     #region 搜索
@@ -213,6 +233,7 @@ public static class JavaUtils {
         javaList = javaList.Distinct().ToList();
         // 删掉已被移除的 Java
         javaList.RemoveIf(j => Configs.JavaRemovedList.Get()!.Contains(j.Folder, StringComparer.OrdinalIgnoreCase));
+        // 新发现的 Java 已按优先级排序并放在前面，原有列表保持用户调整后的顺序
         // 写入设置
         Configs.JavaList.Set([..javaList]);
         Logger.Info($"Java 搜索完成，发现 {javaList.Count} 个 Java");

@@ -82,21 +82,28 @@ Public Class PageInstanceLeft
         Select Case ID
             Case FormMain.PageSubType.InstanceOverall
                 If FrmInstanceOverall Is Nothing Then FrmInstanceOverall = New PageInstanceOverall
+                ModMain.FrmInstanceOverall = FrmInstanceOverall
                 Return FrmInstanceOverall
             Case FormMain.PageSubType.InstanceMod
                 If FrmInstanceMod Is Nothing Then FrmInstanceMod = New PageInstanceMod
+                'Mod 更新流程会通过全局引用刷新页面，必须同步赋值
+                ModMain.FrmInstanceMod = FrmInstanceMod
                 Return FrmInstanceMod
             Case FormMain.PageSubType.InstanceModDisabled
                 If FrmInstanceModDisabled Is Nothing Then FrmInstanceModDisabled = New PageInstanceModDisabled
+                ModMain.FrmInstanceModDisabled = FrmInstanceModDisabled
                 Return FrmInstanceModDisabled
             Case FormMain.PageSubType.InstanceSetup
                 If FrmInstanceSetup Is Nothing Then FrmInstanceSetup = New PageInstanceSetup
+                ModMain.FrmInstanceSetup = FrmInstanceSetup
                 Return FrmInstanceSetup
             Case FormMain.PageSubType.InstanceExport
                 If FrmInstanceExport Is Nothing Then FrmInstanceExport = New PageInstanceExport
+                ModMain.FrmInstanceExport = FrmInstanceExport
                 Return FrmInstanceExport
             Case FormMain.PageSubType.InstanceModify
                 If FrmDownloadModify Is Nothing Then FrmDownloadModify = New PageDownloadModify
+                ModMain.FrmDownloadModify = FrmDownloadModify
                 Return FrmDownloadModify
             Case Else
                 Throw New Exception("未知的版本设置子页面种类：" & ID)

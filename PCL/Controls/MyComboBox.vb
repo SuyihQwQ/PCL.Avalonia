@@ -87,10 +87,12 @@ Public Class MyComboBox
         AddHandler Me.DropDownOpened, Sub(sender, e) DropDownOpenedHandler()
         AddHandler Me.DropDownClosed,
             Sub(sender, e)
+                OpenDropDowns.Remove(Me)
                 MyCard.SetCardHoverLock(Me, Me, False)
                 RefreshColor()
                 RefreshArrow()
             End Sub
+        AddHandler Me.Unloaded, Sub() OpenDropDowns.Remove(Me)
         AddHandler Me.SelectionChanged,
             Sub(sender, e)
                 If IsControlLoaded AndAlso AniControlEnabled = 0 Then RaiseCustomEvent()
@@ -109,6 +111,12 @@ Public Class MyComboBox
         MyBase.OnPropertyChanged(change)
         If change.Property Is IsEnabledProperty OrElse change.Property Is IsDropDownOpenProperty Then RefreshColor()
         If change.Property Is HintTextProperty AndAlso TextBox IsNot Nothing Then TextBox.HintText = HintText
+    End Sub
+
+    Protected Overrides Sub OnPointerWheelChanged(e As PointerWheelEventArgs)
+        '下拉框收起时，滚轮用于滚动页面，不切换选项；展开时交给默认处理
+        If Not IsDropDownOpen Then Return
+        MyBase.OnPointerWheelChanged(e)
     End Sub
 
     Protected Overrides Sub OnGotFocus(e As FocusChangedEventArgs)
@@ -172,7 +180,15 @@ Public Class MyComboBox
         AniStart(AaRotateTransform(ArrowPath, TargetAngle - AniAngle(ArrowPath), 150, , New AniEaseOutFluent), "MyComboBox Arrow " & Uuid)
     End Sub
 
+    ''' <summary>
+    ''' 当前展开着下拉菜单的控件，用于在展开期间关闭悬停提示。
+    ''' </summary>
+    Friend Shared ReadOnly OpenDropDowns As New HashSet(Of MyComboBox)()
+
     Private Sub DropDownOpenedHandler()
+        OpenDropDowns.Add(Me)
+        '与原版一致：打开下拉菜单时关闭现有的悬停提示
+        FrmMain?.HideHoverTip()
         MyCard.SetCardHoverLock(Me, Me, True)
         RefreshColor()
         RefreshArrow()

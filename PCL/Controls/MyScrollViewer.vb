@@ -6,6 +6,20 @@ Public Class MyScrollViewer
 
     Public Property DeltaMult As Double = 1
 
+    ''' <summary>
+    ''' 是否始终为可能出现的滚动条预留空间。页面滚动通常需要预留以避免宽度跳动，短列表不需要。
+    ''' </summary>
+    Public Shared ReadOnly ReserveScrollBarSpaceProperty As StyledProperty(Of Boolean) =
+        AvaloniaProperty.Register(Of MyScrollViewer, Boolean)(NameOf(ReserveScrollBarSpace), True)
+    Public Property ReserveScrollBarSpace As Boolean
+        Get
+            Return GetValue(ReserveScrollBarSpaceProperty)
+        End Get
+        Set(value As Boolean)
+            SetValue(ReserveScrollBarSpaceProperty, value)
+        End Set
+    End Property
+
     Private RealOffset As Double
 
     Public Sub New()
@@ -62,11 +76,18 @@ Public Class MyScrollViewer
 
     ''' <summary>
     ''' 为自动显示的滚动条预留固定宽度，避免内容高度变化时页面宽度来回跳动。
+    ''' 未预留时使用 Auto，让短列表不占位、长列表仍能显示滚动条。
     ''' </summary>
     Private Sub UpdateScrollBarGutter()
         If RootGrid Is Nothing OrElse RootGrid.ColumnDefinitions.Count < 2 Then Return
-        Dim Reserve As Boolean = VerticalScrollBarVisibility = ScrollBarVisibility.Auto OrElse VerticalScrollBarVisibility = ScrollBarVisibility.Visible
-        RootGrid.ColumnDefinitions(1).Width = New GridLength(If(Reserve, 10, 0))
+        Dim Width As GridLength
+        Select Case VerticalScrollBarVisibility
+            Case ScrollBarVisibility.Auto, ScrollBarVisibility.Visible
+                Width = If(ReserveScrollBarSpace, New GridLength(10), GridLength.Auto)
+            Case Else
+                Width = New GridLength(0)
+        End Select
+        RootGrid.ColumnDefinitions(1).Width = Width
     End Sub
 
     ''' <summary>
@@ -88,7 +109,7 @@ Public Class MyScrollViewer
     Protected Overrides Sub OnPropertyChanged(change As AvaloniaPropertyChangedEventArgs)
         MyBase.OnPropertyChanged(change)
         If change.Property.Name = "CanVerticallyScroll" OrElse change.Property.Name = "CanHorizontallyScroll" Then UpdateScrollCapability()
-        If change.Property Is VerticalScrollBarVisibilityProperty Then UpdateScrollBarGutter()
+        If change.Property Is VerticalScrollBarVisibilityProperty OrElse change.Property Is ReserveScrollBarSpaceProperty Then UpdateScrollBarGutter()
         If change.Property Is IsVisibleProperty Then RefreshExtraBack()
     End Sub
 

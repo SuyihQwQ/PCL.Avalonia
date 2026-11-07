@@ -592,7 +592,29 @@ public class CoreControlTests {
     }
 
     [AvaloniaFact]
-    public void Loading_error_stops_pickaxe_loop_and_returns_to_rest() {
+    public void Textbox_validation_message_has_enough_height() {
+        var box = new global::PCL.MyTextBox();
+        box.ValidateRules.Add(new global::PCL.ValidateFunc(_ => "不可与现有文件夹重名！"));
+        var window = new Window { Width = 300, Height = 100, Content = box };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        try {
+            box.Text = "重名";
+            Dispatcher.UIThread.RunJobs();
+            for (var i = 0; i < 20; i++) {
+                global::PCL.ModAnimation.AniTimer(16);
+                Dispatcher.UIThread.RunJobs();
+            }
+            var lab = box.GetVisualDescendants().OfType<TextBlock>().First(t => t.Name == "labWrong");
+            Assert.True(lab.IsVisible);
+            Assert.True(lab.Bounds.Height >= 23.5, $"校验提示高度不足，可能遮挡文字底部：{lab.Bounds.Height}");
+        } finally {
+            window.Close();
+        }
+    }
+
+    [AvaloniaFact]
+    public void Loading_error_lets_current_swing_finish() {
         var loading = new global::PCL.MyLoading { AutoRun = false, Width = 135, Height = 65 };
         var state = new global::PCL.MyLoadingStateSimulator();
         loading.State = state;
@@ -613,7 +635,9 @@ public class CoreControlTests {
 
             state.LoadingState = global::PCL.MyLoading.MyLoadingState.Error;
             Dispatcher.UIThread.RunJobs();
-            RunTicks(40);
+            //原版报错后不会立即中止当前这一轮挥镐动画
+            Assert.True(global::PCL.ModAnimation.AniIsRun(group), "报错后不应立即掐断挥镐循环");
+            RunTicks(90);
             Assert.False(global::PCL.ModAnimation.AniIsRun(group));
             Assert.InRange(global::PCL.ModAnimation.AniAngle(pickaxe), 54.5, 55.5);
             Assert.True(left.Opacity < 0.01 && right.Opacity < 0.01, "报错后地面粒子仍在显示");

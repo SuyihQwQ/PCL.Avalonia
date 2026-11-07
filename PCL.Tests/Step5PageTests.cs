@@ -167,6 +167,26 @@ public class AboutPageTests {
     }
 
     [AvaloniaFact]
+    public void Instance_page_factory_publishes_mod_page_global() {
+        var originalMod = global::PCL.ModMain.FrmInstanceMod;
+        var originalSetup = global::PCL.ModMain.FrmInstanceSetup;
+        global::PCL.ModMain.FrmInstanceMod = null!;
+        global::PCL.ModMain.FrmInstanceSetup = null!;
+        try {
+            var left = new global::PCL.PageInstanceLeft();
+            var mod = left.PageGet(global::PCL.FormMain.PageSubType.InstanceMod);
+            Assert.IsType<global::PCL.PageInstanceMod>(mod);
+            //Mod 更新流程通过全局引用刷新页面，工厂必须同步赋值
+            Assert.Same(mod, global::PCL.ModMain.FrmInstanceMod);
+            var setup = left.PageGet(global::PCL.FormMain.PageSubType.InstanceSetup);
+            Assert.Same(setup, global::PCL.ModMain.FrmInstanceSetup);
+        } finally {
+            global::PCL.ModMain.FrmInstanceMod = originalMod;
+            global::PCL.ModMain.FrmInstanceSetup = originalSetup;
+        }
+    }
+
+    [AvaloniaFact]
     public void Modify_page_reuses_install_xaml() {
         var instance = new global::PCL.ModMinecraft.McInstance(System.IO.Path.Combine(System.IO.Path.GetTempPath(), "PCL-Test-Instance"));
         var original = global::PCL.PageInstanceLeft.Instance;
@@ -431,5 +451,46 @@ public class SpeedPageTests {
             Assert.Equal(RelativeUnit.Relative, brush.StartPoint.Unit);
             Assert.Equal(RelativeUnit.Relative, brush.EndPoint.Unit);
         }
+    }
+}
+
+public class ToolboxPageTests {
+    [AvaloniaFact]
+    public void Toolbox_has_china_user_detector_card_and_button() {
+        var page = new global::PCL.PageOtherTest();
+        var window = new Window { Width = 700, Height = 500, Content = page };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        try {
+            Assert.NotNull(page.PanMain);
+            Assert.NotNull(page.BtnDetectChinaUser);
+            Assert.Equal("检测你是不是中国用户", page.BtnDetectChinaUser.Text);
+            var card = page.PanMain.Children.OfType<global::PCL.MyCard>().FirstOrDefault(c => c.Title == "实用工具");
+            Assert.NotNull(card);
+            //与关于页首卡片一致：PanMain 上边距 10 + 卡片上边距 15
+            Assert.Equal(15, card!.Margin.Top);
+        } finally {
+            window.Close();
+        }
+    }
+
+    [Fact]
+    public void China_user_score_messages_match_spec() {
+        var method = typeof(global::PCL.PageOtherTest).GetMethod("GetChinaUserResult", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+        Assert.Equal("你应该不是中国用户", method.Invoke(null, new object[] { 0 }));
+        Assert.Equal("你有可能是中国用户", method.Invoke(null, new object[] { 1 }));
+        Assert.Equal("你很可能是中国用户", method.Invoke(null, new object[] { 2 }));
+        Assert.Equal("你极可能是中国用户", method.Invoke(null, new object[] { 3 }));
+        Assert.Equal("你就是中国用户😈😈", method.Invoke(null, new object[] { 4 }));
+    }
+
+    [Fact]
+    public void China_user_country_detection_accepts_cn_names() {
+        var method = typeof(global::PCL.PageOtherTest).GetMethod("IsChinaCountry", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+        Assert.True((bool)method.Invoke(null, new object[] { "CN" })!);
+        Assert.True((bool)method.Invoke(null, new object[] { "中国" })!);
+        Assert.True((bool)method.Invoke(null, new object[] { "China" })!);
+        Assert.False((bool)method.Invoke(null, new object[] { "United States" })!);
+        Assert.False((bool)method.Invoke(null, new object[] { null! })!);
     }
 }

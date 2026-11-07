@@ -236,8 +236,8 @@ Public Class MyLoading
             If _InnerState = value Then Return
             Dim OldValue = _InnerState
             _InnerState = value
-            '停止时中止挥镐循环并回正，而不是等当前这一轮挥完
-            If value = MyLoadingState.Stop Then StopLoop() Else AniLoop()
+            '与原版一致：不强制中止当前这一轮挥镐动画，由 AniLoop 自行判断是否继续
+            AniLoop()
             If (OldValue = MyLoadingState.Error) <> (value = MyLoadingState.Error) Then ErrorAnimation(Me, value = MyLoadingState.Error)
             RefreshText()
         End Set
@@ -319,24 +319,9 @@ Public Class MyLoading
     ''' </summary>
     Private ErrorAnimationWaiting As Boolean = False
 
-    ''' <summary>
-    ''' 停止挥动循环，并让镐子回到静止姿态。错误或停止时不应继续播放敲击动画。
-    ''' </summary>
-    Private Sub StopLoop()
-        AniStop("MyLoader Loop " & Uuid)
-        IsLooping = False
-        ErrorAnimationWaiting = False
-        PathLeft.Opacity = 0
-        PathRight.Opacity = 0
-        If Math.Abs(AniAngle(PathPickaxe) - PickaxeRestAngle) > 0.5 Then
-            AniStart(AaRotateTransform(PathPickaxe, PickaxeRestAngle - AniAngle(PathPickaxe), 150, , New AniEaseOutFluent), "MyLoader Loop " & Uuid)
-        End If
-    End Sub
-
     Private Sub ErrorAnimation(sender As Object, isError As Boolean)
         If isError Then
             Dim Wait As Integer = If(ErrorAnimationWaiting, 400, 0)
-            StopLoop()
             AniStart({
                 AaColor(Me, ForegroundProperty, "ColorBrushRedLight", 300),
                 AaOpacity(PathError, 1 - PathError.Opacity, 100, 300 + Wait),

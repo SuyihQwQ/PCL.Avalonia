@@ -40,7 +40,7 @@ Public Module ModBase
     ''' <summary>
     ''' 程序内嵌图片文件夹路径，以 / 结尾。
     ''' </summary>
-    Public PathImage As String = "avares://PCL/Assets/Images/"
+    Public PathImage As String = "avares://PCL.Avalonia/Assets/Images/"
     ''' <summary>
     ''' 程序的缓存文件夹路径，以 \ 结尾。
     ''' </summary>
@@ -1069,7 +1069,7 @@ Public Module ModBase
     ''' 将程序中的资源释放到文件。
     ''' </summary>
     Public Sub ExtractResources(FilePath As String, ResourceName As String)
-        Using Stream As IO.Stream = Avalonia.Platform.AssetLoader.Open(New Uri("avares://PCL/Assets/" & ResourceName))
+        Using Stream As IO.Stream = Avalonia.Platform.AssetLoader.Open(New Uri("avares://PCL.Avalonia/Assets/" & ResourceName))
             Using Memory As New IO.MemoryStream
                 Stream.CopyTo(Memory)
                 Dim Bytes = Memory.ToArray()

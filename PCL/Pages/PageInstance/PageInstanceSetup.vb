@@ -362,6 +362,23 @@ Public Class PageInstanceSetup
         TextServerEnter.SelectionStart = CurrentPosition
     End Sub
 
+    '清理粘贴地址时携带的空白，避免校验失败导致设置没有被保存
+    Private Sub TextServerAuth_Trim(sender As Object, e As TextChangedEventArgs) Handles TextServerAuthServer.TextChanged, TextServerAuthRegister.TextChanged, TextServerAuthName.TextChanged
+        Dim Box = DirectCast(sender, MyTextBox)
+        Dim Trimmed As String = Box.Text?.Trim()
+        If Trimmed Is Nothing OrElse Trimmed = Box.Text Then Return
+        Dim CurrentPosition = Box.SelectionStart
+        Box.Text = Trimmed
+        Box.SelectionStart = Math.Min(CurrentPosition, Trimmed.Length)
+    End Sub
+
+    '未填写协议头时自动补全，避免完整地址因校验失败而无法保存
+    Private Sub TextServerAuthServer_LostFocus(sender As Object, e As RoutedEventArgs) Handles TextServerAuthServer.LostFocus
+        Dim Url As String = TextServerAuthServer.Text?.Trim()
+        If String.IsNullOrEmpty(Url) OrElse Url.Contains("://") Then Return
+        TextServerAuthServer.Text = "https://" & Url
+    End Sub
+
     '全局
     Private ComboServerLoginLast As Integer
     Private Sub ComboServerLogin_Changed() Handles ComboServerLogin.SelectionChanged

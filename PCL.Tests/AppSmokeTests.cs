@@ -1,3 +1,4 @@
+using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -16,7 +17,7 @@ public static class TestAppBuilder {
             .UseSkia()
             .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
             .With(new FontManagerOptions {
-                DefaultFamilyName = "avares://PCL/Assets/Fonts/PCLEnglish.ttf#PCL English, Noto Sans CJK SC, MiSans TC"
+                DefaultFamilyName = "avares://PCL.Avalonia/Assets/Fonts/PCLEnglish.ttf#PCL English, Noto Sans CJK SC, MiSans TC"
             });
 }
 
@@ -26,6 +27,27 @@ public class AppSmokeTests {
     public void App_loads_with_resources() {
         Assert.IsType<global::PCL.App>(Application.Current);
         Assert.NotNull(Application.Current!.FindResource("PCLFont"));
+    }
+
+    [Fact]
+    public void Assembly_name_and_metadata_use_pcl_avalonia() {
+        var assembly = typeof(global::PCL.FormMain).Assembly;
+        Assert.Equal("PCL.Avalonia", assembly.GetName().Name);
+        Assert.Equal("PCL.Avalonia", assembly.GetCustomAttribute<AssemblyTitleAttribute>()?.Title);
+        Assert.Equal("PCL.Avalonia", assembly.GetCustomAttribute<AssemblyProductAttribute>()?.Product);
+    }
+
+    [AvaloniaFact]
+    public void Language_auto_uses_a_supported_language() {
+        var original = global::PCL.Localization.CurrentLanguage;
+        try {
+            global::PCL.Localization.SetLanguage("auto");
+            Assert.Contains(global::PCL.Localization.CurrentLanguage, new[] { "zh-CN", "en-US" });
+            global::PCL.Localization.SetLanguage("fr-FR");
+            Assert.Equal("zh-CN", global::PCL.Localization.CurrentLanguage);
+        } finally {
+            global::PCL.Localization.SetLanguage(original);
+        }
     }
 
     [AvaloniaFact]
@@ -85,7 +107,7 @@ public class AppSmokeTests {
     public void FormMain_has_window_icon_and_wayland_app_id() {
         var window = new global::PCL.FormMain();
         Assert.NotNull(window.Icon);
-        Assert.Equal("PCL", global::Avalonia.Controls.WaylandProperties.GetAppId(window));
+        Assert.Equal("PCL.Avalonia", global::Avalonia.Controls.WaylandProperties.GetAppId(window));
     }
 
     [AvaloniaFact]
@@ -106,12 +128,12 @@ public class AppSmokeTests {
             Environment.SetEnvironmentVariable("XDG_DATA_HOME", Path.Combine(root, "data"));
             Environment.SetEnvironmentVariable("XDG_DATA_DIRS", Path.Combine(root, "system"));
             global::PCL.Program.EnsureLinuxDesktopEntry();
-            var desktop = Path.Combine(root, "data", "applications", "PCL.desktop");
+            var desktop = Path.Combine(root, "data", "applications", "PCL.Avalonia.desktop");
             Assert.True(File.Exists(desktop));
             var text = File.ReadAllText(desktop);
-            var icon = Path.Combine(root, "data", "icons", "hicolor", "256x256", "apps", "PCL.png");
+            var icon = Path.Combine(root, "data", "icons", "hicolor", "256x256", "apps", "PCL.Avalonia.png");
             Assert.Contains("Icon=" + icon, text);
-            Assert.Contains("StartupWMClass=PCL", text);
+            Assert.Contains("StartupWMClass=PCL.Avalonia", text);
             Assert.True(File.Exists(icon));
         } finally {
             Environment.SetEnvironmentVariable("XDG_DATA_HOME", oldDataHome);

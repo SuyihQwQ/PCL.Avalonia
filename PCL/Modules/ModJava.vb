@@ -437,50 +437,11 @@ Public Module ModJava
                         If Result IsNot Nothing Then p?.Skip() : Return Result
                         If Not TryFixOrHint Then Return Nothing
 
-                        '电脑中没有合适的 Java，获取 Mojang 提供的 Java 下载列表
-                        Logger.Warn($"电脑中没有合适的 Java，开始获取 Mojang 提供的 Java 下载列表")
-                        Static DownloadListWorker As New RedoableWorker(Of List(Of JavaDownloadInfo))(
-                        Function(cancellationToken)
-                            '下载 Mojang 提供的 Java 列表
-                            Dim IndexFileStr As String = NetRequestByLoader(DlVersionListOrder(
-                                {"https://piston-meta.mojang.com/v1/products/java-runtime/2ec0cc96c44e5a76b9c8b7c39df7210883d12871/all.json"},
-                                {"https://bmclapi2.bangbang93.com/v1/products/java-runtime/2ec0cc96c44e5a76b9c8b7c39df7210883d12871/all.json"}
-                            ), IsJson:=True)
-                            cancellationToken?.ThrowIfCancellationRequested()
-                            '解析 Java 列表
-                            Dim Results = New List(Of JavaDownloadInfo)
-                            For Each Prop As JProperty In IndexFileStr.DeserializeJson(Of JObject)()("windows-x64")
-                                cancellationToken?.ThrowIfCancellationRequested()
-                                If Prop.Name = "minecraft-java-exe" Then Continue For '不是完整 Java
-                                Try
-                                    Dim Entry = Prop.Value.FirstOrDefault
-                                    If Entry Is Nothing Then Continue For
-                                    Dim JavaName = Entry("version")("name").ToString '可能的名称格式："12"、"8u51-cacert462b08"、"17.0.8.1"、"17.0.1.12.1"、"21.0.7"
-                                    If JavaName.Contains(".") Then
-                                        Dim Parts As String() = JavaName.Split(".")
-                                        Results.Add(New JavaDownloadInfo With {.ComponentName = Prop.Name, .Java = Entry, .JavaVersion = New Version(Val(Parts(0)), Val(Parts(1)), If(Parts.Length >= 3, Val(Parts(2)), 0), If(Parts.Length >= 4, Val(Parts(3)), 0))})
-                                    ElseIf JavaName.StartsWithF("8u51-") Then
-                                        Results.Add(New JavaDownloadInfo With {.ComponentName = Prop.Name, .Java = Entry, .JavaVersion = New Version(8, 0, 51, 0)})
-                                    Else
-                                        Results.Add(New JavaDownloadInfo With {.ComponentName = Prop.Name, .Java = Entry, .JavaVersion = New Version(Val(JavaName.BeforeFirstOfAny({"u", "."})), 0, 0, 0)})
-                                    End If
-                                Catch ex As Exception
-                                    Logger.Warn(ex, $"解析 Mojang 提供的 Java 列表项失败，已跳过（{Prop.Name}）")
-                                End Try
-                            Next
-                            Return Results
-                        End Function)
-                        If Not DownloadListWorker.HasSucceeded Then DownloadListWorker.Start(c, p?.SplitTo(0.4))
-                        DownloadListWorker.WaitIfRunning(cancellationToken:=c)
-                        p?.Set(0.4, skiped:=True)
-                        Dim Components = DownloadListWorker.LastResult
-
-                        '确定要下载的目标 Java
-                        Dim JavaToDownload As JavaDownloadInfo = Components.FirstOrDefault(
-                            Function(Comp) Comp.Java("version")("name").ToString = RecommendedComponent, '优先选择指定的 Component
-                            Function(Comp) Range.Contains(Comp.JavaVersion))
+                        '电脑中没有合适的 Java，从 Azul 获取 Zulu 下载信息
+                        Logger.Warn($"电脑中没有合适的 Java，开始查找 Azul 提供的 Zulu Java")
+                        Dim JavaToDownload As JavaDownloadInfo = FindZuluPackage(Range, c, p?.SplitTo(0.4))
                         If JavaToDownload Is Nothing Then
-                            Logger.Warn($"Mojang 提供的 Java 列表中没有合适的 Java，无法自动下载")
+                            Logger.Warn($"Azul Zulu 中没有合适的 Java，无法自动下载")
                             '提示需要手动下载 Java
                             Dim Description As String
                             Dim HasPureLower As Boolean = Range.HasLower AndAlso Range.IsLowerInclusive AndAlso
@@ -601,49 +562,157 @@ NoForcedJava:
 
     Private Class JavaDownloadInfo
         Public Property ComponentName As String
-        Public Property Java As JObject
+        Public Property DownloadUrl As String
+        Public Property DownloadFileName As String
         Public Property JavaVersion As Version
     End Class
 
     ''' <summary>
-    ''' 构建下载指定 Java 的加载器。
+    ''' 从 Azul Zulu 的 Metadata API 中查找满足版本范围的最新 JRE。
+    ''' </summary>
+    Private Function FindZuluPackage(Range As ValueRange(Of Version), c As CancellationToken, p As ProgressProvider) As JavaDownloadInfo
+        Dim OsName As String = If(OperatingSystem.IsWindows(), "windows", If(OperatingSystem.IsMacOS(), "macos", "linux"))
+        Dim ArchName As String = GetZuluArchitecture()
+        If ArchName Is Nothing Then
+            Logger.Warn("无法识别当前 CPU 架构，无法从 Azul Zulu 自动下载 Java")
+            Return Nothing
+        End If
+        Dim ArchiveType As String = If(OperatingSystem.IsWindows(), "zip", "tar.gz")
+        Dim LowerMajor As Integer = If(Range.HasLower, Math.Max(8, Range.Lower.Major), 8)
+        Dim UpperMajor As Integer = If(Range.HasUpper, Math.Min(25, If(Range.IsUpperInclusive, Range.Upper.Major, Range.Upper.Major - 1)), 25)
+        For Major = LowerMajor To UpperMajor
+            c.ThrowIfCancellationRequested()
+            Dim Address As String = $"https://api.azul.com/metadata/v1/zulu/packages/?java_version={Major}&os={OsName}&arch={ArchName}&archive_type={ArchiveType}&java_package_type=jre&javafx_bundled=false&release_status=ga&availability_types=CA&page_size=100"
+            Dim Packages As JArray
+            Try
+                Packages = NetRequestByLoader(Address, IsJson:=True, SimulateBrowserHeaders:=True).DeserializeJson(Of JArray)
+            Catch ex As Exception
+                If ex.IsCanceled Then Throw
+                Logger.Warn(ex, $"获取 Azul Zulu Java {Major} 下载列表失败")
+                Continue For
+            End Try
+            Dim Best As JObject = Nothing
+            Dim BestVersion As Version = Nothing
+            For Each Package As JToken In Packages
+                Dim Name As String = Package("name")?.ToString()
+                If String.IsNullOrEmpty(Name) Then Continue For
+                If Name.Contains("-musl") OrElse Name.Contains("-crac-") OrElse Not Name.Contains("-ca-jre") Then Continue For
+                Dim RawVersion = TryCast(Package("java_version"), JArray)
+                If RawVersion Is Nothing OrElse RawVersion.Count < 2 Then Continue For
+                Dim Parts = RawVersion.ToObject(Of Integer())()
+                Dim PackageVersion As New Version(Parts(0), Parts(1), If(Parts.Length >= 3, Parts(2), 0), If(Parts.Length >= 4, Parts(3), 0))
+                If PackageVersion.Major <> Major OrElse Not Range.Contains(PackageVersion) Then Continue For
+                If BestVersion Is Nothing OrElse PackageVersion > BestVersion Then
+                    BestVersion = PackageVersion
+                    Best = CType(Package, JObject)
+                End If
+            Next
+            If Best IsNot Nothing Then
+                Logger.Info($"已选择 Azul Zulu Java {BestVersion}：{Best("name")}")
+                p?.Set(0.4)
+                Return New JavaDownloadInfo With {
+                    .ComponentName = $"zulu-{Major}",
+                    .DownloadUrl = Best("download_url").ToString(),
+                    .DownloadFileName = Best("name").ToString(),
+                    .JavaVersion = BestVersion}
+            End If
+        Next
+        p?.Skip()
+        Return Nothing
+    End Function
+
+    Private Function GetZuluArchitecture() As String
+        Select Case System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture
+            Case System.Runtime.InteropServices.Architecture.X64
+                Return "x64"
+            Case System.Runtime.InteropServices.Architecture.Arm64
+                Return "aarch64"
+            Case System.Runtime.InteropServices.Architecture.X86
+                Return "x86"
+            Case System.Runtime.InteropServices.Architecture.Arm
+                Return "arm"
+            Case Else
+                Return Nothing
+        End Select
+    End Function
+
+    ''' <summary>
+    ''' Zulu Java 的下载目录，必须位于 Java 扫描候选目录内。
+    ''' </summary>
+    Private Function GetJavaRuntimeBase() As String
+        If OperatingSystem.IsWindows() Then Return Paths.AppData & ".minecraft\runtime\"
+        Return PathUtils.AddSlashSuffix(Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".minecraft", "runtime"))
+    End Function
+
+    ''' <summary>
+    ''' 构建下载并解压指定 Zulu Java 的加载器。
     ''' </summary>
     Private Function CreateJavaDownloadLoader(Target As JavaDownloadInfo) As LoaderCombo(Of Integer)
-
-        '分析需要下载的 Java 文件列表
-        Dim Address As String = Target.Java("manifest")("url")
-        Logger.Info($"准备下载 Java {Target.Java("version")("name")}（{Target.ComponentName}）：{Address}")
-        Dim ListFileStr As String = NetRequestByLoader(DlSourceOrder({Address}, {Address.Replace("piston-meta.mojang.com", "bmclapi2.bangbang93.com")}), IsJson:=True)
-        Dim BaseDir As String = $"{Paths.AppData}.minecraft\runtime\{Target.ComponentName}\"
-        Dim FilesToDownload As New List(Of NetFile)
-        For Each File As JProperty In CType(ListFileStr.DeserializeJson(), JObject)("files")
-            If CType(File.Value, JObject)("downloads")?("raw") Is Nothing Then Continue For
-            Dim Info As JObject = CType(File.Value, JObject)("downloads")("raw")
-            Dim Checker As New FileChecker With {.ActualSize = Info("size"), .Hash = Info("sha1")}
-            If Checker.Hash = "12976a6c2b227cbac58969c1455444596c894656" OrElse Checker.Hash = "c80e4bab46e34d02826eab226a4441d0970f2aba" OrElse Checker.Hash = "84d2102ad171863db04e7ee22a259d1f6c5de4a5" Then
-                Continue For '跳过 3 个无意义大量重复文件（#3827）
-            End If
-            Dim Url As String = Info("url")
-            FilesToDownload.Add(New NetFile(
-                DlSourceOrder({Url}, {Url.Replace("piston-data.mojang.com", "bmclapi2.bangbang93.com")}),
-                BaseDir & File.Name, Checker))
-        Next
-        Logger.Info($"该 Java 需要下载 {FilesToDownload.Count} 个文件，目标文件夹：{BaseDir}")
-
-        '构建加载器
-        Dim Loader = New LoaderCombo(Of Integer)("下载 Java", {
-            New LoaderDownload("下载 Java 文件", FilesToDownload) With {.ProgressWeight = 10},
+        Dim BaseDir As String = PathUtils.AddSlashSuffix(Path.Combine(GetJavaRuntimeBase(), Target.ComponentName))
+        Dim TempFile As String = PathTemp & "Java\" & Target.DownloadFileName
+        Logger.Info($"准备下载 Azul Zulu Java {Target.JavaVersion}（{Target.ComponentName}）：{Target.DownloadUrl}")
+        Logger.Info($"Zulu Java 解压目标：{BaseDir}")
+        Dim PackageFile As New NetFile({Target.DownloadUrl}, TempFile, Nothing, True)
+        Dim Loader = New LoaderCombo(Of Integer)("下载 Zulu Java", {
+            New LoaderDownload("下载 Zulu Java 文件", {PackageFile}) With {.ProgressWeight = 8},
+            New LoaderTask(Of Integer, Integer)("解压 Zulu Java",
+            Sub()
+                DirectoryUtils.Delete(BaseDir)
+                DirectoryUtils.Create(BaseDir)
+                Try
+                    ExtractJavaArchive(TempFile, BaseDir)
+                    FlattenSingleJavaFolder(BaseDir)
+                Finally
+                    FileUtils.Delete(TempFile)
+                End Try
+            End Sub) With {.ProgressWeight = 2},
             New LoaderWorker("刷新 Java 列表", JavaListRefreshWorker)
         }) With {.OnStateChanged =
         Sub(RawLoader As LoaderBase)
             If RawLoader.State = LoadState.Failed OrElse RawLoader.State = LoadState.Canceled Then
-                Logger.Warn($"由于 Java 下载未完成，清理未下载完成的 Java 文件夹：{BaseDir}")
+                Logger.Warn($"由于 Java 下载未完成，清理未完成的 Zulu Java 文件夹：{BaseDir}")
                 DirectoryUtils.Delete(BaseDir)
+                FileUtils.Delete(TempFile)
             End If
         End Sub}
         Return Loader
-
     End Function
+
+    ''' <summary>
+    ''' 解压 Zulu 下载包（Windows 为 zip，其他平台为 tar.gz）。
+    ''' </summary>
+    Private Sub ExtractJavaArchive(ArchivePath As String, TargetDir As String)
+        DirectoryUtils.Create(TargetDir)
+        If ArchivePath.EndsWithF(".zip") Then
+            FileUtils.ExtractToDirectory(ArchivePath, TargetDir)
+            Return
+        End If
+        Using Stream = FileUtils.ReadAsStream(ArchivePath)
+            Using Gzip As New GZipStream(Stream, CompressionMode.Decompress)
+                System.Formats.Tar.TarFile.ExtractToDirectory(Gzip, TargetDir, True)
+            End Using
+        End Using
+    End Sub
+
+    ''' <summary>
+    ''' Zulu 压缩包通常包含一层版本文件夹，将其内容展开到目标目录。
+    ''' </summary>
+    Private Sub FlattenSingleJavaFolder(BaseDir As String)
+        Dim Items = IO.Directory.GetFileSystemEntries(BaseDir)
+        If Items.Length <> 1 OrElse Not DirectoryUtils.Exists(Items(0)) Then Return
+        Dim InnerFolder As String = Items(0)
+        For Each Child In IO.Directory.GetFileSystemEntries(InnerFolder)
+            Dim Destination As String = Path.Combine(BaseDir, Path.GetFileName(Child))
+            If DirectoryUtils.Exists(Child) Then
+                IO.Directory.Move(Child, Destination)
+            Else
+                FileUtils.Move(Child, Destination)
+            End If
+        Next
+        DirectoryUtils.Delete(InnerFolder)
+        Logger.Info($"已展开 Zulu Java 的版本文件夹：{InnerFolder}")
+    End Sub
 
 #End Region
 
