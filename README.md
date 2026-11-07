@@ -4,7 +4,7 @@ English | [简体中文](README.zh-CN.md)
 
 A cross-platform port of [Plain Craft Launcher 2](https://github.com/Meloong-Git/PCL) (based on PCL 2.14), built with **Avalonia 12.1.4 + .NET 10**. The UI and business logic are rewritten in VB.NET, targeting Linux (Wayland / X11).
 
-Current release: **Stable 14.1.2** (`v14.1.2-Stable`).
+Current release: **Snapshot 14.1.2**.
 
 > PCL.Avalonia is an independent third-party port of the original PCL, not an official release.
 > This project is not an official Minecraft product. It is not approved by or associated with Mojang or Microsoft.

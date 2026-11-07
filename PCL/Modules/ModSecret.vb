@@ -8,12 +8,8 @@ Friend Module ModSecret
     Public Const VersionBranchMain As String = "OpenSource"
     '注册表位置
     Public Const RegFolder As String = "PCL.Avalonia"
-    '用于微软登录的 ClientId。稳定版直接写入源码；快照版从环境变量读取。
-#If STABLE Then
-    Public ReadOnly OAuthClientId As String = "47959447-c8ad-4158-be87-83d64f9c205c"
-#Else
+    '用于微软登录的 ClientId。快照版从环境变量读取，不写入源码。
     Public ReadOnly OAuthClientId As String = If(Environment.GetEnvironmentVariable("PCL_MS_CLIENT_ID"), "")
-#End If
     'CurseForge API Key 仅在本地构建中通过不提交的 ModSecret.Private.vb 嵌入；
     '公开源码构建读取环境变量，未提供时只走 MCIM 镜像。
 #If PCL_PRIVATE_SECRETS Then
