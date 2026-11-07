@@ -10,13 +10,8 @@ Friend Module ModSecret
     Public Const RegFolder As String = "PCL.Avalonia"
     '用于微软登录的 ClientId。快照版从环境变量读取，不写入源码。
     Public ReadOnly OAuthClientId As String = If(Environment.GetEnvironmentVariable("PCL_MS_CLIENT_ID"), "")
-    'CurseForge API Key 仅在本地构建中通过不提交的 ModSecret.Private.vb 嵌入；
-    '公开源码构建读取环境变量，未提供时只走 MCIM 镜像。
-#If PCL_PRIVATE_SECRETS Then
-    Public ReadOnly CurseForgeAPIKey As String = ModSecretPrivate.PrivateCurseForgeApiKey
-#Else
+    '快照版可选读取 CurseForge API Key；未提供时只走 MCIM 镜像。
     Public ReadOnly CurseForgeAPIKey As String = If(Environment.GetEnvironmentVariable("PCL_CURSEFORGE_API_KEY"), "")
-#End If
     '用于匿名数据收集的腾讯云日志服务上报 URL，形如 https://{region}.cls.tencentcs.com/track?topic_id={topic_id}
     Public Const ClsBaseUrl As String = ""
 

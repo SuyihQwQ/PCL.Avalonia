@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 namespace MeloongCore.Extensions;
 public static class WebExtensions {
 

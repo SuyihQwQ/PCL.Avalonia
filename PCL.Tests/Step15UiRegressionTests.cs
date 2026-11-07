@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;

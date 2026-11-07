@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
 """
 WPF XAML -> Avalonia XAML 的机械化转换规则。
 
