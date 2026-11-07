@@ -135,6 +135,6 @@ The public key is published alongside the release as `PCL.Avalonia-signing-key.a
 
 ## License and credits
 
-- Original PCL: Copyright © Chengdu Guapilong Technology Co., Ltd. (Software Copyright Registration No. 2020SR0875133), developed by Long Teng Maoyue (龙腾猫跃)
+- Original PCL: Copyright © Chengdu Guapilong Technology Co., Ltd. (Software Copyright Registration No. 2020SR0875133), developed by LTCat.
 - PCL.Avalonia: Copyright © 2026 SuyihQwQ
 - This project follows the [LICENCE](LICENCE) in this repository (the PCL Limited Distribution License and its reasonable-use guidelines) and is distributed as a third-party port with source code available.
