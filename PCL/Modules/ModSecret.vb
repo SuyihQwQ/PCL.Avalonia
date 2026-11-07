@@ -10,9 +10,8 @@ Friend Module ModSecret
     Public Const RegFolder As String = "PCL.Avalonia"
     '用于微软登录的 ClientId。main 分支直接写入源码。
     Public ReadOnly OAuthClientId As String = "47959447-c8ad-4158-be87-83d64f9c205c"
-    '公开仓库的构建不包含 CurseForge API Key，CurseForge 请求只走 MCIM 镜像。
-    '正式稳定版由另一个私密仓库构建。
-    Public Const CurseForgeAPIKey As String = ""
+    'CurseForge API Key 在构建时通过 PCL_CURSEFORGE_API_KEY 注入；未注入时为空并只走 MCIM 镜像。
+    Public ReadOnly CurseForgeAPIKey As String = PCLBuildSecrets.InjectedCurseForgeAPIKey
     '用于匿名数据收集的腾讯云日志服务上报 URL，形如 https://{region}.cls.tencentcs.com/track?topic_id={topic_id}
     Public Const ClsBaseUrl As String = ""
 
