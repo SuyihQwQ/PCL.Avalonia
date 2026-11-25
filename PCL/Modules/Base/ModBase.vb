@@ -8,9 +8,9 @@ Public Module ModBase
 
 #Region "声明"
 
-    Public Const VersionBaseName As String = "14.2.1"
+    Public Const VersionBaseName As String = "14.2.2"
     Public Const CommitHash As String = ""
-    Public Const VersionCode As Integer = 1421
+    Public Const VersionCode As Integer = 1422
 
     Public Const VersionDisplay As String = BuildTypeDisplay & " " & VersionBaseName
 #If DEBUG Then

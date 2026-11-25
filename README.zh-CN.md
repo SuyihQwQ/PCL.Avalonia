@@ -4,7 +4,7 @@
 
 [Plain Craft Launcher 2](https://github.com/Meloong-Git/PCL)（基于 PCL 2.14 源码）的跨平台移植版本，使用 **Avalonia 12.1.4 + .NET 10**，界面与业务逻辑以 VB.NET 重写，主要面向 Linux（Wayland / X11）。
 
-当前版本：**快照版 14.2.1（Snapshot 14.2.1）**。
+当前版本：**快照版 14.2.2（Snapshot 14.2.2）**。
 
 > PCL.Avalonia 是第三方基于原版 PCL 独立进行的移植，并非官方作品。
 > 本项目不是 Minecraft 官方产品，未经 Mojang 或 Microsoft 批准，也与它们无关联。

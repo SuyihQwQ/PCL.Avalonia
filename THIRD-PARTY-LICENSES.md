@@ -17,7 +17,7 @@ This file is provided with both the source tree and the release binaries to sati
 | 文件 | 版权与许可 | 来源 |
 |---|---|---|
 | `PCL/Assets/Fonts/PCLEnglish.ttf` | 原版 PCL 附带的字体资源，随 PCL 派生内容适用 PCL 许可 | 原版 PCL |
-| `PCL/Assets/Fonts/MiSans-Regular.ttf` | Copyright © 小米科技有限责任公司（Xiaomi Inc.）。MiSans 允许个人及商业免费使用，使用条款见 https://hyperos.mi.com/font ；如发行包再分发字体文件，请同时附带该许可说明 | https://hyperos.mi.com/font |
+| `PCL/Assets/Fonts/MiSans-Regular.ttf` | Copyright © 小米科技有限责任公司（Xiaomi Inc.）。MiSans 允许个人及商业免费使用，**允许在软件中内嵌**；许可文本见 `LICENSES/MiSans.md` | https://hyperos.mi.com/font |
 | `PCL/Assets/Fonts/Twemoji.Mozilla.ttf` | Twemoji 图形 Copyright © Twitter, Inc. and contributors，按 CC-BY 4.0（https://creativecommons.org/licenses/by/4.0/）许可；字体由 twemoji-colr 构建（https://github.com/mozilla/twemoji-colr ）。本项目未修改字形，仅作为 emoji 回退字体嵌入 | Twemoji / twemoji-colr |
 
 ## 3. 图标与系统信息 / Icons
@@ -40,11 +40,11 @@ This file is provided with both the source tree and the release binaries to sati
 | ThrottleDebounce | Apache-2.0 | Copyright © Ben Hutchison（见项目内 LICENSE-APACHE） |
 | xunit.v3 / xunit.runner.visualstudio / Microsoft.NET.Test.Sdk | Apache-2.0 / MIT | 仅用于测试工程，不随发行包分发 |
 
-MIT 许可全文与上述版权行随本项目源码仓库中的包引用一起提供；发行包中若需完整文本，请以 NuGet 包内 `LICENSE` 文件为准。
+MIT 许可全文与各组件版权行见 `LICENSES/MIT.md`；其他许可全文见 `LICENSES/` 目录（CC-BY-4.0、MiSans、Help 库、GPL-2.0 等）。
 
 ## 5. 打包工具 / Packaging tools
 
-- Linux AppImage 由 **appimagetool** 与 **AppImage type-2 runtime**（AppImage 项目，GPL-2.0）生成，runtime 仅嵌入生成的 AppImage 产物中；AppImage 运行时源码见 https://github.com/AppImage/AppImageKit 。
+- Linux AppImage 由 **appimagetool** 与 **AppImage type-2 runtime**（AppImage 项目，**GPL-2.0**）生成；runtime 嵌入生成的 AppImage 产物中。GPL-2.0 全文见 `LICENSES/GPL-2.0.txt`，说明见 `LICENSES/AppImage-runtime-GPL-2.0.md`；对应源码可从 https://github.com/AppImage/AppImageKit 获取。
 - .NET SDK（MIT）仅用于构建，不随产物分发。
 
 ## 6. 第三方内容的商标与免责声明 / Trademarks and disclaimer

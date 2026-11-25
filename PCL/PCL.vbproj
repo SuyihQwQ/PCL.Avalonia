@@ -116,6 +116,7 @@
     <None Include="..\LICENSE-APACHE" Link="LICENSE-APACHE" CopyToPublishDirectory="PreserveNewest" />
     <None Include="..\THIRD-PARTY-LICENSES.md" Link="THIRD-PARTY-LICENSES.md" CopyToPublishDirectory="PreserveNewest" />
     <None Include="Assets\Fonts\FontLicenses.txt" Link="FontLicenses.txt" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\LICENSES\**\*" Link="LICENSES\%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
