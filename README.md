@@ -2,169 +2,109 @@
 
 English | [简体中文](README.zh-CN.md)
 
-A cross-platform port of [Plain Craft Launcher 2](https://github.com/Meloong-Git/PCL) (based on PCL 2.14), built with **Avalonia 12.1.4 + .NET 10**. The UI and business logic are rewritten in VB.NET, targeting Linux (Wayland / X11).
+A third-party cross-platform port of [Plain Craft Launcher 2](https://github.com/Meloong-Git/PCL) (based on PCL 2.14), built with **Avalonia 12.1.4 + .NET 10**. The UI and business logic are implemented in VB.NET, targeting Linux (Wayland / X11) and Windows.
 
-Current release: **Snapshot 14.2.2**.
-
-> PCL.Avalonia is an independent third-party port of the original PCL, not an official release.
-> This project is not an official Minecraft product. It is not approved by or associated with Mojang or Microsoft.
+- Current release: **Stable 14.2.2** ([Releases](https://github.com/SuyihQwQ/PCL.Avalonia/releases))
+- This is an **independent third-party port**, not an official PCL release and not affiliated with Mojang or Microsoft.
 
 ## Features
 
-- Install, launch, and isolate Minecraft vanilla and mod loaders (Forge / NeoForge / Fabric / Quilt / OptiFine, etc.)
-- Modpack installation (drop `zip` / `mrpack` files onto the window), instance import and export
-- Mods, resource packs, shaders, and datapacks via Modrinth and CurseForge (MCIM mirror for CurseForge)
-- Offline, Authlib-Injector, Nide, and Microsoft login; skin management
+- Install, launch and isolate vanilla Minecraft and mod loaders (Forge / NeoForge / Fabric / Quilt / OptiFine, etc.)
+- Modpack installation (drop `zip` / `mrpack` files), instance import/export
+- Mods, resource packs, shaders and datapacks from Modrinth and CurseForge (MCIM mirror when no API key is available)
+- Offline, Authlib-Injector, Nide and Microsoft login; skin management
 - Automatic Java detection and download (Azul Zulu), memory and JVM argument configuration
-- Music player, themes and UI settings, Chinese/English interface (follows the system language by default)
+- Network proxy (system / SOCKS5 / HTTP), bundled fonts, music player, themes and Chinese/English UI
 
-## Branches
-
-- `main`: public stable source. The Microsoft OAuth Client ID is included in the source. A CurseForge API key can be injected at build time through `PCL_CURSEFORGE_API_KEY` and is never committed; without it, CurseForge API requests use the MCIM mirror only. Release binaries for stable versions are built in a separate private repository.
-- `dev`: snapshot builds. The Microsoft OAuth Client ID and the optional CurseForge API key are read from the `PCL_MS_CLIENT_ID` and `PCL_CURSEFORGE_API_KEY` environment variables. Build-time injection of the CurseForge key is also supported. Snapshot builds do not enforce the genuine-account requirement.
-
-## Roadmap
-
-- Improve macOS support.
-- Rewrite the launcher entirely in C#.
-
-## Requirements
-
-- .NET 10 SDK
-- Linux desktop (Wayland or X11)
-- Python 3 (only needed to regenerate XAML fields)
-
-## Build and run
+## Clone and build
 
 ```bash
-# Restore and build all projects
-dotnet build PCL.sln
+# The submodule (MeloongCore.Avalonia) must be cloned as well
+git clone --recursive https://github.com/SuyihQwQ/PCL.Avalonia.git
+cd PCL.Avalonia
 
-# Run the launcher
+# If you cloned without --recursive:
+git submodule update --init --recursive
+
+# Build and run
+dotnet build PCL.sln
 dotnet run --project PCL/PCL.vbproj
 ```
 
-Publish self-contained single-file builds:
+- Requires the **.NET 10 SDK**; Linux needs a Wayland or X11 desktop
+- After changing an `x:Name` in `.axaml`, run `python3 tools/XamlGen/gen_fields.py` (Python 3 required)
+- Tests: `dotnet test PCL.Tests/PCL.Tests.csproj` (xunit.v3 + Avalonia.Headless, no display server needed)
+
+## Publish self-contained builds
 
 ```bash
-# Linux (the standalone executable is named pcl-avalonia)
+# Linux (executable: pcl-avalonia)
 dotnet publish PCL/PCL.vbproj -c Release -r linux-x64 --self-contained true \
   -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
   -p:EnableCompressionInSingleFile=true -o dist/package/linux-x64
 
-# Windows (can be cross-published from Linux)
+# Windows (can be cross-published from Linux; produces PCL.Avalonia.exe)
 dotnet publish PCL/PCL.vbproj -c Release -r win-x64 --self-contained true \
   -p:PublishSingleFile=true -p:EnableWindowsTargeting=true \
   -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true \
   -o dist/package/win-x64
 ```
 
-On Linux, both the standalone published executable and the executable inside the AppImage are named `pcl-avalonia`; the Windows build produces `PCL.Avalonia.exe`.
+Release binaries are GPG-signed: `sha256sum -c SHA256SUMS && gpg --verify SHA256SUMS.asc SHA256SUMS`; public key: `PCL.Avalonia-signing-key.asc`.
 
-## Tests
+## Branches and credentials
 
-Tests use `xunit.v3` and `Avalonia.Headless`, so no display server is required:
+- `main`: stable. The Microsoft OAuth Client ID is included in the source; the CurseForge API key is injected at build time via `PCL_CURSEFORGE_API_KEY` and never committed.
+- `dev`: snapshot builds. Client ID and the optional CurseForge key are read from `PCL_MS_CLIENT_ID` and `PCL_CURSEFORGE_API_KEY`; snapshot builds do not enforce the genuine-account requirement.
 
-```bash
-dotnet test PCL.Tests/PCL.Tests.csproj
-```
+Without a CurseForge key, CurseForge requests use the MCIM mirror (`mod.mcimirror.top`).
 
 ## Project layout
 
 | Path | Description |
 | --- | --- |
 | `PCL/` | Launcher application (Avalonia UI and business logic) |
-| `PCL/Controls/` | Custom controls (`MyButton`, `MyListItem`, `MyHint`, etc.) |
-| `PCL/Modules/` | Core modules: launching, downloads, Java, resource search, animation, localization |
+| `PCL/Controls/` | Custom controls (`MyButton`, `MyListItem`, `MyCard`, etc.) |
+| `PCL/Modules/` | Launching, downloads, Java, resource search, proxy, animation, localization |
 | `PCL/Pages/` | Page views and code-behind |
-| `PCL/Assets/` | Images, fonts, and language packs (`Assets/Language/*.json`) |
-| `PCL/Generated/` | Control fields generated from XAML; do not edit manually |
-| `PCL.Tests/` | Headless UI and logic regression tests |
-| `PCLCS/` | Minecraft version JSON, launch arguments, and Java compatibility |
-| `PCL.Compat/` | Platform compatibility layer |
-| `MeloongCore.Avalonia/`(submodule) | Logging, networking, loaders, and other shared infrastructure |
-| `tools/XamlGen/` | Script that generates `PCL/Generated/*.g.vb` |
-| `reference/` | Original PCL sources for reference (local read-only, excluded by `.gitignore`) |
+| `PCL/Assets/` | Images, bundled fonts and language packs |
+| `PCL/Generated/` | Control fields generated from XAML (do not edit manually) |
+| `PCLCS/` | Minecraft version JSON, launch arguments and Java compatibility |
+| `PCL.Compat/` | Avalonia / platform compatibility layer |
+| `MeloongCore.Avalonia/` | Shared infrastructure (git submodule, project-specific fork) |
+| `PCL.Tests/` | Headless regression tests |
+| `tools/XamlGen/` | Generates `PCL/Generated/*.g.vb` |
+| `reference/` | Original PCL sources for reference (read-only, ignored by git) |
 
-## XAML field generation
+## Configuration and data
 
-Control fields are generated by script. Regenerate after adding or renaming an `x:Name`:
-
-```bash
-python3 tools/XamlGen/gen_fields.py          # Regenerate
-python3 tools/XamlGen/gen_fields.py --check  # Verify generated files are current
-```
-
-## Configuration and credentials
-
-The launcher is portable by default and stores data next to the executable (or next to the AppImage file when running from an AppImage):
+The launcher is portable by default and stores data next to the executable (or next to the AppImage). Use `--working-dir <path>` to override the base directory:
 
 - Data folder: `<program folder>/PCL.Avalonia/`
 - Default Minecraft folder: `<program folder>/.minecraft/`
-- Executables: `PCL.Avalonia.exe` on Windows, `pcl-avalonia` for standalone Linux builds and inside the AppImage
-- Linux settings (registry replacement): `~/.config/PCL.Avalonia/Registry.ini`
-- Java scan cache and other launcher config: `~/.config/PCL.Avalonia/config.json`
+- Linux settings: `~/.config/PCL.Avalonia/Registry.ini` and `config.json`
 - Windows settings: `HKCU\Software\PCL.Avalonia`
 - Temporary files: `PCL/` under the system temp directory
 
-Use `--working-dir <path>` or `--working-dir=<path>` to override the base folder used for the data folder and the default `.minecraft` folder. This is useful when the launcher is installed in a read-only location such as `/usr/bin` or `/opt`. The selected Minecraft folder keeps its own `PCL.ini`.
-
-If the data folder cannot be created (for example when a file with the same name exists, or the folder is read-only), the launcher reports the same runtime error as the original PCL and exits; it does not fall back to another directory.
-
-### Build-time credentials
-
-| Branch | Microsoft Client ID | CurseForge API key |
-| --- | --- | --- |
-| `main` | Included in the source | Injected at build time through `PCL_CURSEFORGE_API_KEY` |
-| `dev` | `PCL_MS_CLIENT_ID` at runtime | `PCL_CURSEFORGE_API_KEY` at build time or runtime |
-
-Stable builds can inject the CurseForge key without storing it in the repository:
-
-```bash
-PCL_CURSEFORGE_API_KEY="<your key>" dotnet publish PCL/PCL.vbproj -c Release ...
-```
-
-The key is written only to a generated file under `obj/` and compiled into the binary; it must not be committed. Without a key, CurseForge API requests use the MCIM mirror (`mod.mcimirror.top`). Build-time injection takes priority over the runtime environment variable on `dev`. The private repository used for stable builds can provide the key through this environment variable. The old `ModSecret.Private.vb` file is no longer read by the build.
-
-The UI language follows the system language by default. Only Simplified Chinese and English are available; unsupported system languages fall back to Simplified Chinese.
-
-Stable builds require signing in with at least one genuine Microsoft account before other login methods can be used. Snapshot (`dev`) builds do not enforce this requirement; they read the Microsoft OAuth Client ID and the optional CurseForge API key from `PCL_MS_CLIENT_ID` and `PCL_CURSEFORGE_API_KEY`.
-
-## Release signing
-
-Release binaries are signed with GPG. Verify them with:
-
-```bash
-sha256sum -c SHA256SUMS
-gpg --verify SHA256SUMS.asc SHA256SUMS
-```
-
-The public key is published alongside the release as `PCL.Avalonia-signing-key.asc`.
+The UI language follows the system language by default; Simplified Chinese and English are available. Stable builds require a genuine Microsoft account login first; snapshot builds do not.
 
 ## Linux notes
 
-- Applies the system cursor theme from GTK / KDE / GSettings on startup
-- Uses client-side decorations on Wayland to avoid a flash of server-side title bars
-- Avalonia's Wayland backend does not support `DragDropEffects.Link`, so file drag-and-drop uses the `Copy` effect
-- Watches instance folders on X11 through a separate window listener
-- Installs a generated desktop entry named `PCL.Avalonia.desktop`
-
-## License and credits
-
-- Embedded fonts: PCLEnglish (from the original PCL), MiSans (Xiaomi, free for commercial use), Twemoji Mozilla (Twemoji graphics © Twitter, Inc. and contributors, CC-BY 4.0; font built by twemoji-colr).
-- OS logos in the system information card come from [simple-icons](https://simple-icons.org) (CC0 1.0); Windows, Apple/macOS, Linux and distribution logos are trademarks of their respective owners and are used only to identify the running OS.
-- Licences for other third-party libraries and packaging tools (Avalonia, SkiaSharp, Newtonsoft.Json, appimagetool, etc.) are listed in [NOTICE](NOTICE).
-
-- Original PCL: Copyright © Chengdu Guapilong Technology Co., Ltd. (Software Copyright Registration No. 2020SR0875133), developed by LTCat.
-- PCL.Avalonia: Copyright © 2026 SuyihQwQ
-- PCL-derived code (`PCL/`, `PCLCS/`) follows the [LICENCE](LICENCE) (the PCL Limited Distribution License and its reasonable-use guidelines).
-- Original code (`PCL.Compat/`, `MeloongCore.Avalonia/`(submodule), `PCL.Tests/`, `tools/XamlGen/`) is licensed under the [Apache License 2.0](LICENSE-APACHE). Files in these directories carry an SPDX identifier; see [NOTICE](NOTICE) for the full scope.
-- This project is a third-party port with source code available.
+- Follows the GTK / KDE / GSettings system cursor theme
+- Client-side decorations on Wayland; instance folders watched through a separate window listener on X11
+- File drag-and-drop uses the `Copy` effect (Avalonia Wayland backend limitation)
+- Installs a generated `PCL.Avalonia.desktop` entry
 
 ## Future plans
 
-> These are plans only; implementation has not started and the order/timing may change.
+1. macOS support (builds, `.app`/dmg packaging and system integration)
+2. Rewrite the VB.NET part in C#
+3. ConnectX-powered multiplayer support ([ConnectX](https://github.com/Corona-Studio/ConnectX))
 
-1. **macOS support**: complete macOS builds, packaging (.app/dmg) and system integration.
-2. **Rewrite the VB.NET part in C#**: gradually migrate the VB.NET code in `PCL/` to C#, aligning with the existing C# projects for easier maintenance and cross-platform development.
-3. **ConnectX-powered multiplayer support**: integrate [ConnectX](https://github.com/Corona-Studio/ConnectX) to provide LAN/virtual-LAN multiplayer for Minecraft.
+> Plans only; implementation has not started.
+
+## License and credits
+
+- Original PCL: Copyright © Chengdu Guapilong Technology Co., Ltd., developed by LTCat (龙腾猫跃). This is a non-official port; it follows the [LICENCE](LICENCE) and the PCL Repository Reasonable Use Guide, publishes its source, and keeps the original author's attribution and sponsorship link first on the About page.
+- PCL-derived code (`PCL/`, `PCLCS/`) is covered by [LICENCE](LICENCE); new code (`PCL.Compat/`, `MeloongCore.Avalonia/`, `PCL.Tests/`, `tools/XamlGen/`) is under the [Apache License 2.0](LICENSE-APACHE) — see [NOTICE](NOTICE) for the full scope.
+- Licenses and attribution for third-party fonts, icons, NuGet packages and packaging tools are listed in [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md) (including the MiSans license notice).
