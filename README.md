@@ -151,6 +151,10 @@ The public key is published alongside the release as `PCL.Avalonia-signing-key.a
 
 ## License and credits
 
+- Embedded fonts: PCLEnglish (from the original PCL), MiSans (Xiaomi, free for commercial use), Twemoji Mozilla (Twemoji graphics © Twitter, Inc. and contributors, CC-BY 4.0; font built by twemoji-colr).
+- OS logos in the system information card come from [simple-icons](https://simple-icons.org) (CC0 1.0); Windows, Apple/macOS, Linux and distribution logos are trademarks of their respective owners and are used only to identify the running OS.
+- Licences for other third-party libraries and packaging tools (Avalonia, SkiaSharp, Newtonsoft.Json, appimagetool, etc.) are listed in [NOTICE](NOTICE).
+
 - Original PCL: Copyright © Chengdu Guapilong Technology Co., Ltd. (Software Copyright Registration No. 2020SR0875133), developed by LTCat.
 - PCL.Avalonia: Copyright © 2026 SuyihQwQ
 - PCL-derived code (`PCL/`, `PCLCS/`) follows the [LICENCE](LICENCE) (the PCL Limited Distribution License and its reasonable-use guidelines).

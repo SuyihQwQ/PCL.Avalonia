@@ -6,6 +6,116 @@ Imports System.Security.Cryptography.X509Certificates
 
 Public Module ModNet
 
+#Region "代理"
+
+    ' 网络请求分类：代理设置可以按分类分别决定是否生效。
+    Public Enum NetRequestCategory
+        Other = 0
+        Download = 1
+        Homepage = 2
+        Update = 3
+        Login = 4
+    End Enum
+
+    ' 按分类缓存的请求客户端（随代理设置变化清空）
+    Private ReadOnly ProxyClients As New Dictionary(Of NetRequestCategory, HttpClient)
+    ' 按用途缓存的共享客户端（图片、下载引擎等）
+    Private ReadOnly SharedClients As New Dictionary(Of String, HttpClient)
+    Private ReadOnly ProxyClientsLock As New Object
+
+    ' 代理设置变化后清空缓存的客户端，使新设置立即生效。
+    Public Sub ResetProxyClients()
+        SyncLock ProxyClientsLock
+            ProxyClients.Clear()
+            SharedClients.Clear()
+        End SyncLock
+        Logger.Info("网络代理设置已更新")
+    End Sub
+
+    ' 当前分类的请求是否应该使用代理。
+    Public Function IsProxyEnabled(Category As NetRequestCategory) As Boolean
+        Try
+            Select Case Category
+                Case NetRequestCategory.Download
+                    Return Settings.Get(Of Boolean)("NetProxyDownload")
+                Case NetRequestCategory.Homepage
+                    Return Settings.Get(Of Boolean)("NetProxyHomepage")
+                Case NetRequestCategory.Update
+                    Return Settings.Get(Of Boolean)("NetProxyUpdate")
+                Case NetRequestCategory.Login
+                    Return Settings.Get(Of Boolean)("NetProxyLogin")
+                Case Else
+                    Return Settings.Get(Of Boolean)("NetProxyOther")
+            End Select
+        Catch ex As Exception
+            Return True
+        End Try
+    End Function
+
+    ' 按当前代理设置创建 HTTP 处理器（支持系统代理、HTTP 代理与 SOCKS5 代理）。
+    Public Function CreateHttpHandler(Category As NetRequestCategory) As HttpMessageHandler
+        Dim Handler As New SocketsHttpHandler With {
+            .AutomaticDecompression = DecompressionMethods.Deflate Or DecompressionMethods.GZip,
+            .UseCookies = False
+        }
+        Handler.SslOptions.RemoteCertificateValidationCallback =
+            Function(Sender, Cert, Chain, Errors) SslValidationCallback(TryCast(Sender, HttpRequestMessage),
+                New X509Certificate2(Cert), Chain, Errors)
+        ApplyProxy(Handler, Category)
+        Return Handler
+    End Function
+
+    Private Sub ApplyProxy(Handler As SocketsHttpHandler, Category As NetRequestCategory)
+        Try
+            If Not IsProxyEnabled(Category) Then
+                Handler.UseProxy = False
+                Return
+            End If
+            Dim Endpoint = ModProxy.GetActiveEndpoint()
+            If Endpoint Is Nothing OrElse Not Endpoint.IsValid Then
+                Handler.UseProxy = False
+                Return
+            End If
+            If Endpoint.IsSocks Then
+                'SOCKS5 需要自定义 TCP 连接（SocketsHttpHandler 的 ConnectCallback）
+                Handler.UseProxy = False
+                Handler.ConnectCallback = Socks5Proxy.CreateConnectCallback(Endpoint.Host, Endpoint.Port, Endpoint.Username, Endpoint.Password)
+                Logger.Info($"网络请求将使用 SOCKS5 代理：{Endpoint}")
+            Else
+                Handler.UseProxy = True
+                Handler.Proxy = Endpoint.ToWebProxy()
+                Logger.Info($"网络请求将使用 HTTP 代理：{Endpoint}")
+            End If
+        Catch ex As Exception
+            Logger.Warn(ex, "应用网络代理设置失败")
+            Handler.UseProxy = False
+        End Try
+    End Sub
+
+    ' 获取指定分类的请求客户端（按分类缓存）。
+    Private Function GetRequestClient(Category As NetRequestCategory) As HttpClient
+        SyncLock ProxyClientsLock
+            Dim Client As HttpClient = Nothing
+            If ProxyClients.TryGetValue(Category, Client) Then Return Client
+            Client = New HttpClient(CreateHttpHandler(Category))
+            ProxyClients(Category) = Client
+            Return Client
+        End SyncLock
+    End Function
+
+    ' 获取用于图片下载等用途的共享客户端（按 Key 缓存，代理设置变化后自动重建）。
+    Public Function GetSharedHttpClient(Key As String, Category As NetRequestCategory, Optional TimeoutSeconds As Integer = 100) As HttpClient
+        SyncLock ProxyClientsLock
+            Dim Client As HttpClient = Nothing
+            If SharedClients.TryGetValue(Key, Client) Then Return Client
+            Client = New HttpClient(CreateHttpHandler(Category)) With {.Timeout = TimeSpan.FromSeconds(TimeoutSeconds)}
+            SharedClients(Key) = Client
+            Return Client
+        End SyncLock
+    End Function
+
+#End Region
+
 #Region "网络请求"
 
     ''' <summary>
@@ -14,14 +124,15 @@ Public Module ModNet
     Public Function NetRequestByClient(Url As String, Optional Method As HttpMethod = Nothing,
             Optional Content As Object = Nothing, Optional ContentType As String = Nothing, Optional Accept As String = "*/*",
             Optional Timeout As Integer = 25000, Optional Headers As String(,) = Nothing, Optional RequireJson As Boolean = False,
-            Optional Encoding As Encoding = Nothing, Optional SimulateBrowserHeaders As Boolean = False, Optional MakeLog As Boolean = True) As String
+            Optional Encoding As Encoding = Nothing, Optional SimulateBrowserHeaders As Boolean = False, Optional MakeLog As Boolean = True,
+            Optional Category As NetRequestCategory = NetRequestCategory.Other) As String
         If Method Is Nothing Then Method = HttpMethod.Get
         If MakeLog Then Logger.Info($"发起网络请求（{Method.Method}，{Url}），最大超时 {Timeout}")
         Try
             Dim HeaderDictionary = If(Headers, {}).ToDictionary
             If ContentType IsNot Nothing Then HeaderDictionary("Content-Type") = ContentType
             If Accept IsNot Nothing Then HeaderDictionary("Accept") = Accept
-            Dim Result = SendRequest(Url, Method, Content, HeaderDictionary, Timeout:=Timeout, Encoding:=Encoding, SimulateBrowserHeaders:=SimulateBrowserHeaders).GetString(Encoding)
+            Dim Result = SendRequest(Url, Method, Content, HeaderDictionary, Timeout:=Timeout, Encoding:=Encoding, SimulateBrowserHeaders:=SimulateBrowserHeaders, Category:=Category).GetString(Encoding)
             '检查结果是否为完整 JSON（在 #6683 中可能返回空，在被 GFW 截断时可能不完整）
             '在此处检查并报错，可以让 NetRequestByClientRetry 等方法进行重试
             If RequireJson Then
@@ -48,7 +159,8 @@ Public Module ModNet
     Public Function NetRequestByClientRetry(Url As String, Optional Method As HttpMethod = Nothing, Optional BackupUrl As String = Nothing,
             Optional Content As Object = Nothing, Optional ContentType As String = Nothing, Optional Accept As String = "*/*",
             Optional Headers As String(,) = Nothing, Optional RequireJson As Boolean = False,
-            Optional Encoding As Encoding = Nothing, Optional SimulateBrowserHeaders As Boolean = False) As String
+            Optional Encoding As Encoding = Nothing, Optional SimulateBrowserHeaders As Boolean = False,
+            Optional Category As NetRequestCategory = NetRequestCategory.Other) As String
         Dim RetryCount As Integer = 0
         Dim RetryException As Exception = Nothing
         Dim StartTime As Long = GetTimeMs()
@@ -56,15 +168,15 @@ Public Module ModNet
 Retry:
             Select Case RetryCount
                 Case 0 '正常尝试
-                    Return NetRequestByClient(Url, Method, Content, ContentType, Accept, 10000, Headers, RequireJson, Encoding, SimulateBrowserHeaders)
+                    Return NetRequestByClient(Url, Method, Content, ContentType, Accept, 10000, Headers, RequireJson, Encoding, SimulateBrowserHeaders, Category:=Category)
                 Case 1 '慢速重试
                     Thread.Sleep(500)
-                    Return NetRequestByClient(Url, Method, Content, ContentType, Accept, 30000, Headers, RequireJson, Encoding, SimulateBrowserHeaders)
+                    Return NetRequestByClient(Url, Method, Content, ContentType, Accept, 30000, Headers, RequireJson, Encoding, SimulateBrowserHeaders, Category:=Category)
                 Case Else '快速重试
                     If GetTimeMs() - StartTime > 5500 Then
                         '若前两次加载耗费 5 秒以上，才进行重试
                         Thread.Sleep(500)
-                        Return NetRequestByClient(Url, Method, Content, ContentType, Accept, 4000, Headers, RequireJson, Encoding, SimulateBrowserHeaders)
+                        Return NetRequestByClient(Url, Method, Content, ContentType, Accept, 4000, Headers, RequireJson, Encoding, SimulateBrowserHeaders, Category:=Category)
                     Else
                         Throw RetryException
                     End If
@@ -97,7 +209,8 @@ Retry:
     Public Function NetRequestByClientMultiple(Url As String, Optional Method As HttpMethod = Nothing, Optional ThreadCount As Integer = 3,
             Optional Content As Object = Nothing, Optional ContentType As String = Nothing, Optional Accept As String = "*/*",
             Optional Headers As String(,) = Nothing, Optional RequireJson As Boolean = False, Optional Timeout As Integer = 25000,
-            Optional Encoding As Encoding = Nothing, Optional SimulateBrowserHeaders As Boolean = False) As String
+            Optional Encoding As Encoding = Nothing, Optional SimulateBrowserHeaders As Boolean = False,
+            Optional Category As NetRequestCategory = NetRequestCategory.Other) As String
         Dim Threads As New List(Of Thread)
         Dim RequestResult = Nothing
         Dim RequestEx As Exception = Nothing
@@ -106,7 +219,7 @@ Retry:
             Dim th As New Thread(
             Sub()
                 Try
-                    RequestResult = NetRequestByClient(Url, Method, Content, ContentType, Accept, Timeout, Headers, RequireJson, Encoding, SimulateBrowserHeaders)
+                    RequestResult = NetRequestByClient(Url, Method, Content, ContentType, Accept, Timeout, Headers, RequireJson, Encoding, SimulateBrowserHeaders, Category:=Category)
                 Catch ex As Exception
                     Interlocked.Increment(FailCount)
                     RequestEx = ex
@@ -178,7 +291,7 @@ RequestFinished:
         Dim RetryCount As Integer = 0
 Retry:
         Try
-            FileUtils.Write(LocalPath, SendRequest(Url, HttpMethod.Get, SimulateBrowserHeaders:=SimulateBrowserHeaders))
+            FileUtils.Write(LocalPath, SendRequest(Url, HttpMethod.Get, SimulateBrowserHeaders:=SimulateBrowserHeaders, Category:=NetRequestCategory.Download))
         Catch ex As Exception
             FileUtils.Delete(LocalPath)
             ex.ThrowIfCanceled()
@@ -219,21 +332,16 @@ Retry:
     '基础请求函数
     Private Function SendRequest(Url As String, Method As HttpMethod,
             Optional Content As Object = Nothing, Optional Headers As Dictionary(Of String, String) = Nothing,
-            Optional SimulateBrowserHeaders As Boolean = False, Optional Timeout As Integer = 25000, Optional Encoding As Encoding = Nothing) As Byte()
+            Optional SimulateBrowserHeaders As Boolean = False, Optional Timeout As Integer = 25000, Optional Encoding As Encoding = Nothing,
+            Optional Category As NetRequestCategory = NetRequestCategory.Other) As Byte()
         If RunInUi() AndAlso Not Url.Contains("//127.") Then Throw New Exception("在 UI 线程执行了网络请求")
         Dim Request As HttpRequestMessage = Nothing, CancelToken As CancellationTokenSource = Nothing, Response As HttpResponseMessage = Nothing
         Try
-            '构建 RequestClient
+            '未显式指定分类时，按域名自动识别登录类请求，使其跟随“账号登录”代理开关
+            If Category = NetRequestCategory.Other Then Category = ClassifyRequestCategory(Url)
+            '构建按分类缓存的请求客户端
             Directory.CreateDirectory(Path.Combine(PathTemp, "Cache", "Http"))
-            SyncLock RequestClientLock
-                If RequestClient Is Nothing Then '延迟初始化，以避免在程序启动前加载网络组件导致 DLL 加载失败
-                    RequestClient = New HttpClient(New HttpClientHandler With {
-                        .AutomaticDecompression = DecompressionMethods.Deflate Or DecompressionMethods.GZip,
-                        .UseCookies = False, '不设为 False 就不能从 Header 手动传入 Cookies
-                        .ServerCertificateCustomValidationCallback = AddressOf SslValidationCallback
-                    })
-                End If
-            End SyncLock
+            Dim RequestClient As HttpClient = GetRequestClient(Category)
             '构建请求
             Url = SecretCdnSign(Url)
             Request = New HttpRequestMessage(Method, Url)
@@ -311,11 +419,11 @@ Retry:
         Catch ex As HttpRequestException
             Throw
         Catch ex As TimeoutException
-            Throw New WebException($"连接服务器超时，请稍后再试，或使用 VPN 改善网络环境（{Method}, {Url}）", WebExceptionStatus.Timeout)
+            Throw New WebException($"连接服务器超时，请稍后再试，或在 设置 → 其他 → 网络代理 中设置代理（{Method}, {Url}）", WebExceptionStatus.Timeout)
         Catch ex As Exception
             If TypeOf ex IsNot TaskCanceledException Then ex.ThrowIfCanceled() 'GetResultWithTimeout 会抛出 TaskCanceledException
             If ex.IsBadNetwork Then
-                Throw New WebException($"网络请求失败，请稍后再试，或使用 VPN 改善网络环境（{Method}, {Url}）", WebExceptionStatus.Timeout)
+                Throw New WebException($"网络请求失败，请稍后再试，或在 设置 → 其他 → 网络代理 中设置代理（{Method}, {Url}）", WebExceptionStatus.Timeout)
             Else
                 Throw New Exception($"网络请求出现意外异常（{Method}, {Url}）", ex)
             End If
@@ -325,8 +433,6 @@ Retry:
             Response?.Dispose()
         End Try
     End Function
-    Private RequestClient As HttpClient = Nothing
-    Private RequestClientLock As New Object
 
     ''' <summary>
     ''' 简单的 ETag 与 Last-Modified 缓存存储。
@@ -402,6 +508,18 @@ Retry:
 
     'SSL 校验
     Private SslValidationDisabled As Boolean = False
+    '根据域名识别登录相关请求（正版登录、外置登录等），供代理分类使用
+    Private Function ClassifyRequestCategory(Url As String) As NetRequestCategory
+        Dim Lower As String = If(Url, "").ToLowerInvariant()
+        If Lower.Contains("login.microsoftonline.com") OrElse Lower.Contains("login.live.com") OrElse
+           Lower.Contains("xboxlive.com") OrElse Lower.Contains("minecraftservices.com") OrElse
+           Lower.Contains("mc-user.com") OrElse Lower.Contains("littleskin") OrElse
+           Lower.Contains("authlib") OrElse Lower.Contains("mojang.com") Then
+            Return NetRequestCategory.Login
+        End If
+        Return NetRequestCategory.Other
+    End Function
+
     Private Function SslValidationCallback(Request As HttpRequestMessage, Certificate As X509Certificate2, Chain As X509Chain, Errors As SslPolicyErrors) As Boolean
         If Errors = SslPolicyErrors.None Then Return True '已通过验证
         '基于 #3018 和 #5879，只在访问正版登录 API 时跳过证书验证
@@ -421,10 +539,10 @@ Retry:
 
 #Region "多线程下载引擎"
 
-    Private ThreadClient As New HttpClient(New HttpClientHandler With {
-        .AutomaticDecompression = DecompressionMethods.Deflate Or DecompressionMethods.GZip,
-        .ServerCertificateCustomValidationCallback = AddressOf SslValidationCallback
-    })
+    '多线程下载引擎的客户端：始终使用“下载”分类的代理设置
+    Private Function GetThreadClient() As HttpClient
+        Return GetSharedHttpClient("download", NetRequestCategory.Download)
+    End Function
 
     ''' <summary>
     ''' 最大线程数。
@@ -1036,7 +1154,7 @@ StartThread:
                 CancelToken = New CancellationTokenSource(Timeout)
                 If Not Th.IsFirstThread Then HttpRequest.Headers.Range = New RangeHeaderValue(Th.DownloadStart, Nothing)
                 Dim ContentLength As Long = 0
-                Response = ThreadClient.SendAsync(HttpRequest, HttpCompletionOption.ResponseHeadersRead, CancelToken.Token).GetResultWithTimeout(CancelToken, Timeout)
+                Response = GetThreadClient().SendAsync(HttpRequest, HttpCompletionOption.ResponseHeadersRead, CancelToken.Token).GetResultWithTimeout(CancelToken, Timeout)
                 If Not Response.IsSuccessStatusCode Then '状态码检查
                     Throw New HttpRequestCodeException($"错误码 {Response.StatusCode} ({CInt(Response.StatusCode)})，{Th.Source.Url}", Response.StatusCode, Nothing)
                 End If

@@ -23,37 +23,89 @@
     <Grid>
         <!-- 主体：保留与原版一致的 10px 透明外沿，内层为 6px 圆角窗体 -->
         <Grid x:Name="PanBack" Margin="10" RenderTransformOrigin="50%,50%">
-            <!-- 八向缩放：与原版一致贴着可见窗体边缘，透明外沿不再响应缩放 -->
+            <!-- 八向缩放；四周的渐变矩形同时充当原版窗体阴影（原版 WPF 用 8px 渐变外沿绘制） -->
             <Rectangle x:Name="ResizerT" Height="8" Margin="13,0" VerticalAlignment="Top"
-                       Fill="Transparent" Cursor="SizeNorthSouth"
-                       WindowDecorationProperties.ElementRole="ResizeN" />
+                       Cursor="SizeNorthSouth" WindowDecorationProperties.ElementRole="ResizeN">
+                <Rectangle.Fill>
+                    <LinearGradientBrush StartPoint="50%,0%" EndPoint="50%,100%">
+                        <GradientStop Color="#00000000" Offset="0" />
+                        <GradientStop Color="#11000000" Offset="0.7" />
+                        <GradientStop Color="#21000000" Offset="1" />
+                    </LinearGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
             <Rectangle x:Name="ResizerB" Height="8" Margin="13,0" VerticalAlignment="Bottom"
-                       Fill="Transparent" Cursor="SizeNorthSouth"
-                       WindowDecorationProperties.ElementRole="ResizeS" />
+                       Cursor="SizeNorthSouth" WindowDecorationProperties.ElementRole="ResizeS">
+                <Rectangle.Fill>
+                    <LinearGradientBrush StartPoint="50%,0%" EndPoint="50%,100%">
+                        <GradientStop Color="#21000000" Offset="0" />
+                        <GradientStop Color="#11000000" Offset="0.3" />
+                        <GradientStop Color="#00000000" Offset="1" />
+                    </LinearGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
             <Rectangle x:Name="ResizerL" Width="8" Margin="0,13" HorizontalAlignment="Left"
-                       Fill="Transparent" Cursor="SizeWestEast"
-                       WindowDecorationProperties.ElementRole="ResizeW" />
+                       Cursor="SizeWestEast" WindowDecorationProperties.ElementRole="ResizeW">
+                <Rectangle.Fill>
+                    <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
+                        <GradientStop Color="#00000000" Offset="0" />
+                        <GradientStop Color="#11000000" Offset="0.7" />
+                        <GradientStop Color="#21000000" Offset="1" />
+                    </LinearGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
             <Rectangle x:Name="ResizerR" Width="8" Margin="0,13" HorizontalAlignment="Right"
-                       Fill="Transparent" Cursor="SizeWestEast"
-                       WindowDecorationProperties.ElementRole="ResizeE" />
+                       Cursor="SizeWestEast" WindowDecorationProperties.ElementRole="ResizeE">
+                <Rectangle.Fill>
+                    <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%">
+                        <GradientStop Color="#21000000" Offset="0" />
+                        <GradientStop Color="#11000000" Offset="0.3" />
+                        <GradientStop Color="#00000000" Offset="1" />
+                    </LinearGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
             <Rectangle x:Name="ResizerLT" Width="13" Height="13" HorizontalAlignment="Left" VerticalAlignment="Top"
-                       Fill="Transparent" Cursor="TopLeftCorner"
-                       WindowDecorationProperties.ElementRole="ResizeNW" />
+                       Cursor="TopLeftCorner" WindowDecorationProperties.ElementRole="ResizeNW">
+                <Rectangle.Fill>
+                    <RadialGradientBrush Center="100%,100%" GradientOrigin="100%,100%" RadiusX="1" RadiusY="1">
+                        <GradientStop Color="#21000000" Offset="0.2" />
+                        <GradientStop Color="#00000000" Offset="1" />
+                    </RadialGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
             <Rectangle x:Name="ResizerRT" Width="13" Height="13" HorizontalAlignment="Right" VerticalAlignment="Top"
-                       Fill="Transparent" Cursor="TopRightCorner"
-                       WindowDecorationProperties.ElementRole="ResizeNE" />
+                       Cursor="TopRightCorner" WindowDecorationProperties.ElementRole="ResizeNE">
+                <Rectangle.Fill>
+                    <RadialGradientBrush Center="0%,100%" GradientOrigin="0%,100%" RadiusX="1" RadiusY="1">
+                        <GradientStop Color="#21000000" Offset="0.2" />
+                        <GradientStop Color="#00000000" Offset="1" />
+                    </RadialGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
             <Rectangle x:Name="ResizerLB" Width="13" Height="13" HorizontalAlignment="Left" VerticalAlignment="Bottom"
-                       Fill="Transparent" Cursor="BottomLeftCorner"
-                       WindowDecorationProperties.ElementRole="ResizeSW" />
+                       Cursor="BottomLeftCorner" WindowDecorationProperties.ElementRole="ResizeSW">
+                <Rectangle.Fill>
+                    <RadialGradientBrush Center="100%,0%" GradientOrigin="100%,0%" RadiusX="1" RadiusY="1">
+                        <GradientStop Color="#21000000" Offset="0.2" />
+                        <GradientStop Color="#00000000" Offset="1" />
+                    </RadialGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
             <Rectangle x:Name="ResizerRB" Width="13" Height="13" HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                       Fill="Transparent" Cursor="BottomRightCorner"
-                       WindowDecorationProperties.ElementRole="ResizeSE" />
+                       Cursor="BottomRightCorner" WindowDecorationProperties.ElementRole="ResizeSE">
+                <Rectangle.Fill>
+                    <RadialGradientBrush Center="0%,0%" GradientOrigin="0%,0%" RadiusX="1" RadiusY="1">
+                        <GradientStop Color="#21000000" Offset="0.2" />
+                        <GradientStop Color="#00000000" Offset="1" />
+                    </RadialGradientBrush>
+                </Rectangle.Fill>
+            </Rectangle>
+            <!-- 与原版一致：窗体距 PanBack 8px（整体 10+8=18px 外沿），6px 圆角 -->
             <Border x:Name="BorderForm"
                     Margin="8"
                     CornerRadius="6"
                     ClipToBounds="True"
-                    Background="{DynamicResource ColorBrush8}"
-                    BoxShadow="0 3 12 0 #30000000">
+                    Background="{DynamicResource ColorBrush8}">
                 <Grid x:Name="PanForm" RowDefinitions="Auto,*" Background="{DynamicResource ColorBrushGray8}">
                     <!-- 背景图片层 -->
                     <Canvas x:Name="ImgBack" Grid.Row="1" IsHitTestVisible="False" IsVisible="False"
@@ -170,7 +222,7 @@
                 </Grid>
             </Border>
         </Grid>
-        <Canvas x:Name="PanToolTip" IsHitTestVisible="False" Panel.ZIndex="1000">
+        <Canvas x:Name="PanToolTip" IsHitTestVisible="False" ZIndex="1000">
             <Border x:Name="BorderToolTip" IsVisible="False"
                     Background="{DynamicResource ColorBrush8}"
                     BorderBrush="{DynamicResource ColorBrushGray5}"

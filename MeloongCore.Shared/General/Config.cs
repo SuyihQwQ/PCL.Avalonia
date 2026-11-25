@@ -14,6 +14,14 @@ public interface IConfigProvider {
 
 public class JsonConfigProvider : IConfigProvider {
     public static readonly ConcurrentBag<WeakReference<JsonConfigProvider>> allProviders = [];
+    // 同一个配置文件共享同一个提供器：避免同一版本的多个 McInstance 各自持有过期缓存，
+    // 导致页面里刚写入的配置（例如“使用指定的 Java”）在启动时读不到。
+    private static readonly ConcurrentDictionary<string, JsonConfigProvider> sharedProviders = new(StringComparer.OrdinalIgnoreCase);
+    public static JsonConfigProvider GetShared(string filePath) {
+        string key;
+        try { key = PathUtils.ForCompare(filePath); } catch { key = filePath; }
+        return sharedProviders.GetOrAdd(key, _ => new JsonConfigProvider(filePath));
+    }
     private readonly string filePath;
 
 #pragma warning disable CS8618 // 在退出构造函数时，不可为 null 的字段必须包含非 null 值。请考虑添加 'required' 修饰符或声明为可以为 null。
@@ -121,7 +129,7 @@ public class JsonConfigProvider : IConfigProvider {
 }
 
 public static class ConfigProviders {
-    public static JsonConfigProvider Default = new(Path.Combine(Paths.AppDataThenName, "config.json"));
+    public static JsonConfigProvider Default = JsonConfigProvider.GetShared(Path.Combine(Paths.AppDataThenName, "config.json"));
 }
 
 #endregion

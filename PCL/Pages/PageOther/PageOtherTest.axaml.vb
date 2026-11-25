@@ -1,4 +1,5 @@
 Imports System.Globalization
+Imports Avalonia.LogicalTree
 
 ''' <summary>
 ''' “更多”页面的百宝箱子页面。
@@ -9,6 +10,79 @@ Public Class PageOtherTest
     Public Sub New()
         InitControls()
     End Sub
+
+#Region "系统信息"
+
+    Private _SystemInfoRefreshing As Boolean
+
+    Private Sub PageOtherTest_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
+        ApplySystemInfoLanguageFallbacks()
+        RefreshSystemInfo()
+    End Sub
+
+    ''' <summary>
+    ''' 译文词条尚未加入语言资源时（LangSystemInfoTitle 缺失），用 Tag 中的中文兜底，避免卡片标题与字段名显示为空。
+    ''' 译文加入后 DynamicResource 会正常生效，这段兜底不再执行。
+    ''' </summary>
+    Private Sub ApplySystemInfoLanguageFallbacks()
+        Try
+            If ModSystemInfo.GetLangText("LangSystemInfoTitle", Nothing) IsNot Nothing Then Return
+            If String.IsNullOrEmpty(CardSystemInfo.Title) Then CardSystemInfo.Title = "系统信息"
+            For Each LogicalChild In CardSystemInfo.GetLogicalDescendants()
+                Dim Label = TryCast(LogicalChild, TextBlock)
+                If Label Is Nothing Then Continue For
+                Dim Fallback = TryCast(Label.Tag, String)
+                If Not String.IsNullOrEmpty(Fallback) AndAlso String.IsNullOrEmpty(Label.Text) Then Label.Text = Fallback
+            Next
+        Catch ex As Exception
+            Logger.Warn(ex, "初始化系统信息卡片语言兜底失败")
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' 异步刷新系统信息卡片：所有字段在后台线程读取，完成后回到 UI 线程更新文本。
+    ''' 数据由 ModSystemInfo 缓存，页面反复进入不会重复读取文件；页面已销毁时更新的只是普通属性，不会崩溃。
+    ''' </summary>
+    Public Sub RefreshSystemInfo()
+        If _SystemInfoRefreshing Then Return
+        _SystemInfoRefreshing = True
+        RunInNewThread(
+        Sub()
+            Dim Info = ModSystemInfo.GetSystemInfo(ForceRefresh:=True)
+            RunInUi(
+            Sub()
+                _SystemInfoRefreshing = False
+                Try
+                    ApplySystemInfo(Info)
+                Catch ex As Exception
+                    Logger.Warn(ex, "更新系统信息卡片失败")
+                End Try
+            End Sub)
+        End Sub, "Refresh System Info")
+    End Sub
+
+    Private Sub ApplySystemInfo(Info As ModSystemInfo.SystemInfoData)
+        If Info Is Nothing Then Return
+        LabSystemInfoHostname.Text = ModSystemInfo.LocalizeUnknown(Info.Hostname)
+        LabSystemInfoOperatingSystem.Text = ModSystemInfo.LocalizeUnknown(Info.OperatingSystem)
+        LabSystemInfoArchitecture.Text = ModSystemInfo.LocalizeUnknown(Info.Architecture)
+        LabSystemInfoUptime.Text = ModSystemInfo.LocalizeUnknown(Info.Uptime)
+        LabSystemInfoDesktop.Text = ModSystemInfo.LocalizeUnknown(Info.DesktopEnvironment)
+        LabSystemInfoCpu.Text = ModSystemInfo.LocalizeUnknown(Info.Cpu)
+        LabSystemInfoGpu.Text = ModSystemInfo.LocalizeUnknown(Info.Gpu)
+        LabSystemInfoMemory.Text = ModSystemInfo.LocalizeUnknown(Info.Memory)
+        LabSystemInfoLauncher.Text = ModSystemInfo.LocalizeUnknown(Info.Launcher)
+
+        Dim LogoData = ModSystemInfo.GetOsLogoData(Info.OsLogoKey)
+        If String.IsNullOrEmpty(LogoData) Then Return
+        Try
+            PathOsLogo.Data = Geometry.Parse(LogoData)
+        Catch ex As Exception
+            Logger.Warn(ex, "解析操作系统图标失败")
+        End Try
+    End Sub
+
+#End Region
 
     Public Shared Sub StartCustomDownload(Url As String, FileName As String, Optional Folder As String = Nothing)
     End Sub

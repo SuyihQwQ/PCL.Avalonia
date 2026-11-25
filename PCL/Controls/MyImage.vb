@@ -141,16 +141,12 @@ Public Class MyImage
         End Sub, "MyImage PicLoader " & GetUuid() & "#", ThreadPriority.BelowNormal)
     End Sub
 
-    Private Shared ReadOnly HttpClient As HttpClient = CreateHttpClient()
-
-    Private Shared Function CreateHttpClient() As HttpClient
-        Dim Handler As New HttpClientHandler With {.AutomaticDecompression = DecompressionMethods.All}
-        Dim Client As New HttpClient(Handler) With {.Timeout = TimeSpan.FromSeconds(20)}
-        Client.DefaultRequestHeaders.UserAgent.ParseAdd(
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36")
-        Client.DefaultRequestHeaders.Accept.ParseAdd("image/avif,image/webp,image/apng,image/*,*/*;q=0.8")
-        Return Client
-    End Function
+    '图片请求走 ModNet 的共享客户端，以便跟随“网络代理”设置（设置变化后自动重建）
+    Private Shared ReadOnly Property HttpClient As HttpClient
+        Get
+            Return ModNet.GetSharedHttpClient("image", ModNet.NetRequestCategory.Other, 20)
+        End Get
+    End Property
 
     ''' <summary>
     ''' 下载图片到指定文件。可选地在主地址失败后使用备用地址。
@@ -171,6 +167,9 @@ Public Class MyImage
 
     Private Shared Function GetImageBytes(Url As String) As Byte()
         Dim Request As New HttpRequestMessage(HttpMethod.Get, Url)
+        Request.Headers.TryAddWithoutValidation("User-Agent",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36")
+        Request.Headers.TryAddWithoutValidation("Accept", "image/avif,image/webp,image/apng,image/*,*/*;q=0.8")
         Dim UriResult As Uri = Nothing
         If Uri.TryCreate(Url, UriKind.Absolute, UriResult) Then
             Dim Referer As String = UriResult.GetLeftPart(UriPartial.Authority) & "/"

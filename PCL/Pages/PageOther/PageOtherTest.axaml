@@ -3,8 +3,53 @@
                    xmlns:local="using:PCL"
                    x:Class="PCL.PageOtherTest"
                    PanScroll="PanBack">
+    <local:MyPageRight.Styles>
+        <Style Selector="TextBlock.SystemInfoLabel">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Opacity" Value="0.68" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="Margin" Value="0,1,18,9" />
+        </Style>
+        <Style Selector="TextBlock.SystemInfoValue">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="Margin" Value="0,1,0,9" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="MaxLines" Value="2" />
+        </Style>
+    </local:MyPageRight.Styles>
     <local:MyScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" x:Name="PanBack">
         <StackPanel x:Name="PanMain" Margin="25,10">
+            <!-- 系统信息卡片：不设置 CanSwap，也没有 SwapControl，因此始终展开、没有折叠箭头 -->
+            <local:MyCard x:Name="CardSystemInfo" Margin="0,15" Title="{DynamicResource LangSystemInfoTitle}">
+                <Grid Margin="25,38,23,20" ColumnDefinitions="*,Auto">
+                    <Grid Grid.Column="0" ColumnDefinitions="Auto,*"
+                          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource LangSystemInfoHostname}" Tag="主机名" Classes="SystemInfoLabel" />
+                        <TextBlock Grid.Row="0" Grid.Column="1" x:Name="LabSystemInfoHostname" Text="…" Classes="SystemInfoValue" />
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="{DynamicResource LangSystemInfoOperatingSystem}" Tag="操作系统" Classes="SystemInfoLabel" />
+                        <TextBlock Grid.Row="1" Grid.Column="1" x:Name="LabSystemInfoOperatingSystem" Text="…" Classes="SystemInfoValue" />
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="{DynamicResource LangSystemInfoArchitecture}" Tag="系统架构" Classes="SystemInfoLabel" />
+                        <TextBlock Grid.Row="2" Grid.Column="1" x:Name="LabSystemInfoArchitecture" Text="…" Classes="SystemInfoValue" />
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="{DynamicResource LangSystemInfoUptime}" Tag="运行时间" Classes="SystemInfoLabel" />
+                        <TextBlock Grid.Row="3" Grid.Column="1" x:Name="LabSystemInfoUptime" Text="…" Classes="SystemInfoValue" />
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="{DynamicResource LangSystemInfoDesktop}" Tag="桌面环境" Classes="SystemInfoLabel" />
+                        <TextBlock Grid.Row="4" Grid.Column="1" x:Name="LabSystemInfoDesktop" Text="…" Classes="SystemInfoValue" />
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="{DynamicResource LangSystemInfoCpu}" Tag="处理器" Classes="SystemInfoLabel" />
+                        <TextBlock Grid.Row="5" Grid.Column="1" x:Name="LabSystemInfoCpu" Text="…" Classes="SystemInfoValue" />
+                        <TextBlock Grid.Row="6" Grid.Column="0" Text="{DynamicResource LangSystemInfoGpu}" Tag="显卡" Classes="SystemInfoLabel" />
+                        <TextBlock Grid.Row="6" Grid.Column="1" x:Name="LabSystemInfoGpu" Text="…" Classes="SystemInfoValue" />
+                        <TextBlock Grid.Row="7" Grid.Column="0" Text="{DynamicResource LangSystemInfoMemory}" Tag="内存" Classes="SystemInfoLabel" />
+                        <TextBlock Grid.Row="7" Grid.Column="1" x:Name="LabSystemInfoMemory" Text="…" Classes="SystemInfoValue" />
+                        <TextBlock Grid.Row="8" Grid.Column="0" Text="{DynamicResource LangSystemInfoLauncher}" Tag="启动器" Classes="SystemInfoLabel" />
+                        <TextBlock Grid.Row="8" Grid.Column="1" x:Name="LabSystemInfoLauncher" Text="…" Classes="SystemInfoValue" />
+                    </Grid>
+                    <Viewbox Grid.Column="1" Width="112" Height="112" Margin="18,2,2,0" VerticalAlignment="Top">
+                        <Path x:Name="PathOsLogo" Width="24" Height="24" Stretch="Uniform" Opacity="0.82"
+                              Fill="{DynamicResource ColorBrush1}" />
+                    </Viewbox>
+                </Grid>
+            </local:MyCard>
             <local:MyCard Title="实用工具" Margin="0,15">
                 <StackPanel Margin="25,38,23,15">
                     <local:MyButton x:Name="BtnDetectChinaUser" Text="检测你是不是中国用户" Height="35" HorizontalAlignment="Left" Padding="13,0,13,0" />

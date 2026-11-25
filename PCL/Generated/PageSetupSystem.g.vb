@@ -29,6 +29,14 @@ Namespace Global.PCL
         Friend WithEvents TextSystemCache As PCL.MyTextBox
         Friend WithEvents BtnSystemSettingExp As PCL.MyButton
         Friend WithEvents BtnSystemSettingImp As PCL.MyButton
+        Friend WithEvents CardNetProxy As PCL.MyCard
+        Friend WithEvents RadioNetProxySystem As PCL.MyRadioBox
+        Friend WithEvents RadioNetProxyNone As PCL.MyRadioBox
+        Friend WithEvents RadioNetProxySocks5 As PCL.MyRadioBox
+        Friend WithEvents RadioNetProxyHttp As PCL.MyRadioBox
+        Friend WithEvents PanNetProxyCustom As Avalonia.Controls.StackPanel
+        Friend WithEvents TextNetProxyAddress As PCL.MyTextBox
+        Friend WithEvents TextNetProxyPort As PCL.MyTextBox
         Friend WithEvents CardDebug As PCL.MyCard
         Friend WithEvents PanDebugAnim As Avalonia.Controls.Grid
         Friend WithEvents SliderDebugAnim As PCL.MySlider
@@ -68,6 +76,22 @@ Namespace Global.PCL
             If BtnSystemSettingExp Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnSystemSettingExp")
             BtnSystemSettingImp = FindControl(Of PCL.MyButton)("BtnSystemSettingImp")
             If BtnSystemSettingImp Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnSystemSettingImp")
+            CardNetProxy = FindControl(Of PCL.MyCard)("CardNetProxy")
+            If CardNetProxy Is Nothing Then Throw New InvalidOperationException("找不到控件：CardNetProxy")
+            RadioNetProxySystem = FindControl(Of PCL.MyRadioBox)("RadioNetProxySystem")
+            If RadioNetProxySystem Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioNetProxySystem")
+            RadioNetProxyNone = FindControl(Of PCL.MyRadioBox)("RadioNetProxyNone")
+            If RadioNetProxyNone Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioNetProxyNone")
+            RadioNetProxySocks5 = FindControl(Of PCL.MyRadioBox)("RadioNetProxySocks5")
+            If RadioNetProxySocks5 Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioNetProxySocks5")
+            RadioNetProxyHttp = FindControl(Of PCL.MyRadioBox)("RadioNetProxyHttp")
+            If RadioNetProxyHttp Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioNetProxyHttp")
+            PanNetProxyCustom = FindControl(Of Avalonia.Controls.StackPanel)("PanNetProxyCustom")
+            If PanNetProxyCustom Is Nothing Then Throw New InvalidOperationException("找不到控件：PanNetProxyCustom")
+            TextNetProxyAddress = FindControl(Of PCL.MyTextBox)("TextNetProxyAddress")
+            If TextNetProxyAddress Is Nothing Then Throw New InvalidOperationException("找不到控件：TextNetProxyAddress")
+            TextNetProxyPort = FindControl(Of PCL.MyTextBox)("TextNetProxyPort")
+            If TextNetProxyPort Is Nothing Then Throw New InvalidOperationException("找不到控件：TextNetProxyPort")
             CardDebug = FindControl(Of PCL.MyCard)("CardDebug")
             If CardDebug Is Nothing Then Throw New InvalidOperationException("找不到控件：CardDebug")
             PanDebugAnim = FindControl(Of Avalonia.Controls.Grid)("PanDebugAnim")

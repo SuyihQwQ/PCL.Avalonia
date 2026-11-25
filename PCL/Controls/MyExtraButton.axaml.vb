@@ -46,9 +46,16 @@ Public Class MyExtraButton
         End Get
         Set(value As Double)
             _LogoScale = value
-            If Path IsNot Nothing Then Path.RenderTransform = New ScaleTransform(value, value)
+            RefreshLogoScale()
         End Set
     End Property
+
+    ' 通过缩放图标所在的 Viewbox 来放大图标，使其始终以圆心为中心，避免 RenderTransform 造成的偏移/裁切
+    Private Sub RefreshLogoScale()
+        If IconBox Is Nothing Then Return
+        IconBox.Width = 16 * _LogoScale
+        IconBox.Height = 16 * _LogoScale
+    End Sub
 
     Private _Show As Boolean = False
     Public Property Show As Boolean
@@ -104,7 +111,7 @@ Public Class MyExtraButton
     Public Sub New()
         InitControls()
         PanProgress.Clip = ProgressRect
-        If Path.Data IsNot Nothing Then Path.RenderTransform = New ScaleTransform(LogoScale, LogoScale)
+        RefreshLogoScale()
     End Sub
 
     Protected Overrides Sub OnAttachedToVisualTree(e As VisualTreeAttachmentEventArgs)

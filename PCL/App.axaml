@@ -5,13 +5,27 @@
     <Application.Styles>
         <FluentTheme />
         <StyleInclude Source="avares://PCL.Avalonia/Themes/Controls.axaml" />
+        <!-- 全局字体：跟随 PCLFont 动态资源，便于“完全使用系统字体”开关实时切换 -->
+        <Style Selector="TemplatedControl">
+            <Setter Property="FontFamily" Value="{DynamicResource PCLFont}" />
+        </Style>
+        <Style Selector="TextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource PCLFont}" />
+        </Style>
+        <Style Selector="SelectableTextBlock">
+            <Setter Property="FontFamily" Value="{DynamicResource PCLFont}" />
+        </Style>
+        <Style Selector="Label">
+            <Setter Property="FontFamily" Value="{DynamicResource PCLFont}" />
+        </Style>
     </Application.Styles>
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceInclude Source="avares://PCL.Avalonia/Themes/Colors.axaml" />
             </ResourceDictionary.MergedDictionaries>
-            <FontFamily x:Key="PCLFont">avares://PCL.Avalonia/Assets/Fonts/PCLEnglish.ttf#PCL English, Noto Sans CJK SC, MiSans TC</FontFamily>
+            <!-- 与 PCL/FontConfig.vb 的 FontConfig.EmbeddedFamily 保持一致（启动后运行时会按设置改写） -->
+            <FontFamily x:Key="PCLFont">avares://PCL.Avalonia/Assets/Fonts/PCLEnglish.ttf#PCL English, avares://PCL.Avalonia/Assets/Fonts/MiSans-Regular.ttf#MiSans, avares://PCL.Avalonia/Assets/Fonts/Twemoji.Mozilla.ttf#Twemoji Mozilla</FontFamily>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

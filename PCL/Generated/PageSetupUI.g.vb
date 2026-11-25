@@ -27,6 +27,8 @@ Namespace Global.PCL
         Friend WithEvents RadioThemeModeFollow As PCL.MyRadioBox
         Friend WithEvents RadioThemeModeLight As PCL.MyRadioBox
         Friend WithEvents RadioThemeModeDark As PCL.MyRadioBox
+        Friend WithEvents HintThemeWindowsLimit As PCL.MyHint
+        Friend WithEvents CardFont As PCL.MyCard
         Friend WithEvents CardBackground As PCL.MyCard
         Friend WithEvents PanBackgroundSuit As Avalonia.Controls.Grid
         Friend WithEvents ComboBackgroundSuit As PCL.MyComboBox
@@ -121,6 +123,10 @@ Namespace Global.PCL
             If RadioThemeModeLight Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioThemeModeLight")
             RadioThemeModeDark = FindControl(Of PCL.MyRadioBox)("RadioThemeModeDark")
             If RadioThemeModeDark Is Nothing Then Throw New InvalidOperationException("找不到控件：RadioThemeModeDark")
+            HintThemeWindowsLimit = FindControl(Of PCL.MyHint)("HintThemeWindowsLimit")
+            If HintThemeWindowsLimit Is Nothing Then Throw New InvalidOperationException("找不到控件：HintThemeWindowsLimit")
+            CardFont = FindControl(Of PCL.MyCard)("CardFont")
+            If CardFont Is Nothing Then Throw New InvalidOperationException("找不到控件：CardFont")
             CardBackground = FindControl(Of PCL.MyCard)("CardBackground")
             If CardBackground Is Nothing Then Throw New InvalidOperationException("找不到控件：CardBackground")
             PanBackgroundSuit = FindControl(Of Avalonia.Controls.Grid)("PanBackgroundSuit")

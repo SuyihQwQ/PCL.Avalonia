@@ -318,6 +318,8 @@ Public Class MyCard
 
     Private HoverLeavePending As Boolean
     Private HoverRemovedDuringInteraction As Boolean
+    '指针是否真的在卡片内（用于下拉框关闭等指针状态短暂抖动时判断是否保留悬停高亮）
+    Private PointerIsInside As Boolean
 
     Private Function IsPositionInsideCard(Position As Point) As Boolean
         Return Position.X >= 0 AndAlso Position.Y >= 0 AndAlso Position.X <= Bounds.Width AndAlso Position.Y <= Bounds.Height
@@ -366,12 +368,15 @@ Public Class MyCard
     End Sub
 
     Private Sub MyCard_MouseEnter(sender As Object, e As PointerEventArgs)
+        PointerIsInside = True
         RestoreHoverState()
     End Sub
 
     Private Sub MyCard_MouseLeave(sender As Object, e As PointerEventArgs)
         '指针被滑块等子控件捕获时，离开子控件也会触发卡片的离开事件；此时指针仍在卡片内，视同普通悬停
-        If IsPositionInsideCard(e.GetPosition(Me)) Then
+        Dim Inside As Boolean = IsPositionInsideCard(e.GetPosition(Me))
+        PointerIsInside = Inside
+        If Inside Then
             RestoreHoverState()
             Return
         End If
@@ -400,17 +405,31 @@ Public Class MyCard
             HoverLeavePending = False
             HoverRemovedDuringInteraction = False
             HoverLocks(Key) = KeepWhenPointerLeaves
+            If IsPointerOver Then PointerIsInside = True
             ApplyHoverColor()
         Else
             HoverLocks.Remove(Key)
             If HoverLocks.Count = 0 Then
-                '下拉框关闭后指针状态会短暂抖动，延迟一小段时间再决定是否取消高亮，避免标题颜色闪一下
                 AniStop("MyCard HoverRelease " & Uuid)
-                AniStart(
-                    AaCode(
-                    Sub()
-                        If HoverLocks.Count = 0 AndAlso Not IsPointerOver Then RemoveHoverColor()
-                    End Sub, 120), "MyCard HoverRelease " & Uuid)
+                '下拉框关闭瞬间指针状态可能短暂抖动：只要指针没有在锁定期间真正离开卡片，
+                '就直接恢复悬停，避免标题颜色先变黑再变蓝（悬停高亮闪一下）
+                If PointerIsInside OrElse IsPointerOver Then
+                    '指针还在卡片内：直接恢复悬停，避免下拉收起时闪黑
+                    RestoreHoverState()
+                Else
+                    '指针状态可能短暂抖动，延迟一小段时间再确认是否真的在卡片外
+                    AniStart(
+                        AaCode(
+                        Sub()
+                            If HoverLocks.Count = 0 AndAlso Not PointerIsInside AndAlso Not IsPointerOver Then
+                                ApplyIdleShadow()
+                                RemoveHoverColor()
+                                HoverRemovedDuringInteraction = False
+                            Else
+                                RestoreHoverState()
+                            End If
+                        End Sub, 120), "MyCard HoverRelease " & Uuid)
+                End If
             End If
         End If
     End Sub

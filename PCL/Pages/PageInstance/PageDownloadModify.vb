@@ -106,9 +106,9 @@ Public Class PageDownloadModify
                 Dim Loader = Pair.Value
                 If Loader.State = LoadState.Failed Then
                     If Loader Is ForgeLoader AndAlso Loader.Error.Message = "无" Then Continue For 'Forge 无版本时不报错
-                    Throw New Exception($"获取 {Pair.Key} 版本列表失败，请稍后再试，或使用 VPN 改善网络环境", Loader.Error)
+                    Throw New Exception($"获取 {Pair.Key} 版本列表失败，请稍后再试，或在 设置 → 其他 → 网络代理 中设置代理", Loader.Error)
                 ElseIf Loader.State = LoadState.Canceled Then
-                    Throw New Exception($"获取 {Pair.Key} 版本列表被中断，请稍后再试，或使用 VPN 改善网络环境")
+                    Throw New Exception($"获取 {Pair.Key} 版本列表被中断，请稍后再试，或在 设置 → 其他 → 网络代理 中设置代理")
                 End If
             Next
             If LoaderList.Values.All(Function(Loader) Loader.State = LoadState.Finished OrElse Loader.State = LoadState.Failed) Then Exit Do

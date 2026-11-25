@@ -38,6 +38,19 @@ Public Class PageSetupUI
         '重复加载部分
         PanBack.ScrollToHome()
         ThemeCheckAll(True)
+        'Windows 版本按《PCL 存储库合理使用指南》固定龙猫蓝，禁用主题选择并给出提示
+        If OperatingSystem.IsWindows() Then
+            HintThemeWindowsLimit.IsVisible = True
+            For Each Radio In {RadioLauncherTheme1, RadioLauncherTheme2, RadioLauncherTheme3, RadioLauncherTheme4}
+                Radio.IsEnabled = False
+                Radio.Opacity = 0.45
+            Next
+            '已保存过其它主题时，回写为默认主题并同步界面勾选
+            If Settings.Get(Of Integer)("UiLauncherTheme") <> 0 Then Settings.Set("UiLauncherTheme", 0)
+            RadioLauncherTheme0.SetChecked(True, False)
+        Else
+            HintThemeWindowsLimit.IsVisible = False
+        End If
         If ThemeDontClick <> 0 Then
             Dim NewText As String = If(ThemeDontClick = 1, "眼瞎白", "真·滑稽彩")
             For Each Control In PanLauncherTheme.Children.OfType(Of MyRadioBox)()

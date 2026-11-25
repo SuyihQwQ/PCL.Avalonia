@@ -460,8 +460,9 @@ Public Class FormMain
     End Sub
 
     Private Sub FormMain_PointerMoved(sender As Object, e As PointerEventArgs)
-        '拖动滑块等捕获指针的操作期间，指针移到其他控件也不显示悬停提示
-        PointerCaptureActive = e.Pointer.Captured IsNot Nothing
+        '拖动滑块等捕获指针的操作期间，指针移到其他控件也不显示悬停提示；
+        '文本框、按钮等点击也会捕获指针，但这些场景下悬停提示应当保持（与原版一致）
+        PointerCaptureActive = IsDragCapture(e.Pointer.Captured)
         '下拉菜单展开期间不显示悬停提示
         If PointerCaptureActive OrElse MyComboBox.OpenDropDowns.Count > 0 Then
             HideHoverTip()
@@ -491,6 +492,16 @@ Public Class FormMain
             If ToolTip.GetTip(Ancestor) IsNot Nothing AndAlso Ancestor.IsEffectivelyVisible Then Return Ancestor
         Next
         Return Nothing
+    End Function
+
+    ''' <summary>
+    ''' 判断指针是否被拖动类控件（滑块）捕获。只有拖动期间才需要抑制悬停提示。
+    ''' </summary>
+    Private Shared Function IsDragCapture(Captured As IInputElement) As Boolean
+        Dim CapturedVisual = TryCast(Captured, Visual)
+        If CapturedVisual Is Nothing Then Return False
+        '滑块、滚动条拖动期间都不应显示悬停提示（与原版一致）
+        Return CapturedVisual.GetSelfAndVisualAncestors().Any(Function(v) TypeOf v Is MySlider OrElse TypeOf v Is MyScrollBar)
     End Function
 
     Private Sub HoverTipTimer_Tick(sender As Object, e As EventArgs)
@@ -606,6 +617,8 @@ Public Class FormMain
     ''' </summary>
     Public Shared Function RequirePremiumLogin() As Boolean
         If BuildType <> BuildTypes.Release Then Return True
+        '在数据文件夹的 Setup.ini 中写 IReallyNeedOffline:True 可跳过强制正版登录（仍保留原版的购买提示）
+        If IsOfflineModeAllowed() Then Return True
         If String.IsNullOrEmpty(OAuthClientId) Then Return True
         If PageLoginMs.HasLoggedInAccount() Then Return True
         Dim Result As Integer = MyMsgBox(

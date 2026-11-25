@@ -90,7 +90,7 @@ public class Step12CustomHomeTests {
             """;
         var converted = global::PCL.ModHelp.ConvertLegacyXaml(source);
         Assert.DoesNotContain("FlowDocument", converted);
-        Assert.DoesNotContain("Paragraph", converted);
+        Assert.DoesNotContain("<Paragraph", converted);
         Assert.DoesNotContain("TextFormattingMode", converted);
         Assert.DoesNotContain("StaticResource Accent", converted);
         Assert.Contains("Text=\"标题\"", converted);

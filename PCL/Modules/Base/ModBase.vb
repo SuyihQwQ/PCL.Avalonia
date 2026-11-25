@@ -72,6 +72,25 @@ Public Module ModBase
         Return PathUtils.AddSlashSuffix(Path.Combine(GetWritableBasePath(), "PCL.Avalonia"))
     End Function
     ''' <summary>
+    ''' 是否允许在稳定版中跳过“必须登录正版账号”的强制校验。
+    ''' 在数据文件夹的 Setup.ini 中写入 IReallyNeedOffline:True 即可开启；
+    ''' 开启后仍会按原版逻辑在启动若干次后提示购买正版，直到登录正版账号（HintBuy）为止。
+    ''' </summary>
+    Public Function IsOfflineModeAllowed() As Boolean
+        Try
+            Dim Raw As String = ReadIni("Setup", "IReallyNeedOffline", "").Trim()
+            Select Case Raw.ToLowerInvariant()
+                Case "true", "1", "yes", "on"
+                    Return True
+                Case Else
+                    Return False
+            End Select
+        Catch ex As Exception
+            Logger.Warn(ex, "读取 IReallyNeedOffline 设置失败")
+            Return False
+        End Try
+    End Function
+    ''' <summary>
     ''' Linux 下替代注册表的配置文件夹，位于用户配置目录。
     ''' </summary>
     Public ReadOnly Property PathConfigFolder As String

@@ -135,14 +135,12 @@ Public Module Program
             .UsePlatformDetect()
         'Skia 在某些 Linux 系统上会把无法渲染的位图字体（如 8514fix）当作默认字体，
         '未显式指定字体的控件一旦提前排版就会抛出 glyphTypeface 异常，因此固定使用 PCL 字体
-        Builder = Builder.With(New FontManagerOptions With {
-            .DefaultFamilyName = "avares://PCL.Avalonia/Assets/Fonts/PCLEnglish.ttf#PCL English, Noto Sans CJK SC, MiSans TC"
-        })
+        Builder = Builder.With(FontConfig.Create())
         'Wayland 下禁止协商服务端标题栏，避免启动时先闪出系统标题栏再被移除
         If OperatingSystem.IsLinux() Then
             Builder = Builder _
                 .With(New WaylandPlatformOptions With {.ForceDrawnDecorations = True}) _
-                .With(New X11PlatformOptions With {.WmClass = "PCL"})
+                .With(New X11PlatformOptions With {.WmClass = "PCL.Avalonia"})
         End If
         Return Builder _
             .UseWaylandWithFallback() _

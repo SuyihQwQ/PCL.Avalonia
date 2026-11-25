@@ -156,3 +156,6 @@ gpg --verify SHA256SUMS.asc SHA256SUMS
 - PCL 派生代码（`PCL/`、`PCLCS/`）遵循 [LICENCE](LICENCE)（《PCL 分发有限许可》及其合理使用指南）。
 - 完全新写的代码（`PCL.Compat/`、`MeloongCore.Shared/`、`PCL.Tests/`、`tools/XamlGen/`）使用 [Apache License 2.0](LICENSE-APACHE)，这些目录中的源文件带有 SPDX 标识；完整范围见 [NOTICE](NOTICE)。
 - 本项目为公开源代码的第三方移植作品。
+- 内嵌字体：PCLEnglish（来自原版 PCL）、MiSans（小米，免费商用）、Twemoji Mozilla（Twemoji 图形 © Twitter, Inc. 及贡献者，CC-BY 4.0；字体由 twemoji-colr 构建）。
+- 系统信息卡片的系统/发行版图标取自 [simple-icons](https://simple-icons.org)（CC0 1.0）；Windows、Apple/macOS、Linux 及各发行版图标为其各自所有者的商标，仅用于标识当前操作系统。
+- 其他第三方库与打包工具（Avalonia、SkiaSharp、Newtonsoft.Json、appimagetool 等）的许可信息见 [NOTICE](NOTICE)

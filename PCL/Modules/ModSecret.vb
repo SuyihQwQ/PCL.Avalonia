@@ -96,6 +96,8 @@ Friend Module ModSecret
         Try
             ApplyThemeVariant()
             Dim Theme As Integer = If(NewTheme >= 0, NewTheme, Settings.Get(Of Integer)("UiLauncherTheme"))
+            'Windows 版本按《PCL 存储库合理使用指南》固定使用龙猫蓝（默认主题），不允许修改主题配色
+            If OperatingSystem.IsWindows() Then Theme = 0
             ThemeNow = Theme
             Select Case Theme
                 Case 1 '甜柠青

@@ -18,6 +18,7 @@ Namespace Global.PCL
         Friend WithEvents PanScale As Avalonia.Controls.Grid
         Friend WithEvents PanColor As Avalonia.Controls.Border
         Friend WithEvents PanProgress As Avalonia.Controls.Border
+        Friend WithEvents IconBox As Avalonia.Controls.Viewbox
         Friend WithEvents Path As Avalonia.Controls.Shapes.Path
 
         Private Sub InitControls()
@@ -30,6 +31,8 @@ Namespace Global.PCL
             If PanColor Is Nothing Then Throw New InvalidOperationException("找不到控件：PanColor")
             PanProgress = FindControl(Of Avalonia.Controls.Border)("PanProgress")
             If PanProgress Is Nothing Then Throw New InvalidOperationException("找不到控件：PanProgress")
+            IconBox = FindControl(Of Avalonia.Controls.Viewbox)("IconBox")
+            If IconBox Is Nothing Then Throw New InvalidOperationException("找不到控件：IconBox")
             Path = FindControl(Of Avalonia.Controls.Shapes.Path)("Path")
             If Path Is Nothing Then Throw New InvalidOperationException("找不到控件：Path")
         End Sub

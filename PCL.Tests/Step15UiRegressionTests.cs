@@ -376,7 +376,8 @@ public class UiRegressionTests {
             Pump(20);
             Assert.Equal(blue, ((ISolidColorBrush)title.Foreground!).Color);
             combo.IsDropDownOpen = false;
-            Pump(20);
+            //收起有淡出动画，弹层真正关闭后才会释放悬停锁，再多等一段确认延迟
+            Pump(30);
             Assert.Equal(normal, ((ISolidColorBrush)title.Foreground!).Color);
         } finally {
             window.Close();
@@ -778,6 +779,8 @@ public class UiRegressionTests {
 
             combo.IsDropDownOpen = false;
             Dispatcher.UIThread.RunJobs();
+            //收起有淡出动画，等动画结束（弹层真正关闭、DropDownClosed 触发）后再悬停
+            Pump(24);
             //关闭后重新悬停可以再次显示
             window.MouseMove(start + new Vector(4, 0));
             Dispatcher.UIThread.RunJobs();

@@ -17,9 +17,7 @@ public static class TestAppBuilder {
         AppBuilder.Configure<global::PCL.App>()
             .UseSkia()
             .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
-            .With(new FontManagerOptions {
-                DefaultFamilyName = "avares://PCL.Avalonia/Assets/Fonts/PCLEnglish.ttf#PCL English, Noto Sans CJK SC, MiSans TC"
-            });
+            .With(global::PCL.FontConfig.Create());
 }
 
 public class AppSmokeTests {
