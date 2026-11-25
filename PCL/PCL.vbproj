@@ -108,4 +108,14 @@
     <Import Include="ThrottleDebounce" />
   </ItemGroup>
 
+
+  <!-- 发行包附带许可与第三方声明 / ship license and third-party notices with releases -->
+  <ItemGroup>
+    <None Include="..\NOTICE" Link="NOTICE" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\LICENCE" Link="LICENCE" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\LICENSE-APACHE" Link="LICENSE-APACHE" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\THIRD-PARTY-LICENSES.md" Link="THIRD-PARTY-LICENSES.md" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="Assets\Fonts\FontLicenses.txt" Link="FontLicenses.txt" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

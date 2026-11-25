@@ -168,3 +168,11 @@ The public key is published alongside the release as `PCL.Avalonia-signing-key.a
 - Gradually rewrite the existing VB.NET code in C# (aligning with the existing C# project layout for easier maintenance and cross-platform work).
 - Add [ConnectX](https://github.com/Corona-Studio/ConnectX) support (for Minecraft LAN/online play scenarios).
 - Continue improving Linux/macOS support and Chinese/English translations.
+
+## Future plans
+
+> These are plans only; implementation has not started and the order/timing may change.
+
+1. **macOS support**: complete macOS builds, packaging (.app/dmg) and system integration.
+2. **Rewrite the VB.NET part in C#**: gradually migrate the VB.NET code in `PCL/` to C#, aligning with the existing C# projects for easier maintenance and cross-platform development.
+3. **ConnectX-powered multiplayer support**: integrate [ConnectX](https://github.com/Corona-Studio/ConnectX) to provide LAN/virtual-LAN multiplayer for Minecraft.

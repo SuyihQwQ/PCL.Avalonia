@@ -27,9 +27,10 @@
 
 > 以下仅为规划，尚未开始实施，具体顺序和时间可能调整。
 
-- 将现有的 VB.NET 代码逐步重写为 C#（与现有 C# 项目结构统一，便于维护与跨平台开发）。
-- 添加 [ConnectX](https://github.com/Corona-Studio/ConnectX) 支持（用于 Minecraft 联机/虚拟局域网场景）。
-- 继续完善 Linux/macOS 适配与中文/英文翻译。
+1. **支持 macOS**：完善 macOS 下的构建、打包（.app/dmg）与系统集成适配。
+2. **将 VB.NET 部分重写为 C#**：逐步把 `PCL/` 中的 VB.NET 代码迁移到 C#，与现有 C# 工程结构统一，便于维护与跨平台开发。
+3. **添加由 ConnectX 提供的联机支持**：接入 [ConnectX](https://github.com/Corona-Studio/ConnectX)，为 Minecraft 提供联机/虚拟局域网能力。
+
 
 ## 环境要求
 
@@ -158,7 +159,8 @@ gpg --verify SHA256SUMS.asc SHA256SUMS
 - PCL.Avalonia：Copyright © 2026 SuyihQwQ
 - PCL 派生代码（`PCL/`、`PCLCS/`）遵循 [LICENCE](LICENCE)（《PCL 分发有限许可》及其合理使用指南）。
 - 完全新写的代码（`PCL.Compat/`、`MeloongCore.Avalonia/`(submodule)、`PCL.Tests/`、`tools/XamlGen/`）使用 [Apache License 2.0](LICENSE-APACHE)，这些目录中的源文件带有 SPDX 标识；完整范围见 [NOTICE](NOTICE)。
-- 本项目为公开源代码的第三方移植作品。
+- 本项目为**第三方基于 PCL 独立进行的二次创作/移植作品**，名称与内容不代表 PCL 官方；我们遵守《PCL 分发有限许可》与《PCL 存储库合理使用指南》（保留原文件名 `LICENCE`），公开源代码，并在“关于”页面首位提供原作者龙腾猫跃的署名与赞助链接。
+- 第三方字体、图标、NuGet 组件与打包工具的许可与署名见 [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md)。
 - 内嵌字体：PCLEnglish（来自原版 PCL）、MiSans（小米，免费商用）、Twemoji Mozilla（Twemoji 图形 © Twitter, Inc. 及贡献者，CC-BY 4.0；字体由 twemoji-colr 构建）。
 - 系统信息卡片的系统/发行版图标取自 [simple-icons](https://simple-icons.org)（CC0 1.0）；Windows、Apple/macOS、Linux 及各发行版图标为其各自所有者的商标，仅用于标识当前操作系统。
 - 其他第三方库与打包工具（Avalonia、SkiaSharp、Newtonsoft.Json、appimagetool 等）的许可信息见 [NOTICE](NOTICE)

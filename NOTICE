@@ -31,3 +31,8 @@ Third-party libraries (via NuGet)
 - xunit.v3, xunit.runner.visualstudio: Apache License 2.0.
 - MeloongCore.Avalonia/ (git submodule): project-specific fork of MeloongCore (https://github.com/Meloong-Git/MeloongCore), Apache License 2.0. It is trimmed/adapted for PCL.Avalonia; see the submodule's README.md / UPSTREAM.md for the fork details and upstream attribution.
 Full licence texts are available from the respective package sources; this project does not modify those libraries.
+
+Third-party content
+- Third-party fonts, icons, NuGet packages and packaging tools are documented, with their licenses and attribution, in THIRD-PARTY-LICENSES.md. Such third-party content is excluded from the PCL Limited Distribution License scope.
+- The embedded MiSans font is Copyright © Xiaomi Inc. and the Twemoji font is Copyright © Twitter, Inc. and contributors (CC-BY 4.0); the system-info icons are from simple-icons (CC0 1.0).
+- MeloongCore.Avalonia/ is a project-specific Apache-2.0 fork of MeloongCore (https://github.com/Meloong-Git/MeloongCore); see the submodule's README.md and UPSTREAM.md.
