@@ -22,7 +22,7 @@ public class AboutPageTests {
             Assert.NotNull(page.PanMain);
             Assert.NotNull(page.ItemAboutPcl);
 
-            Assert.Contains("14.1.2", page.ItemAboutPcl.Info);
+            Assert.Contains(global::PCL.ModBase.VersionBaseName, page.ItemAboutPcl.Info);
             Assert.Contains("PCL.Avalonia 是原版 PCL 的跨平台移植版本。", page.ItemAboutPcl.Info);
             var items = page.PanMain.GetVisualDescendants().OfType<global::PCL.MyListItem>().ToList();
             Assert.Contains(items, i => i.Title == "SuyihQwQ" && i.Info == "PCL.Avalonia 的开发者");

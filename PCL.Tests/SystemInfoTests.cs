@@ -60,7 +60,7 @@ public class SystemInfoTests {
         Assert.False(string.IsNullOrWhiteSpace(info.Gpu));
         Assert.False(string.IsNullOrWhiteSpace(info.Memory));
         Assert.False(string.IsNullOrWhiteSpace(info.Launcher));
-        Assert.Contains("14.1.2", info.Launcher);
+        Assert.Contains(global::PCL.ModBase.VersionBaseName, info.Launcher);
         Assert.Contains(info.OsLogoKey, global::PCL.ModSystemInfo.GetOsLogoKeys());
 
         // 30 秒缓存内不应重新读取，直接返回同一实例
@@ -172,7 +172,7 @@ public class SystemInfoTests {
             // 主机名与启动器版本一定能读到实际值
             Assert.NotNull(page.LabSystemInfoHostname.Text);
             Assert.NotEqual(global::PCL.ModSystemInfo.UnknownText, page.LabSystemInfoHostname.Text);
-            Assert.Contains("14.1.2", page.LabSystemInfoLauncher.Text);
+            Assert.Contains(global::PCL.ModBase.VersionBaseName, page.LabSystemInfoLauncher.Text);
 
             // 图标 Path Data 已填充
             Assert.NotNull(page.PathOsLogo.Data);

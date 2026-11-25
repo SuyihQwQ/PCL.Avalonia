@@ -160,3 +160,11 @@ The public key is published alongside the release as `PCL.Avalonia-signing-key.a
 - PCL-derived code (`PCL/`, `PCLCS/`) follows the [LICENCE](LICENCE) (the PCL Limited Distribution License and its reasonable-use guidelines).
 - Original code (`PCL.Compat/`, `MeloongCore.Shared/`, `PCL.Tests/`, `tools/XamlGen/`) is licensed under the [Apache License 2.0](LICENSE-APACHE). Files in these directories carry an SPDX identifier; see [NOTICE](NOTICE) for the full scope.
 - This project is a third-party port with source code available.
+
+## Future plans
+
+> These are plans only; implementation has not started and the order/timing may change.
+
+- Gradually rewrite the existing VB.NET code in C# (aligning with the existing C# project layout for easier maintenance and cross-platform work).
+- Add [ConnectX](https://github.com/Corona-Studio/ConnectX) support (for Minecraft LAN/online play scenarios).
+- Continue improving Linux/macOS support and Chinese/English translations.

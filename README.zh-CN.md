@@ -25,8 +25,11 @@
 
 ## 未来计划
 
-- 优化 macOS 支持。
-- 完全重写为 C#。
+> 以下仅为规划，尚未开始实施，具体顺序和时间可能调整。
+
+- 将现有的 VB.NET 代码逐步重写为 C#（与现有 C# 项目结构统一，便于维护与跨平台开发）。
+- 添加 [ConnectX](https://github.com/Corona-Studio/ConnectX) 支持（用于 Minecraft 联机/虚拟局域网场景）。
+- 继续完善 Linux/macOS 适配与中文/英文翻译。
 
 ## 环境要求
 
