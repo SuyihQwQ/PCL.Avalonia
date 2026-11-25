@@ -32,6 +32,7 @@ python3 tools/XamlGen/gen_fields.py [--check]     # 改 XAML x:Name 后重新生
 ## 硬约束
 
 - **未经用户明确要求不要 `git push`**；用户说“提交”时只做本地 commit。
+- **提交信息一律使用英文**（可带 `fix:`、`docs:`、`release:` 等前缀）。
 - 不要提交 `bin/obj`、`dist/`、`reference/`、任何密钥或 token；日志/错误输出分享前脱敏。
 - `reference/` 是原版 PCL 源码，只读，用于对照移植，不要修改。
 - `PCL/Generated/*.g.vb` 由脚本生成，不要手改。
