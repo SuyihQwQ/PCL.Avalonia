@@ -48,7 +48,7 @@ Public Class PageOtherHelp
                     If Not IsVisibleEntry(Item) Then Continue For
                     If Item.Types.Contains(TypeName) Then TypeItems.Add(Item)
                 Next
-                Dim NewCard As New MyCard With {.Title = TypeName, .Margin = New Thickness(0, 0, 0, 15), .TitleOffset = 2}
+                Dim NewCard As New MyCard With {.Title = TypeName, .Margin = New Thickness(0, 0, 0, 15)}
                 Dim NewStack As New StackPanel With {
                     .Margin = New Thickness(20, MyCard.SwapedHeight, 18, 0),
                     .VerticalAlignment = VerticalAlignment.Top,

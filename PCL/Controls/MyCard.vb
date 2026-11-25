@@ -228,7 +228,7 @@ Public Class MyCard
             _MainTextBlock = New TextBlock With {
                 .HorizontalAlignment = HorizontalAlignment.Left,
                 .VerticalAlignment = VerticalAlignment.Top,
-                .Margin = New Thickness(15, 10 + TitleOffset, 0, 0),
+                .Margin = New Thickness(15, 12 + TitleOffset, 0, 0),
                 .FontWeight = FontWeight.Bold,
                 .FontSize = 13,
                 .IsHitTestVisible = False,

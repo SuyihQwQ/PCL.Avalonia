@@ -31,8 +31,8 @@
         <Viewbox x:Name="IconBox" Width="16" Height="16"
                  HorizontalAlignment="Center" VerticalAlignment="Center"
                  Stretch="Uniform">
-            <Path x:Name="Path"
-                  Stretch="None"
+            <Path x:Name="Path" Width="16" Height="16"
+                  Stretch="Uniform"
                   Fill="{DynamicResource ColorBrush8}" />
         </Viewbox>
     </Grid>

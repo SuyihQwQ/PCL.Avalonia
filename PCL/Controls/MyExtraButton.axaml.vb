@@ -57,6 +57,37 @@ Public Class MyExtraButton
         IconBox.Height = 16 * _LogoScale
     End Sub
 
+    ' 图标光学微调：不同图形的视觉重心不同，允许逐个按钮平移图标
+    Private _LogoOffsetX As Double = 0
+    Public Property LogoOffsetX As Double
+        Get
+            Return _LogoOffsetX
+        End Get
+        Set(value As Double)
+            _LogoOffsetX = value
+            RefreshLogoOffset()
+        End Set
+    End Property
+    Private _LogoOffsetY As Double = 0
+    Public Property LogoOffsetY As Double
+        Get
+            Return _LogoOffsetY
+        End Get
+        Set(value As Double)
+            _LogoOffsetY = value
+            RefreshLogoOffset()
+        End Set
+    End Property
+
+    Private Sub RefreshLogoOffset()
+        If IconBox Is Nothing Then Return
+        If LogoOffsetX = 0 AndAlso LogoOffsetY = 0 Then
+            IconBox.RenderTransform = Nothing
+        Else
+            IconBox.RenderTransform = New TranslateTransform(LogoOffsetX, LogoOffsetY)
+        End If
+    End Sub
+
     Private _Show As Boolean = False
     Public Property Show As Boolean
         Get
@@ -112,6 +143,7 @@ Public Class MyExtraButton
         InitControls()
         PanProgress.Clip = ProgressRect
         RefreshLogoScale()
+        RefreshLogoOffset()
     End Sub
 
     Protected Overrides Sub OnAttachedToVisualTree(e As VisualTreeAttachmentEventArgs)
