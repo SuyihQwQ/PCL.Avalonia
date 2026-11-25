@@ -283,6 +283,8 @@
                     <TextBlock Grid.Row="22" Grid.Column="2" Grid.ColumnSpan="2" Text="Copyright © Xiaomi Inc.&#xa;Free for personal and commercial use (MiSans Font Licence)." TextWrapping="Wrap" />
                     <local:MyButton Grid.Row="23" Grid.Column="2" MinWidth="140" Text="{DynamicResource LangPageOtherAboutLicenseWeb}" Padding="13,0" Margin="0,7,20,18" HorizontalAlignment="Left"
                                     local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://hyperos.mi.com/font" />
+                    <local:MyButton Grid.Row="23" Grid.Column="3" MinWidth="140" Text="{DynamicResource LangPageOtherAboutLicenseDoc}" Padding="13,0" Margin="0,7,20,18" HorizontalAlignment="Left"
+                                    local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://hyperos.mi.com/font-download/MiSans%E5%AD%97%E4%BD%93%E7%9F%A5%E8%AF%86%E4%BA%A7%E6%9D%83%E8%AE%B8%E5%8F%AF%E5%8D%8F%E8%AE%AE.pdf" />
 
                     <TextBlock Grid.Row="24" Grid.Column="0" Text="Twemoji Mozilla" TextWrapping="Wrap" FontWeight="Bold" />
                     <TextBlock Grid.Row="24" Grid.Column="2" Grid.ColumnSpan="2" Text="Twemoji graphics © Twitter, Inc. and contributors&#xa;Licensed under CC-BY 4.0; font built by twemoji-colr." TextWrapping="Wrap" />

@@ -17,7 +17,7 @@ This file is provided with both the source tree and the release binaries to sati
 | 文件 | 版权与许可 | 来源 |
 |---|---|---|
 | `PCL/Assets/Fonts/PCLEnglish.ttf` | 原版 PCL 附带的字体资源，随 PCL 派生内容适用 PCL 许可 | 原版 PCL |
-| `PCL/Assets/Fonts/MiSans-Regular.ttf` | Copyright © 小米科技有限责任公司（Xiaomi Inc.）。MiSans 允许个人及商业免费使用，**允许在软件中内嵌使用**；许可全文见 `LICENSES/MiSans-License.pdf`，说明见 `LICENSES/MiSans.md` | https://hyperos.mi.com/font |
+| `PCL/Assets/Fonts/MiSans-Regular.ttf` | Copyright © 小米科技有限责任公司（Xiaomi Inc.）。MiSans 允许个人及商业免费使用，**允许在软件中内嵌使用**；官方许可全文：https://hyperos.mi.com/font-download/MiSans%E5%AD%97%E4%BD%93%E7%9F%A5%E8%AF%86%E4%BA%A7%E6%9D%83%E8%AE%B8%E5%8F%AF%E5%8D%8F%E8%AE%AE.pdf ；本仓库保留存档副本 `LICENSES/MiSans-License.pdf` 并随发行包分发，说明见 `LICENSES/MiSans.md` | https://hyperos.mi.com/font |
 | `PCL/Assets/Fonts/Twemoji.Mozilla.ttf` | Twemoji 图形 Copyright © Twitter, Inc. and contributors，按 CC-BY 4.0（https://creativecommons.org/licenses/by/4.0/）许可；字体由 twemoji-colr 构建（https://github.com/mozilla/twemoji-colr ）。本项目未修改字形，仅作为 emoji 回退字体嵌入 | Twemoji / twemoji-colr |
 
 ## 3. 图标与系统信息 / Icons
