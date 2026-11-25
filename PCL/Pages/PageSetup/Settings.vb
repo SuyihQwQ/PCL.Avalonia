@@ -134,6 +134,18 @@ Public Class Settings
         New Setting("ToolDownloadTranslateV2", 1, Source:=Sources.Registry),
         New Setting("ToolDownloadCert", False, Source:=Sources.Registry),
         New Setting("ToolDownloadMod", 2, Source:=Sources.Registry),
+        New Setting("NetProxyMode", 0), '旧版代理设置，仅用于迁移
+        New Setting("NetProxyType", 1, OnChanged:=Sub() ModNet.ResetProxyClients()), '0 系统代理，1 不使用，2 SOCKS5，3 HTTP
+        New Setting("NetProxyAddress", "", OnChanged:=Sub() ModNet.ResetProxyClients()),
+        New Setting("NetProxyPort", 8080, OnChanged:=Sub() ModNet.ResetProxyClients()),
+        New Setting("NetProxyUsername", "", OnChanged:=Sub() ModNet.ResetProxyClients()),
+        New Setting("NetProxyPassword", "", OnChanged:=Sub() ModNet.ResetProxyClients(), Encrypted:=True),
+        New Setting("NetProxyMigrated", False, Source:=Sources.Registry),
+        New Setting("NetProxyDownload", True, OnChanged:=Sub() ModNet.ResetProxyClients()),
+        New Setting("NetProxyHomepage", True, OnChanged:=Sub() ModNet.ResetProxyClients()),
+        New Setting("NetProxyUpdate", True, OnChanged:=Sub() ModNet.ResetProxyClients()),
+        New Setting("NetProxyLogin", True, OnChanged:=Sub() ModNet.ResetProxyClients()),
+        New Setting("NetProxyOther", True, OnChanged:=Sub() ModNet.ResetProxyClients()),
         New Setting("ToolModLocalNameStyle", 0, Source:=Sources.Registry),
         New Setting("ToolUpdateRelease", False, Source:=Sources.Registry),
         New Setting("ToolUpdateSnapshot", False, Source:=Sources.Registry),
@@ -146,6 +158,7 @@ Public Class Settings
         New Setting("UiLauncherLight", 20),
         New Setting("UiLauncherTheme", 0, OnChanged:=Sub() ThemeRefresh()),
         New Setting("UiLauncherThemeMode", 0, OnChanged:=Sub() ThemeRefresh()), '0 跟随系统，1 浅色，2 深色
+        New Setting("UiSystemFont", False, OnChanged:=Sub() FontConfig.ApplyRuntime()),
         New Setting("UiLanguage", "auto", OnChanged:=Sub(Value) Localization.SetLanguage(CStr(Value))),
         New Setting("UiLauncherThemeHide", "0|1|2|3|4", Source:=Sources.Registry, Encrypted:=True),
         New Setting("UiLauncherThemeHide2", "0|1|2|3|4", Source:=Sources.Registry, Encrypted:=True),

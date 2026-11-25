@@ -204,10 +204,10 @@
                             </Path.RenderTransform>
                         </Path>
                         <Popup Name="PART_Popup"
-                               IsOpen="{TemplateBinding IsDropDownOpen, Mode=TwoWay}"
+                               IsOpen="{TemplateBinding PopupOpen}"
                                IsLightDismissEnabled="True"
                                Placement="Bottom"
-                               VerticalOffset="2"
+                               VerticalOffset="-1.5"
                                MinWidth="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}">
                             <Border Background="{DynamicResource ColorBrushCard}"
                                     CornerRadius="3"

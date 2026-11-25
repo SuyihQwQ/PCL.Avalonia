@@ -5,6 +5,98 @@ Imports System.Text
 ''' </summary>
 Public Module ModLaunch
 
+#Region "启动脚本"
+
+    ' 最近一次启动脚本的保存路径。Windows 为 .bat，Linux/macOS 为 .sh。
+    Public ReadOnly Property LatestLaunchScriptPath As String
+        Get
+            Return Path.Combine(PathData, If(OperatingSystem.IsWindows(), "LatestLaunch.bat", "LatestLaunch.sh"))
+        End Get
+    End Property
+
+    ' 收集导出启动脚本时要写入的环境变量（全局 + 实例 + Linux 独显环境变量），与 ApplyLaunchEnvironment 保持一致。
+    Friend Function GetLaunchScriptEnvironment() As List(Of KeyValuePair(Of String, String))
+        Dim Variables As New Dictionary(Of String, String)(
+            If(OperatingSystem.IsWindows(), StringComparer.OrdinalIgnoreCase, StringComparer.Ordinal))
+        Dim Raw As String = Settings.Get(Of String)("LaunchEnvironment") & vbLf &
+                            If(McInstanceSelected Is Nothing, "", Settings.Get(Of String)("VersionEnvironment", Instance:=McInstanceSelected))
+        For Each Line In Raw.Split({";"c, vbCr, vbLf}, StringSplitOptions.RemoveEmptyEntries)
+            Dim Text = Line.Trim()
+            If Text = "" OrElse Text.StartsWith("#", StringComparison.Ordinal) Then Continue For
+            Dim Index = Text.IndexOf("="c)
+            If Index <= 0 Then Continue For
+            Dim Key = Text.Substring(0, Index).Trim()
+            If Key = "" Then Continue For
+            Variables(Key) = ArgumentReplace(Text.Substring(Index + 1).Trim())
+        Next
+        If OperatingSystem.IsLinux() AndAlso Settings.Get(Of Boolean)("LaunchAdvanceGraphicCard") Then
+            Try
+                For Each Pair In GetLinuxGpuOffloadEnvironment("/sys/bus/pci/devices")
+                    Variables(Pair.Key) = Pair.Value
+                Next
+            Catch ex As Exception
+                Logger.Warn(ex, "收集 Linux 独显环境变量失败")
+            End Try
+        End If
+        Return Variables.Select(Function(Pair) New KeyValuePair(Of String, String)(Pair.Key, Pair.Value)).ToList()
+    End Function
+
+    ' 获取导出启动脚本时要使用的包装命令（实例优先于全局），与 GetLaunchProcessCommand 的取值一致。
+    Friend Function GetLaunchScriptWrapper() As String
+        Dim Wrapper As String = ""
+        If McInstanceSelected IsNot Nothing Then Wrapper = Settings.Get(Of String)("VersionAdvanceWrapper", Instance:=McInstanceSelected)
+        If String.IsNullOrWhiteSpace(Wrapper) Then Wrapper = Settings.Get(Of String)("LaunchAdvanceWrapper")
+        Return If(Wrapper, "").Trim()
+    End Function
+
+    ' 生成 Linux/macOS 的 Bash 启动脚本内容。
+    Public Function BuildLaunchShellScript(Title As String, IndiePath As String, JavaExePath As String, Arguments As String,
+            CustomCommandGlobal As String, CustomCommandVersion As String,
+            Optional EnvironmentVariables As IEnumerable(Of KeyValuePair(Of String, String)) = Nothing,
+            Optional Wrapper As String = Nothing, Optional JavaFolder As String = Nothing, Optional McFolder As String = Nothing) As String
+        Dim Lines As New List(Of String) From {
+            "#!/usr/bin/env bash",
+            "# 由 PCL.Avalonia 导出的启动脚本",
+            "# " & Title,
+            "echo ""游戏正在启动，请稍候。"""
+        }
+        '环境变量：Java 目录加入 PATH，并写入全局/实例环境变量与独显变量
+        If Not String.IsNullOrWhiteSpace(JavaFolder) Then Lines.Add("export PATH=" & QuoteShellArgument(JavaFolder) & ":$PATH")
+        If Not String.IsNullOrWhiteSpace(McFolder) Then Lines.Add("export appdata=" & QuoteShellArgument(McFolder))
+        If EnvironmentVariables IsNot Nothing Then
+            For Each Pair In EnvironmentVariables
+                If Not IsValidShellVariableName(Pair.Key) Then
+                    Logger.Warn($"导出的启动脚本跳过了非法的环境变量名：{Pair.Key}")
+                    Continue For
+                End If
+                Lines.Add("export " & Pair.Key & "=" & QuoteShellArgument(Pair.Value))
+            Next
+        End If
+        Lines.Add("cd " & QuoteShellArgument(IndiePath) & " || exit 1")
+        If Not String.IsNullOrWhiteSpace(CustomCommandGlobal) Then Lines.Add(CustomCommandGlobal)
+        If Not String.IsNullOrWhiteSpace(CustomCommandVersion) Then Lines.Add(CustomCommandVersion)
+        Dim JavaCommand As String = QuoteShellArgument(JavaExePath) & " " & If(Arguments, "")
+        If Not String.IsNullOrWhiteSpace(Wrapper) Then JavaCommand = Wrapper.Trim() & " " & JavaCommand
+        Lines.Add(JavaCommand)
+        Lines.Add("echo ""游戏已退出。""")
+        Lines.Add("read -r -p ""按回车键关闭窗口……"" _")
+        Return String.Join(vbLf, Lines) & vbLf
+    End Function
+
+    ' 用单引号包裹 Shell 参数，内部的单引号转义为 '"'"'。
+    Friend Function QuoteShellArgument(Value As String) As String
+        Return "'" & If(Value, "").Replace("'", "'\''") & "'"
+    End Function
+
+    ' Bash 变量名只允许字母、数字与下划线，且不能以数字开头。
+    Friend Function IsValidShellVariableName(Name As String) As Boolean
+        If String.IsNullOrEmpty(Name) Then Return False
+        If Not (Char.IsLetter(Name(0)) OrElse Name(0) = "_"c) Then Return False
+        Return Name.All(Function(C) Char.IsLetterOrDigit(C) OrElse C = "_"c)
+    End Function
+
+#End Region
+
 #Region "开始"
 
     ''' <summary>
@@ -313,6 +405,37 @@ NextInner:
                         End If
                 End Select
             End Sub, "Donate")
+        End If
+        '正版购买提示：与原版 PCL 完全一致（不区分构建类型；稳定版的强制登录由 RequirePremiumLogin 单独负责）
+        If CurrentLaunchOptions?.SaveBatch Is Nothing AndAlso
+           Not Settings.Get(Of Boolean)("HintBuy") AndAlso
+           Settings.Get(Of McLoginType)("LoginType") <> McLoginType.Ms Then
+            If System.Globalization.CultureInfo.CurrentCulture.Name.StartsWith("zh", StringComparison.OrdinalIgnoreCase) OrElse
+               System.Globalization.CultureInfo.CurrentUICulture.Name.StartsWith("zh", StringComparison.OrdinalIgnoreCase) Then
+                '中文：在特定启动次数提醒购买正版
+                RunInNewThread(
+                Sub()
+                    Select Case Settings.Get(Of Integer)("SystemLaunchCount")
+                        Case 3, 8, 15, 30, 50, 70, 90, 110, 130, 180, 220, 280, 330, 380, 450, 550, 660, 750, 880, 950, 1100, 1300, 1500, 1700, 1900
+                            If MyMsgBox("你已经启动了 " & Settings.Get(Of Integer)("SystemLaunchCount") & " 次 Minecraft 啦！" & vbCrLf &
+                                        "如果觉得 Minecraft 还不错，可以购买正版支持一下，毕竟开发游戏也真的很不容易……不要一直白嫖啦。" & vbCrLf & vbCrLf &
+                                        "在登录一次正版账号后，就不会再出现这个提示了！",
+                                        "考虑一下正版？", "支持正版游戏！", "下次一定") = 1 Then
+                                OpenWebsite("https://www.xbox.com/zh-cn/games/store/minecraft-java-bedrock-edition-for-pc/9nxp44l49shj")
+                            End If
+                    End Select
+                End Sub, "Buy Minecraft")
+            ElseIf Settings.Get(Of McLoginType)("LoginType") = McLoginType.Legacy Then
+                '非中文：离线登录需要先登录正版账号；允许试玩模式
+                Select Case MyMsgBox("你必须先登录正版账号，才能进行离线登录！", "正版验证", "购买正版", "试玩", "返回",
+                    Button1Action:=Sub() OpenWebsite("https://www.xbox.com/zh-cn/games/store/minecraft-java-bedrock-edition-for-pc/9nxp44l49shj"))
+                    Case 2
+                        Hint("游戏将以试玩模式启动！", HintType.Red)
+                        CurrentLaunchOptions.ExtraGameArgs.Add("--demo")
+                    Case 3
+                        Throw New OperationCanceledException
+                End Select
+            End If
         End If
     End Sub
 
@@ -661,7 +784,7 @@ SkipLogin:
                 GoTo LoginFinish
             Catch ex As Exception
                 Logger.Warn(ex, "验证登录失败")
-                If ex.IsBadNetwork Then Throw New Exception("$登录失败：你的网络环境不佳，导致难以连接到海外服务器。" & vbCrLf & "请稍后再试，或使用加速器、VPN 改善网络环境。")
+                If ex.IsBadNetwork Then Throw New Exception("$登录失败：你的网络环境不佳，导致难以连接到海外服务器。" & vbCrLf & "请稍后再试，或在 设置 → 其他 → 网络代理 中设置代理。")
             End Try
             Data.Progress = 0.25
             '尝试刷新登录
@@ -902,7 +1025,7 @@ LoginFinish:
                                             " - 只注册了账号，但没有加入对应服务器。")
                 End Select
             ElseIf ex.IsBadNetwork() Then
-                Throw New Exception("$登录失败：你的网络环境不佳，导致难以连接到海外服务器。" & vbCrLf & "请稍后再试，或使用加速器、VPN 改善网络环境。")
+                Throw New Exception("$登录失败：你的网络环境不佳，导致难以连接到海外服务器。" & vbCrLf & "请稍后再试，或在 设置 → 其他 → 网络代理 中设置代理。")
             ElseIf ex.Message.StartsWithF("$") Then
                 Throw
             Else
@@ -2059,25 +2182,59 @@ IgnoreCustomSkin:
         Dim CustomCommandVersion As String = Settings.Get(Of String)("VersionAdvanceRun", Instance:=McInstanceSelected)
         If CustomCommandVersion <> "" Then CustomCommandVersion = ArgumentReplace(CustomCommandVersion)
 
-        '输出 bat
+        '输出启动脚本：Windows 为 .bat（与原版一致），Linux/macOS 为 .sh
         Try
-            Dim CmdString As String =
-                $"chcp {If(McLaunchEncoding.CodePage = 54936 AndAlso IsGBKEncoding, 936, McLaunchEncoding.CodePage)}>nul" & vbCrLf &
-                "@echo off" & vbCrLf &
-                $"title 启动 - {McInstanceSelected.Name}" & vbCrLf &
-                "echo 游戏正在启动，请稍候。" & vbCrLf &
-                $"cd /D ""{PathUtils.ToShortPath(McInstanceSelected.PathIndie)}""" & vbCrLf &
-                CustomCommandGlobal & vbCrLf &
-                CustomCommandVersion & vbCrLf &
-                $"""{McLaunchJavaSelected.JavaExePath}"" {McLaunchArgument}" & vbCrLf &
-                "echo 游戏已退出。" & vbCrLf &
-                "pause"
-            Dim LatestLaunchPath As String = Path.Combine(PathData, "LatestLaunch.bat")
+            Dim LatestLaunchPath As String = LatestLaunchScriptPath
+            Dim SavePath As String = If(CurrentLaunchOptions.SaveBatch, LatestLaunchPath)
             DirectoryUtils.Create(PathData)
-            FileUtils.Write(
-                filePath:=If(CurrentLaunchOptions.SaveBatch, LatestLaunchPath),
-                text:=FilterAccessToken(CmdString, "F"c).Replace("%", "%%"),
-                encoding:=McLaunchEncoding)
+            Dim ScriptEnvironment As List(Of KeyValuePair(Of String, String)) = GetLaunchScriptEnvironment()
+            Dim ScriptWrapper As String = GetLaunchScriptWrapper()
+            If OperatingSystem.IsWindows() Then
+                Dim EnvLines As New StringBuilder
+                'PATH 中的 %PATH% 需要在批处理里运行时展开，用占位符避开下面的 % 转义
+                EnvLines.AppendLine("set ""PATH=" & PathUtils.ToShortPath(McLaunchJavaSelected.Folder) & ";{{PCL_SCRIPT_PATH}}""")
+                EnvLines.AppendLine("set ""appdata=" & PathUtils.ToShortPath(McFolderSelected) & """")
+                For Each Pair In ScriptEnvironment
+                    EnvLines.AppendLine("set """ & Pair.Key & "=" & Pair.Value & """")
+                Next
+                Dim JavaCommand As String = $"""{McLaunchJavaSelected.JavaExePath}"" {McLaunchArgument}"
+                If Not String.IsNullOrWhiteSpace(ScriptWrapper) Then JavaCommand = ScriptWrapper & " " & JavaCommand
+                Dim CmdString As String =
+                    $"chcp {If(McLaunchEncoding.CodePage = 54936 AndAlso IsGBKEncoding, 936, McLaunchEncoding.CodePage)}>nul" & vbCrLf &
+                    "@echo off" & vbCrLf &
+                    $"title 启动 - {McInstanceSelected.Name}" & vbCrLf &
+                    "echo 游戏正在启动，请稍候。" & vbCrLf &
+                    EnvLines.ToString() &
+                    $"cd /D ""{PathUtils.ToShortPath(McInstanceSelected.PathIndie)}""" & vbCrLf &
+                    CustomCommandGlobal & vbCrLf &
+                    CustomCommandVersion & vbCrLf &
+                    JavaCommand & vbCrLf &
+                    "echo 游戏已退出。" & vbCrLf &
+                    "pause"
+                FileUtils.Write(
+                    filePath:=SavePath,
+                    text:=FilterAccessToken(CmdString, "F"c).Replace("%", "%%").Replace("{{PCL_SCRIPT_PATH}}", "%PATH%"),
+                    encoding:=McLaunchEncoding)
+            Else
+                Dim ShString As String = BuildLaunchShellScript(
+                    $"启动 - {McInstanceSelected.Name}",
+                    PathUtils.ToShortPath(McInstanceSelected.PathIndie),
+                    McLaunchJavaSelected.JavaExePath,
+                    McLaunchArgument,
+                    CustomCommandGlobal,
+                    CustomCommandVersion,
+                    ScriptEnvironment,
+                    ScriptWrapper,
+                    PathUtils.ToShortPath(McLaunchJavaSelected.Folder),
+                    PathUtils.ToShortPath(McFolderSelected))
+                FileUtils.Write(SavePath, FilterAccessToken(ShString, "F"c), New UTF8Encoding(False))
+                Try
+                    File.SetUnixFileMode(SavePath, UnixFileMode.UserRead Or UnixFileMode.UserWrite Or UnixFileMode.UserExecute Or
+                        UnixFileMode.GroupRead Or UnixFileMode.GroupExecute Or UnixFileMode.OtherRead Or UnixFileMode.OtherExecute)
+                Catch ex As Exception
+                    Logger.Warn(ex, "设置启动脚本可执行权限失败")
+                End Try
+            End If
             If CurrentLaunchOptions.SaveBatch IsNot Nothing Then
                 McLaunchLog("导出启动脚本完成，强制结束启动过程")
                 CanceledHint = "导出启动脚本成功！"

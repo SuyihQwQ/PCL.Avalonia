@@ -19,6 +19,12 @@ Public Class PageSetupSystem
         Reload()
         SliderLoad()
         AniControlEnabled -= 1
+
+        '代理类型变化时只在“SOCKS5/HTTP”下显示地址与认证输入框
+        RefreshProxyPanel()
+        For Each Radio In {RadioNetProxySystem, RadioNetProxyNone, RadioNetProxySocks5, RadioNetProxyHttp}
+            AddHandler Radio.Check, Sub() RefreshProxyPanel()
+        Next
     End Sub
 
     Public Sub Reload()
@@ -100,5 +106,13 @@ Public Class PageSetupSystem
     End Sub
 
 #End Region
+
+
+    '代理类型变化时只在“SOCKS5/HTTP”下显示地址与认证输入框
+    Private Sub RefreshProxyPanel()
+        If PanNetProxyCustom Is Nothing Then Return
+        Dim Type As Integer = Settings.Get(Of Integer)("NetProxyType")
+        PanNetProxyCustom.IsVisible = Type >= 2
+    End Sub
 
 End Class

@@ -130,6 +130,62 @@
                     </Grid>
                 </Grid>
             </local:MyCard>
+            <local:MyCard x:Name="CardNetProxy" Margin="0,0,0,15" Title="{DynamicResource LangNetProxyTitle}">
+                <StackPanel Margin="25,40,25,20">
+                    <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,10">
+                        <TextBlock Text="{DynamicResource LangNetProxyMode}" VerticalAlignment="Center" Margin="0,0,20,0" />
+                        <WrapPanel Grid.Column="1">
+                            <local:MyRadioBox local:SettingService.Key="NetProxyType" local:SettingService.Value="0"
+                                              Text="{DynamicResource LangNetProxyModeSystem}" Margin="0,0,20,0" x:Name="RadioNetProxySystem" />
+                            <local:MyRadioBox local:SettingService.Key="NetProxyType" local:SettingService.Value="1"
+                                              Text="{DynamicResource LangNetProxyModeNone}" Margin="0,0,20,0" x:Name="RadioNetProxyNone" />
+                            <local:MyRadioBox local:SettingService.Key="NetProxyType" local:SettingService.Value="2"
+                                              Text="SOCKS5" Margin="0,0,20,0" x:Name="RadioNetProxySocks5" />
+                            <local:MyRadioBox local:SettingService.Key="NetProxyType" local:SettingService.Value="3"
+                                              Text="HTTP" x:Name="RadioNetProxyHttp" />
+                        </WrapPanel>
+                    </Grid>
+                    <StackPanel x:Name="PanNetProxyCustom" IsVisible="False" Grid.IsSharedSizeScope="True">
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="ProxyLabel" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="ProxyLabel2" />
+                                <ColumnDefinition Width="110" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{DynamicResource LangNetProxyAddress}" VerticalAlignment="Center" Margin="0,0,20,0" />
+                            <local:MyTextBox Grid.Column="1" x:Name="TextNetProxyAddress" local:SettingService.Key="NetProxyAddress"
+                                             MaxHeight="28" Padding="7,0,7,0" HintText="{DynamicResource LangNetProxyHostHint}" />
+                            <TextBlock Grid.Column="2" Text="{DynamicResource LangNetProxyPort}" VerticalAlignment="Center" Margin="20,0,8,0" />
+                            <local:MyTextBox Grid.Column="3" x:Name="TextNetProxyPort" local:SettingService.Key="NetProxyPort"
+                                             MaxHeight="28" Padding="7,0,7,0" HintText="8080" />
+                        </Grid>
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="ProxyLabel" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="ProxyLabel2" />
+                                <ColumnDefinition Width="110" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="{DynamicResource LangNetProxyUsername}" VerticalAlignment="Center" Margin="0,0,20,0" />
+                            <local:MyTextBox Grid.Column="1" local:SettingService.Key="NetProxyUsername" MaxHeight="28" Padding="7,0,7,0"
+                                             HintText="{DynamicResource LangNetProxyOptional}" />
+                            <TextBlock Grid.Column="2" Text="{DynamicResource LangNetProxyPassword}" VerticalAlignment="Center" Margin="20,0,8,0" />
+                            <local:MyTextBox Grid.Column="3" local:SettingService.Key="NetProxyPassword" MaxHeight="28" Padding="7,0,7,0"
+                                             HintText="{DynamicResource LangNetProxyOptional}" PasswordChar="●" />
+                        </Grid>
+                    </StackPanel>
+                    <TextBlock Text="{DynamicResource LangNetProxyCategory}" Margin="0,0,0,6" />
+                    <WrapPanel>
+                        <local:MyCheckBox local:SettingService.Key="NetProxyDownload" Text="{DynamicResource LangNetProxyDownload}" Height="22" Margin="0,0,20,0" />
+                        <local:MyCheckBox local:SettingService.Key="NetProxyHomepage" Text="{DynamicResource LangNetProxyHomepage}" Height="22" Margin="0,0,20,0" />
+                        <local:MyCheckBox local:SettingService.Key="NetProxyUpdate" Text="{DynamicResource LangNetProxyUpdate}" Height="22" Margin="0,0,20,0" />
+                        <local:MyCheckBox local:SettingService.Key="NetProxyLogin" Text="{DynamicResource LangNetProxyLogin}" Height="22" Margin="0,0,20,0" />
+                        <local:MyCheckBox local:SettingService.Key="NetProxyOther" Text="{DynamicResource LangNetProxyOther}" Height="22" />
+                    </WrapPanel>
+                    <local:MyHint Margin="0,10,0,0" Text="{DynamicResource LangNetProxyHintMc}" HintTheme="Yellow" />
+                </StackPanel>
+            </local:MyCard>
             <local:MyCard x:Name="CardDebug" Margin="0,0,0,15" Title="{DynamicResource LangPageSetupSystemDebug}" CanSwap="True" IsSwapped="True">
                 <StackPanel Margin="25,40,25,15">
                     <Grid x:Name="PanDebugAnim" Height="22" Margin="0,0,0,10">

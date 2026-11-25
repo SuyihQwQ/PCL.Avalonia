@@ -160,7 +160,7 @@ Retry:
                         GoTo Retry
                 End Select
             ElseIf ex.IsBadNetwork Then
-                Hint("更改皮肤失败：连接 Mojang 服务器超时，请稍后再试，或使用 VPN 改善网络环境", HintType.Red)
+                Hint("更改皮肤失败：连接 Mojang 服务器超时，请稍后再试，或在 设置 → 其他 → 网络代理 中设置代理", HintType.Red)
             Else
                 Logger.Error(ex, "更改皮肤失败", LogBehavior.Toast)
             End If

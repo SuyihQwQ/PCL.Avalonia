@@ -19,7 +19,9 @@ public static class Configs {
     static Configs() {
         /// 当 JavaForced 获取到一个不在 JavaList 中的值时，将其重置为 null。
         JavaForced.PreviewGet += (args, provider) => {
-            if (args.Value is not null && !JavaList.Get()!.Contains(args.Value)) {
+            // 列表尚未加载/扫描完成时（启动早期）不要清空已有设置，否则“使用指定的 Java”会被误删
+            var list = JavaList.Get()!;
+            if (args.Value is not null && list.Count > 0 && !list.Contains(args.Value)) {
                 args.Value = null;
                 JavaForced.Reset(provider);
             }

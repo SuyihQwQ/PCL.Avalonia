@@ -4,7 +4,7 @@ English | [简体中文](README.zh-CN.md)
 
 A cross-platform port of [Plain Craft Launcher 2](https://github.com/Meloong-Git/PCL) (based on PCL 2.14), built with **Avalonia 12.1.4 + .NET 10**. The UI and business logic are rewritten in VB.NET, targeting Linux (Wayland / X11).
 
-Current release: **Stable 14.1.2** (`v14.1.2-Stable`).
+Current release: **Snapshot 14.2.1**.
 
 > PCL.Avalonia is an independent third-party port of the original PCL, not an official release.
 > This project is not an official Minecraft product. It is not approved by or associated with Mojang or Microsoft.
@@ -150,6 +150,10 @@ The public key is published alongside the release as `PCL.Avalonia-signing-key.a
 - Installs a generated desktop entry named `PCL.Avalonia.desktop`
 
 ## License and credits
+
+- Embedded fonts: PCLEnglish (from the original PCL), MiSans (Xiaomi, free for commercial use), Twemoji Mozilla (Twemoji graphics © Twitter, Inc. and contributors, CC-BY 4.0; font built by twemoji-colr).
+- OS logos in the system information card come from [simple-icons](https://simple-icons.org) (CC0 1.0); Windows, Apple/macOS, Linux and distribution logos are trademarks of their respective owners and are used only to identify the running OS.
+- Licences for other third-party libraries and packaging tools (Avalonia, SkiaSharp, Newtonsoft.Json, appimagetool, etc.) are listed in [NOTICE](NOTICE).
 
 - Original PCL: Copyright © Chengdu Guapilong Technology Co., Ltd. (Software Copyright Registration No. 2020SR0875133), developed by LTCat.
 - PCL.Avalonia: Copyright © 2026 SuyihQwQ

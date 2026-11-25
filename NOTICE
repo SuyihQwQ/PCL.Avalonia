@@ -12,3 +12,22 @@ Upstream attribution
 - Original PCL: Copyright © Chengdu Guapilong Technology Co., Ltd. (Software Copyright Registration No. 2020SR0875133), developed by Long Teng Maoyue (龙腾猫跃).
 - PCL.Avalonia: Copyright © 2026 SuyihQwQ.
 - PCL.Avalonia is an independent third-party port, not an official PCL release, and is not affiliated with Mojang or Microsoft.
+
+Third-party assets, fonts and tools
+- PCLEnglish.ttf: embedded from the original PCL distribution (PCL Limited Distribution License).
+- MiSans-Regular.ttf: MiSans Simplified Chinese font, Copyright © Xiaomi Inc. MiSans is provided by Xiaomi for free personal and commercial use; see https://hyperos.mi.com/font for the MiSans licence terms. Obtained from the official MiSans distribution.
+- Twemoji.Mozilla.ttf: Twemoji emoji graphics Copyright © Twitter, Inc. and contributors, licensed under Creative Commons Attribution 4.0 International (CC-BY 4.0), https://creativecommons.org/licenses/by/4.0/. Font build by the twemoji-colr project (https://github.com/mozilla/twemoji-colr). The emoji designs are used unchanged as recolourable OpenType glyphs.
+- OS logo paths in PCL/Modules/Base/ModSystemInfo.vb: derived from simple-icons (https://simple-icons.org), licensed under CC0 1.0 Universal. Windows, Apple/macOS, Linux and Linux distribution logos are trademarks of their respective owners and are used only to identify the running operating system. Attribution to simple-icons is given voluntarily.
+- Help library content bundled in PCL/Assets/Help.zip is part of the original PCL help library (Copyright © their respective authors, distributed with PCL).
+- Build/packaging tools (not distributed as part of the source): appimagetool and the AppImage type-2 runtime from the AppImage project (GPLv2), used to produce the Linux AppImage; .NET SDK (MIT) is used to build the binaries. The AppImage runtime is embedded in the generated AppImage only.
+
+Third-party libraries (via NuGet)
+- Avalonia, Avalonia.Desktop, Avalonia.Themes.Fluent, Avalonia.Wayland: MIT License.
+- SkiaSharp and HarfBuzzSharp: MIT License.
+- Newtonsoft.Json: MIT License.
+- Microsoft.Win32.Registry, PolySharp: MIT License.
+- ThrottleDebounce: MIT License.
+- SoundFlow: see its package licence (used for background music playback).
+- xunit.v3, xunit.runner.visualstudio: Apache License 2.0.
+- MeloongCore (MeloongCore.Shared/): original part of this repository, Apache License 2.0.
+Full licence texts are available from the respective package sources; this project does not modify those libraries.

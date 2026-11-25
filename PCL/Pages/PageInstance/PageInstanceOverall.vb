@@ -229,8 +229,11 @@ Public Class PageInstanceOverall
     '导出启动脚本
     Private Sub BtnManageScript_Click() Handles BtnManageScript.Click
         Try
-            '弹窗要求指定脚本的保存位置
-            Dim SavePath As String = Dialogs.SaveFile("选择脚本保存位置", "启动 " & PageInstanceLeft.Instance.Name & ".bat", filter:={("bat", "批处理文件")})
+            '弹窗要求指定脚本的保存位置（Windows 导出 .bat，Linux/macOS 导出 .sh）
+            Dim ScriptFilter As (Extension As String, Display As String) =
+                If(OperatingSystem.IsWindows(), ("bat", "批处理文件"), ("sh", "Shell 脚本"))
+            Dim SavePath As String = Dialogs.SaveFile("选择脚本保存位置",
+                "启动 " & PageInstanceLeft.Instance.Name & "." & ScriptFilter.Extension, filter:={ScriptFilter})
             If SavePath Is Nothing Then Return
             '检查中断（等玩家选完弹窗指不定任务就结束了呢……）
             If McLaunchLoader.State = LoadState.Loading Then

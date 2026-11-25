@@ -357,15 +357,35 @@ Public Module ModHelp
         'WPF 的 Effect（阴影、模糊等）无法直接映射，连同属性元素一起去掉
         Content = Content.RegexReplace("<\s*([A-Za-z]+:)?[A-Za-z]+\.Effect\s*>.*?<\s*/\s*([A-Za-z]+:)?[A-Za-z]+\.Effect\s*>", "", RegexOptions.Singleline)
         Content = Content.RegexReplace("<\s*DropShadowEffect\b[^>]*/\s*>", "")
+        'WPF 的 Panel.ZIndex 在 Avalonia 12 中对应 Visual.ZIndex（写成附加属性会解析失败）
+        Content = Content.RegexReplace("Panel\.ZIndex(\s*)=", "ZIndex$1=")
+        'WPF 的 ImageBrush.ImageSource 改为 Source；网络图片交给 RemoteImage 异步加载
+        Content = Content.RegexReplace("(<ImageBrush\b[^>]*?)\s+ImageSource\s*=\s*([""'])([^""']*)\2",
+            Function(m)
+                Dim ImageUrl As String = m.Groups(3).Value
+                If ImageUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase) Then
+                    Return m.Groups(1).Value & " Source=""{local:RemoteImage Url='" & ImageUrl & "'}"""
+                End If
+                Return m.Groups(1).Value & " Source=" & m.Groups(2).Value & ImageUrl & m.Groups(2).Value
+            End Function)
+        '主页作者常见的拼写错误
+        Content = Content.Replace("IsSwaped=", "IsSwapped=")
+        'WPF 的 StackPanel/Grid 等没有 Padding，去掉后继续加载（原版 WPF 解析器同样不支持）
+        Content = Content.RegexReplace("(<(?:StackPanel|Grid|WrapPanel|DockPanel|Canvas)(?=[\s/>])[^>]*?)\s+[Pp]adding\s*=\s*([""][^""]*[""]|'[^']*')", "$1")
+        '枚举值大小写（主页里常见 HorizontalAlignment="right" 这种写法）
+        Content = Content.RegexReplace("(?<![.\w])(HorizontalAlignment|VerticalAlignment|TextAlignment|Orientation|TextWrapping|Stretch|Cursor)(\s*=\s*)([""'])([^""']*)\3",
+            Function(m)
+                Dim V As String = m.Groups(4).Value
+                If V.Length = 0 Then Return m.Value
+                Return m.Groups(1).Value & m.Groups(2).Value & m.Groups(3).Value &
+                       Char.ToUpperInvariant(V(0)).ToString() & V.Substring(1) & m.Groups(3).Value
+            End Function)
         'ToolTip 属性改为附加属性
         Content = Content.RegexReplace("(?<![.\w])ToolTip(\s*)=", "ToolTip.Tip$1=")
         '图片路径
         Content = Content.Replace("pack://application:,,,/images/", PathImage)
         Content = Content.Replace("Blocks/Cobblestone.png", "Blocks/CobbleStone.png")
-        '可见性
-        Content = Content.Replace("Visibility=""Collapsed""", "IsVisible=""False""")
-        Content = Content.Replace("Visibility=""Visible""", "IsVisible=""True""")
-        Content = Content.Replace("Visibility=""Hidden""", "IsVisible=""False""")
+        '可见性在 ConvertWpfStyleMarkup 里按元素处理（直接替换属性会产生重复属性）
         'WPF 样式、文档与模板等结构转换
         Content = ConvertWpfStyleMarkup(Content)
         Return Content
@@ -392,6 +412,8 @@ Public Module ModHelp
             Dim Doc = XDocument.Parse("<root xmlns:x=""http://schemas.microsoft.com/winfx/2006/xaml"" xmlns:local=""using:PCL"" xmlns:sys=""using:System"">" & Content & "</root>")
             Dim Root = Doc.Root
             Dim ConvertedParagraphs As New HashSet(Of XElement)()
+            'FlowDocument 的文档级文字属性：元素 -> 属性表，供其中的段落继承
+            Dim DocumentTexts As New Dictionary(Of XElement, Dictionary(Of String, String))()
             '收集样式定义
             Dim KeyedStyles As New Dictionary(Of String, LegacyStyle)(StringComparer.Ordinal)
             Dim ImplicitStyles As New List(Of Tuple(Of String, List(Of KeyValuePair(Of String, String))))
@@ -417,9 +439,30 @@ Public Module ModHelp
                 End If
                 StyleEl.Remove()
             Next
+            '保留控件模板定义（用于展开主页里简单的 ContentControl 模板，例如“—— 标题 ——”分隔条）
+            Dim ControlTemplates As New Dictionary(Of String, XElement)(StringComparer.Ordinal)
+            For Each TemplateEl In Root.Descendants().Where(Function(e) e.Name.LocalName = "ControlTemplate").ToList()
+                Dim TemplateKey As String = CStr(TemplateEl.Attribute(XName.Get("Key", WpfXamlNs)))
+                If TemplateKey IsNot Nothing Then ControlTemplates(TemplateKey) = New XElement(TemplateEl)
+            Next
             '移除模板与触发器
             For Each El In Root.Descendants().Where(Function(e) e.Name.LocalName.EndsWith(".Triggers") OrElse e.Name.LocalName = "ControlTemplate").ToList()
                 El.Remove()
+            Next
+            '可见性：WPF 的 Hidden 保留布局占位（透明 + 不可命中），Collapsed/Visible 映射为 IsVisible
+            For Each El In Root.Descendants().ToList()
+                Dim Vis = El.Attribute("Visibility")
+                If Vis Is Nothing Then Continue For
+                Dim Value As String = If(Vis.Value, "").Trim()
+                If String.Equals(Value, "Hidden", StringComparison.OrdinalIgnoreCase) Then
+                    If El.Attribute("Opacity") Is Nothing Then El.SetAttributeValue("Opacity", "0")
+                    If El.Attribute("IsHitTestVisible") Is Nothing Then El.SetAttributeValue("IsHitTestVisible", "False")
+                ElseIf String.Equals(Value, "Collapsed", StringComparison.OrdinalIgnoreCase) Then
+                    If El.Attribute("IsVisible") Is Nothing Then El.SetAttributeValue("IsVisible", "False")
+                Else
+                    If El.Attribute("IsVisible") Is Nothing Then El.SetAttributeValue("IsVisible", "True")
+                End If
+                Vis.Remove()
             Next
             '记录列表序号与标记颜色，供 ListItem 使用
             Dim ListMarkers As New Dictionary(Of XElement, String)()
@@ -443,7 +486,18 @@ Public Module ModHelp
                         El.Name = XName.Get("ScrollViewer")
                     Case "FlowDocument"
                         El.Name = XName.Get("StackPanel")
+                        '文档级文字属性在 Avalonia 容器上没有对应项：先记录，稍后下发给其中的段落，避免整页加载失败
+                        Dim DocProps As New Dictionary(Of String, String)(StringComparer.Ordinal)
+                        For Each Attr In El.Attributes().Where(Function(a) {"FontSize", "FontWeight", "FontStyle", "Foreground", "TextAlignment"}.Contains(a.Name.LocalName)).ToList()
+                            DocProps(Attr.Name.LocalName) = Attr.Value
+                            Attr.Remove()
+                        Next
+                        For Each Attr In El.Attributes().Where(Function(a) {"FontFamily", "LineHeight", "TextIndent", "ColumnWidth", "PagePadding", "KnownTypes", "IsSelectionEnabled", "IsOptimalParagraphEnabled", "IsHyphenationEnabled"}.Contains(a.Name.LocalName)).ToList()
+                            Attr.Remove()
+                        Next
+                        DocumentTexts(El) = DocProps
                         ApplyImplicitStyleAttributes(El, "FlowDocument", ImplicitStyles)
+                        SanitizeContainerElement(El)
                     Case "Section"
                         'Avalonia 没有 FlowDocument 的 Section，用它作为带边框的块容器
                         ConvertLegacySection(El)
@@ -455,33 +509,72 @@ Public Module ModHelp
                         ApplyImplicitStyleAttributes(El, "List", ImplicitStyles)
                         El.Attribute("MarkerStyle")?.Remove()
                         El.Attribute("StartIndex")?.Remove()
+                        SanitizeContainerElement(El)
                         If El.Attribute("Margin") Is Nothing Then El.SetAttributeValue("Margin", "0,4")
                     Case "ListItem"
                         ConvertLegacyListItem(El, ListMarkers, ListMarkerColors, ImplicitStyles)
                     Case "Paragraph"
                         El.Name = XName.Get("TextBlock")
                         ConvertedParagraphs.Add(El)
-                        El.Attribute("LineHeight")?.Remove()
-                        If El.Attribute("Style") Is Nothing AndAlso El.Attribute("Margin") Is Nothing Then
-                            El.SetAttributeValue("Margin", "0,8")
+                        'WPF Paragraph 的块级装饰属性在 Avalonia TextBlock 上不存在，移除避免整页加载失败
+                        For Each Attr In El.Attributes().Where(Function(a) {"Background", "BorderBrush", "BorderThickness", "Padding", "TextIndent", "LineHeight", "ColumnWidth", "PagePadding", "KnownTypes", "KeepTogether", "KeepWithNext"}.Contains(a.Name.LocalName)).ToList()
+                            Attr.Remove()
+                        Next
+                        '没有显式样式的段落套用隐式 Paragraph 样式（与原版一致）
+                        If El.Attribute("Style") Is Nothing Then
+                            Dim DocEl = El.Ancestors().FirstOrDefault(Function(a) DocumentTexts.ContainsKey(a))
+                            If DocEl IsNot Nothing Then
+                                For Each Pair In DocumentTexts(DocEl)
+                                    If El.Attribute(Pair.Key) Is Nothing Then El.SetAttributeValue(Pair.Key, Pair.Value)
+                                Next
+                            End If
+                            If El.Attribute("Margin") Is Nothing Then El.SetAttributeValue("Margin", "0,8")
                         End If
+                        '标记成段落，供隐式 Paragraph 样式用独立选择器（避免影响普通 TextBlock）
+                        If El.Attribute("Classes") Is Nothing Then El.SetAttributeValue("Classes", "PCLLegacyParagraph")
                     Case "ContentControl"
                         If El.Attribute("Template") IsNot Nothing Then
                             Dim RawText As String = If(CStr(El.Attribute("Content")), "")
+                            Dim TemplateKey As String = ParseStaticResourceKey(CStr(El.Attribute("Template")))
+                            If TemplateKey IsNot Nothing AndAlso ControlTemplates.ContainsKey(TemplateKey) AndAlso
+                               TryExpandSimpleTemplate(El, ControlTemplates(TemplateKey), RawText) Then Continue For
                             For Each Attr In El.Attributes().Where(Function(a) a.Name.LocalName = "Content" OrElse a.Name.LocalName = "Template").ToList()
                                 Attr.Remove()
                             Next
                             El.Name = XName.Get("TextBlock")
-                            El.SetAttributeValue("Text", RawText)
+                            El.SetAttributeValue("Text", EscapeTextAttribute(RawText))
                             El.SetAttributeValue("HorizontalAlignment", "Center")
                             El.SetAttributeValue("VerticalAlignment", "Center")
                             El.SetAttributeValue("FontSize", "15")
                             El.SetAttributeValue("Margin", "0,10")
                             If El.Attribute("Foreground") Is Nothing Then El.SetAttributeValue("Foreground", "{DynamicResource ColorBrush4}")
                         End If
+                    Case "Hyperlink"
+                        'Avalonia 没有 Hyperlink 内联元素：保留文字与下划线（可点击链接由主页作者用 MyTextButton 实现）
+                        If El.Attribute("TextDecorations") Is Nothing Then El.SetAttributeValue("TextDecorations", "Underline")
+                        For Each Attr In El.Attributes().Where(Function(a) Not {"Foreground", "Cursor", "TextDecorations", "ToolTip.Tip"}.Contains(a.Name.LocalName)).ToList()
+                            Attr.Remove()
+                        Next
+                        El.Name = XName.Get("Underline")
+                    Case "Table", "TableRowGroup", "TableRow", "TableCell"
+                        'Avalonia 没有 WPF 表格：按“行=水平容器、单元格=Border”近似，避免整页加载失败
+                        Select Case El.Name.LocalName
+                            Case "Table", "TableRowGroup"
+                                El.Name = XName.Get("StackPanel")
+                            Case "TableRow"
+                                El.Name = XName.Get("StackPanel")
+                                El.SetAttributeValue("Orientation", "Horizontal")
+                            Case Else
+                                El.Name = XName.Get("Border")
+                                If El.Attribute("Padding") Is Nothing Then El.SetAttributeValue("Padding", "0,0,12,0")
+                        End Select
+                    Case "TableColumns", "TableColumn"
+                        El.Remove()
+                    Case "Figure", "Floater"
+                        El.Name = XName.Get("StackPanel")
                     Case "Image"
                         '普通 Image 无法直接加载网址，交给 MyImage 处理
-                        Dim IsInlineImage As Boolean = El.Ancestors().Any(Function(a) a.Name.LocalName = "TextBlock")
+                        Dim IsInlineImage As Boolean = El.Ancestors().Any(Function(a) a.Name.LocalName = "TextBlock") AndAlso Not HasInlineContainerAncestor(El)
                         El.Name = XName.Get("MyImage", "using:PCL")
                         If IsInlineImage Then
                             Dim ImageContainer As New XElement(XName.Get("InlineUIContainer"))
@@ -489,8 +582,8 @@ Public Module ModHelp
                             ImageContainer.Add(El)
                         End If
                     Case "MyImage"
-                        '行内图片必须放进 InlineUIContainer，否则不能作为文本块的子元素
-                        If El.Name.NamespaceName = "using:PCL" AndAlso El.Ancestors().Any(Function(a) a.Name.LocalName = "TextBlock") Then
+                        '行内图片必须放进 InlineUIContainer，否则不能作为文本块的子元素（已有显式容器时不再重复包裹）
+                        If El.Name.NamespaceName = "using:PCL" AndAlso El.Ancestors().Any(Function(a) a.Name.LocalName = "TextBlock") AndAlso Not HasInlineContainerAncestor(El) Then
                             Dim ImageContainer As New XElement(XName.Get("InlineUIContainer"))
                             El.ReplaceWith(ImageContainer)
                             ImageContainer.Add(El)
@@ -534,8 +627,15 @@ Public Module ModHelp
                 If InUnderline Then LinkContent.SetAttributeValue("TextDecorations", "Underline")
                 El.Add(LinkContent)
                 If El.Attribute("Cursor") Is Nothing Then El.SetAttributeValue("Cursor", "Hand")
+                '行内链接：去掉 Label 默认的内边距/最小高度，使其基线与正文对齐
+                El.SetAttributeValue("Padding", "0")
+                El.SetAttributeValue("MinHeight", "0")
+                El.SetAttributeValue("VerticalContentAlignment", "Center")
+                '主页构建器会显式生成 InlineUIContainer，此时不能再包一层（Avalonia 的 Child 只接受 Control）
+                If HasInlineContainerAncestor(El) Then Continue For
                 Dim UnderlineParent As XElement = If(InUnderline, TryCast(El.Parent, XElement), Nothing)
-                Dim Container As New XElement(XName.Get("InlineUIContainer"))
+                Dim Container As New XElement(XName.Get("InlineUIContainer"),
+                    New XAttribute("BaselineAlignment", "Baseline"))
                 El.ReplaceWith(Container)
                 Container.Add(El)
                 If UnderlineParent IsNot Nothing AndAlso UnderlineParent.Name.LocalName = "Underline" AndAlso
@@ -561,6 +661,8 @@ Public Module ModHelp
                         End If
                     Next
                 End If
+                '显式样式会压制隐式 Paragraph 样式；WPF 中段落默认 Margin 为 0
+                If ConvertedParagraphs.Contains(El) AndAlso El.Attribute("Margin") Is Nothing Then El.SetAttributeValue("Margin", "0")
                 StyleAttr.Remove()
             Next
             '移除不可用属性
@@ -655,9 +757,12 @@ Public Module ModHelp
         Dim BorderEl As New XElement(XName.Get("Border"))
         For Each Attr In El.Attributes().ToList()
             Attr.Remove()
+            'Border 不能承载的文字类属性先丢弃，避免整页加载失败（与原版观感差异有限）
+            If {"FontSize", "FontFamily", "Foreground", "FontWeight", "FontStyle", "TextAlignment", "TextWrapping", "TextTrimming", "TextDecorations", "Text", "IsReadOnly"}.Contains(Attr.Name.LocalName) Then Continue For
             BorderEl.SetAttributeValue(Attr.Name, Attr.Value)
         Next
         Dim Panel As New XElement(XName.Get("StackPanel"))
+        SanitizeContainerElement(Panel)
         For Each Node In El.Nodes().ToList()
             Node.Remove()
             Panel.Add(Node)
@@ -709,7 +814,7 @@ Public Module ModHelp
         End If
         Dim Bullet As New XElement(XName.Get("TextBlock"),
             New XAttribute("Text", Marker),
-            New XAttribute("Margin", "0,0,6,0"),
+            New XAttribute("Margin", "0,4,6,0"),
             New XAttribute("VerticalAlignment", "Top"),
             New XAttribute("Grid.Column", "0"))
         Dim BulletForeground As String = Nothing
@@ -751,15 +856,70 @@ Public Module ModHelp
             Attr.Remove()
             Outer.SetAttributeValue(Attr.Name, Attr.Value)
         Next
+        SanitizeContainerElement(Outer)
         El.ReplaceWith(Outer)
     End Sub
+
+    ''' <summary>
+    ''' 原样文本放进 XAML 属性时，若以 { 开头需要加 {} 转义，否则会被当作标记扩展解析。
+    ''' </summary>
+    Private Function EscapeTextAttribute(Value As String) As String
+        If String.IsNullOrEmpty(Value) Then Return Value
+        If Value.TrimStart().StartsWith("{") Then Return "{}" & Value
+        Return Value
+    End Function
+
+    '尝试展开主页里简单的 ContentControl 模板（通常是两段线 + 居中文字的“分隔标题”）。
+    '只处理模板内容仅依赖 {TemplateBinding Content} 的情况，其它模板仍回退为纯文本，避免生成无法加载的 XAML。
+    Private Function TryExpandSimpleTemplate(El As XElement, TemplateEl As XElement, Content As String) As Boolean
+        Try
+            Dim TemplateRoot = TemplateEl.Elements().FirstOrDefault()
+            If TemplateRoot Is Nothing Then Return False
+            Dim Expanded As New XElement(TemplateRoot)
+            Dim ReplacedBinding As Boolean = False
+            For Each TextEl In Expanded.DescendantsAndSelf().Where(Function(e) e.Name.LocalName = "TextBlock").ToList()
+                Dim TextAttr = TextEl.Attribute("Text")
+                If TextAttr IsNot Nothing AndAlso TextAttr.Value.Contains("TemplateBinding Content") Then
+                    TextEl.SetAttributeValue("Text", EscapeTextAttribute(Content))
+                    ReplacedBinding = True
+                End If
+            Next
+            If Not ReplacedBinding Then Return False
+            '模板里其它 TemplateBinding 无法在转换阶段解析，放弃展开
+            For Each Desc In Expanded.DescendantsAndSelf()
+                For Each Attr In Desc.Attributes()
+                    If Attr.Value.Contains("TemplateBinding") Then Return False
+                Next
+            Next
+            'WPF 的 Line 在其它容器的布局语义与 Avalonia 不同（Stretch=Fill 的水平线可能不可见），
+            '这里替换成等价的细长 Rectangle，视觉一致且稳定
+            For Each LineEl In Expanded.DescendantsAndSelf().Where(Function(e) e.Name.LocalName = "Line").ToList()
+                Dim Rect As New XElement(XName.Get("Rectangle"))
+                Dim StrokeEl = LineEl.Attribute("Stroke")
+                If StrokeEl IsNot Nothing Then Rect.SetAttributeValue("Fill", StrokeEl.Value)
+                Rect.SetAttributeValue("Height", If(CStr(LineEl.Attribute("StrokeThickness")), "1"))
+                Rect.SetAttributeValue("VerticalAlignment", "Center")
+                Rect.SetAttributeValue("HorizontalAlignment", "Stretch")
+                For Each Name In {"Grid.Column", "Grid.Row", "Grid.ColumnSpan", "Grid.RowSpan", "Margin", "Opacity"}
+                    Dim Attr = LineEl.Attribute(Name)
+                    If Attr IsNot Nothing Then Rect.SetAttributeValue(Name, Attr.Value)
+                Next
+                LineEl.ReplaceWith(Rect)
+            Next
+            El.ReplaceWith(Expanded)
+            Return True
+        Catch ex As Exception
+            Logger.Warn(ex, "展开简单控件模板失败")
+            Return False
+        End Try
+    End Function
 
     ''' <summary>
     ''' 将 WPF 中当作代码块的 TextBox 转换为可选中文本，避免默认输入框样式与内联布局问题。
     ''' </summary>
     Private Sub ConvertLegacyTextBox(El As XElement, KeyedStyles As Dictionary(Of String, LegacyStyle))
         If El.Attribute("Text") Is Nothing AndAlso El.Nodes().Any() Then
-            El.SetAttributeValue("Text", El.Value)
+            El.SetAttributeValue("Text", EscapeTextAttribute(El.Value))
             El.RemoveNodes()
         End If
         Dim IsInline As Boolean = El.Ancestors().Any(Function(a) a.Name.LocalName = "TextBlock")
@@ -767,9 +927,10 @@ Public Module ModHelp
         Dim Setters As New List(Of KeyValuePair(Of String, String))
         If StyleKey IsNot Nothing Then Setters = ResolveStyleSetters(StyleKey, KeyedStyles)
         If StyleKey <> "InlineCode" AndAlso StyleKey <> "BlockCode" Then
-            '未知样式的文本框仍然要保证能放在文本块内
-            If IsInline Then
-                Dim InnerContainer As New XElement(XName.Get("InlineUIContainer"))
+            '未知样式的文本框仍然要保证能放在文本块内（已有显式 InlineUIContainer 时不再重复包裹）
+            If IsInline AndAlso Not HasInlineContainerAncestor(El) Then
+                Dim InnerContainer As New XElement(XName.Get("InlineUIContainer"),
+                    New XAttribute("BaselineAlignment", "Baseline"))
                 El.ReplaceWith(InnerContainer)
                 InnerContainer.Add(El)
             End If
@@ -795,21 +956,33 @@ Public Module ModHelp
         If StyleKey = "InlineCode" Then BorderEl.SetAttributeValue("Opacity", "0.9")
         Dim TextEl As XElement = If(IsInline, New XElement(XName.Get("TextBlock")), New XElement(XName.Get("SelectableTextBlock")))
         TextEl.SetAttributeValue("Text", If(CStr(El.Attribute("Text")), ""))
+        '代码块不需要额外上下边距，否则会被主页的隐式 TextBlock 样式撑得过大
+        TextEl.SetAttributeValue("Margin", "0")
         Dim FontFamily As String = GetStyleValue(Setters, "FontFamily")
         If FontFamily IsNot Nothing Then TextEl.SetAttributeValue("FontFamily", FontFamily)
         Dim FontSize As String = GetStyleValue(Setters, "FontSize")
         If FontSize IsNot Nothing Then TextEl.SetAttributeValue("FontSize", FontSize)
         Dim Foreground As String = GetStyleValue(Setters, "Foreground")
         If Foreground IsNot Nothing Then TextEl.SetAttributeValue("Foreground", Foreground)
-        If Not IsInline Then TextEl.SetAttributeValue("TextWrapping", "NoWrap")
+        If Not IsInline Then
+            '代码块沿用样式里的换行设置（WPF 的 BlockCode 样式是 Wrap），没有时才用 NoWrap
+            Dim StyleWrap As String = GetStyleValue(Setters, "TextWrapping")
+            TextEl.SetAttributeValue("TextWrapping", If(String.IsNullOrEmpty(StyleWrap), "NoWrap", StyleWrap))
+        End If
         For Each Attr In El.Attributes().Where(Function(a) a.Name.LocalName <> "Style" AndAlso a.Name.LocalName <> "Text").ToList()
             If Attr.Name.LocalName = "IsReadOnly" Then Continue For
             TextEl.SetAttributeValue(Attr.Name, Attr.Value)
         Next
         BorderEl.Add(TextEl)
         If IsInline Then
-            Dim InlineContainer As New XElement(XName.Get("InlineUIContainer"), BorderEl)
-            El.ReplaceWith(InlineContainer)
+            If HasInlineContainerAncestor(El) Then
+                '已处于显式 InlineUIContainer 中：直接替换为 Border，保持外层容器不变
+                El.ReplaceWith(BorderEl)
+            Else
+                Dim InlineContainer As New XElement(XName.Get("InlineUIContainer"),
+                    New XAttribute("BaselineAlignment", "Baseline"), BorderEl)
+                El.ReplaceWith(InlineContainer)
+            End If
         Else
             El.ReplaceWith(BorderEl)
         End If
@@ -826,10 +999,38 @@ Public Module ModHelp
         For Each Entry In ImplicitStyles
             If Entry.Item1 <> TargetType Then Continue For
             For Each Pair In Entry.Item2
-                If {"Margin", "Padding", "Background", "MinWidth", "MinHeight", "MaxWidth", "MaxHeight"}.Contains(Pair.Key) AndAlso El.Attribute(Pair.Key) Is Nothing Then
+                If {"Margin", "Padding", "Background", "MinWidth", "MinHeight", "MaxWidth", "MaxHeight"}.Contains(Pair.Key) AndAlso
+                   IsWpfStylePropertySupported(TargetType, Pair.Key) AndAlso El.Attribute(Pair.Key) Is Nothing Then
+                    '父容器有固定高度时不要再叠加 Margin，否则文字会被挤出容器造成上下裁切
+                    If Pair.Key = "Margin" AndAlso El.Parent IsNot Nothing AndAlso El.Parent.Attribute("Height") IsNot Nothing Then Continue For
+                    '行内元素（下划线链接、加粗片段等）不应带段落级 Margin，否则会破坏同一行的对齐与行高
+                    If Pair.Key = "Margin" AndAlso
+                       El.Ancestors().Any(Function(a) {"InlineUIContainer", "Run", "Span", "Bold", "Italic", "Underline"}.Contains(a.Name.LocalName)) Then Continue For
                     El.SetAttributeValue(Pair.Key, Pair.Value)
                 End If
             Next
+        Next
+    End Sub
+
+    '判断元素是否已经位于显式的 InlineUIContainer 中（主页构建器会显式生成，不能再包一层）
+    Private Function HasInlineContainerAncestor(El As XElement) As Boolean
+        Return El.Ancestors().Any(Function(a) a.Name.LocalName = "InlineUIContainer")
+    End Function
+
+    '移除 Panel 类容器无法承载的文字/装饰属性，避免元素改名后留下非法属性导致整页加载失败
+    Private Sub SanitizeContainerElement(El As XElement)
+        Select Case El.Name.LocalName
+            Case "StackPanel", "Grid", "WrapPanel", "DockPanel", "Canvas"
+            Case Else
+                Return
+        End Select
+        For Each Attr In El.Attributes().ToList()
+            Select Case Attr.Name.LocalName
+                Case "FontSize", "FontFamily", "Foreground", "FontWeight", "FontStyle", "TextAlignment",
+                     "TextWrapping", "TextTrimming", "TextDecorations", "Text", "IsReadOnly",
+                     "LineHeight", "TextIndent", "Padding", "BorderBrush", "BorderThickness", "CornerRadius"
+                    Attr.Remove()
+            End Select
         Next
     End Sub
 
@@ -891,8 +1092,11 @@ Public Module ModHelp
 
     Private Function MapWpfImplicitSelector(TargetType As String) As String
         Select Case TargetType
-            Case "TextBlock", "Paragraph"
+            Case "TextBlock"
                 Return "TextBlock"
+            Case "Paragraph"
+                'Paragraph 在 WPF 里是独立类型；用类选择器避免段落样式（如 Margin 0,8）作用到普通 TextBlock
+                Return "TextBlock.PCLLegacyParagraph"
             Case "FlowDocument"
                 Return "StackPanel"
             Case "FlowDocumentScrollViewer"
@@ -909,6 +1113,9 @@ Public Module ModHelp
         Dim TypeName As String = ElementType
         Dim ColonIndex As Integer = TypeName.LastIndexOf(":"c)
         If ColonIndex >= 0 Then TypeName = TypeName.Substring(ColonIndex + 1)
+        '去掉选择器里的类/伪类后缀，例如 TextBlock.PCLLegacyParagraph
+        Dim DotIndex As Integer = TypeName.IndexOf("."c)
+        If DotIndex >= 0 Then TypeName = TypeName.Substring(0, DotIndex)
         Select Case Prop
             Case "Margin", "Width", "Height", "MinWidth", "MinHeight", "MaxWidth", "MaxHeight", "HorizontalAlignment", "VerticalAlignment", "Opacity", "IsVisible", "IsEnabled", "ToolTip.Tip", "EventType", "EventData", "LogoScale", "Logo", "IsReadOnly"
                 Return True

@@ -14,6 +14,8 @@ Public Class App
         FixDispatcherClock()
         Localization.Initialize(Settings.Get(Of String)("UiLanguage"))
         ThemeRefresh()
+        FontConfig.ApplyRuntime()
+        ModProxy.MigrateLegacyProxySettings()
         AddHandler ActualThemeVariantChanged, Sub() ThemeVariantChanged()
         If TypeOf ApplicationLifetime Is IClassicDesktopStyleApplicationLifetime Then
             Dim Desktop = DirectCast(ApplicationLifetime, IClassicDesktopStyleApplicationLifetime)

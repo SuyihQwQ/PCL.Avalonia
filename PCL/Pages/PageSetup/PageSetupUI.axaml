@@ -64,8 +64,16 @@
                                               Grid.Column="3" Grid.Row="1" Text="{DynamicResource LangAvalonia0115}" x:Name="RadioThemeModeDark" />
                         </Grid>
                         <local:MyCheckBox local:SettingService.Key="UiLauncherLogo" Text="{DynamicResource LangSetThemeShowLogoOnStart}" Margin="-1,0,0,1" Height="22" />
+                        <local:MyHint x:Name="HintThemeWindowsLimit" Margin="0,8,0,0" IsVisible="False"
+                                      Text="{DynamicResource LangSetThemeWindowsLimit}" HintTheme="Yellow" />
                     </StackPanel>
                 </Grid>
+            </local:MyCard>
+            <local:MyCard x:Name="CardFont" Margin="0,0,0,15" Title="{DynamicResource LangSetFontTitle}">
+                <StackPanel Margin="25,40,25,20">
+                    <local:MyCheckBox local:SettingService.Key="UiSystemFont" Text="{DynamicResource LangSetFontSystem}" Height="22"
+                                      ToolTip.Tip="{DynamicResource LangSetFontSystemToolTip}" />
+                </StackPanel>
             </local:MyCard>
             <local:MyCard x:Name="CardBackground" Margin="0,0,0,15" Title="{DynamicResource LangBackgroundPic}">
                 <StackPanel Margin="25,40,25,20">

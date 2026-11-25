@@ -17,6 +17,7 @@ Namespace Global.PCL
         Friend WithEvents PanBack As PCL.MyScrollViewer
         Friend WithEvents PanMain As Avalonia.Controls.StackPanel
         Friend WithEvents SearchBox As PCL.MySearchBox
+        Friend WithEvents HintSCOnly As PCL.MyHint
         Friend WithEvents PanSearch As PCL.MyCard
         Friend WithEvents PanSearchList As Avalonia.Controls.StackPanel
         Friend WithEvents PanList As Avalonia.Controls.StackPanel
@@ -31,6 +32,8 @@ Namespace Global.PCL
             If PanMain Is Nothing Then Throw New InvalidOperationException("找不到控件：PanMain")
             SearchBox = FindControl(Of PCL.MySearchBox)("SearchBox")
             If SearchBox Is Nothing Then Throw New InvalidOperationException("找不到控件：SearchBox")
+            HintSCOnly = FindControl(Of PCL.MyHint)("HintSCOnly")
+            If HintSCOnly Is Nothing Then Throw New InvalidOperationException("找不到控件：HintSCOnly")
             PanSearch = FindControl(Of PCL.MyCard)("PanSearch")
             If PanSearch Is Nothing Then Throw New InvalidOperationException("找不到控件：PanSearch")
             PanSearchList = FindControl(Of Avalonia.Controls.StackPanel)("PanSearchList")

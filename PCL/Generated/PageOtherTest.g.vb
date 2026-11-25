@@ -16,6 +16,17 @@ Namespace Global.PCL
 
         Friend WithEvents PanBack As PCL.MyScrollViewer
         Friend WithEvents PanMain As Avalonia.Controls.StackPanel
+        Friend WithEvents CardSystemInfo As PCL.MyCard
+        Friend WithEvents LabSystemInfoHostname As Avalonia.Controls.TextBlock
+        Friend WithEvents LabSystemInfoOperatingSystem As Avalonia.Controls.TextBlock
+        Friend WithEvents LabSystemInfoArchitecture As Avalonia.Controls.TextBlock
+        Friend WithEvents LabSystemInfoUptime As Avalonia.Controls.TextBlock
+        Friend WithEvents LabSystemInfoDesktop As Avalonia.Controls.TextBlock
+        Friend WithEvents LabSystemInfoCpu As Avalonia.Controls.TextBlock
+        Friend WithEvents LabSystemInfoGpu As Avalonia.Controls.TextBlock
+        Friend WithEvents LabSystemInfoMemory As Avalonia.Controls.TextBlock
+        Friend WithEvents LabSystemInfoLauncher As Avalonia.Controls.TextBlock
+        Friend WithEvents PathOsLogo As Avalonia.Controls.Shapes.Path
         Friend WithEvents BtnDetectChinaUser As PCL.MyButton
 
         Private Sub InitControls()
@@ -24,6 +35,28 @@ Namespace Global.PCL
             If PanBack Is Nothing Then Throw New InvalidOperationException("找不到控件：PanBack")
             PanMain = FindControl(Of Avalonia.Controls.StackPanel)("PanMain")
             If PanMain Is Nothing Then Throw New InvalidOperationException("找不到控件：PanMain")
+            CardSystemInfo = FindControl(Of PCL.MyCard)("CardSystemInfo")
+            If CardSystemInfo Is Nothing Then Throw New InvalidOperationException("找不到控件：CardSystemInfo")
+            LabSystemInfoHostname = FindControl(Of Avalonia.Controls.TextBlock)("LabSystemInfoHostname")
+            If LabSystemInfoHostname Is Nothing Then Throw New InvalidOperationException("找不到控件：LabSystemInfoHostname")
+            LabSystemInfoOperatingSystem = FindControl(Of Avalonia.Controls.TextBlock)("LabSystemInfoOperatingSystem")
+            If LabSystemInfoOperatingSystem Is Nothing Then Throw New InvalidOperationException("找不到控件：LabSystemInfoOperatingSystem")
+            LabSystemInfoArchitecture = FindControl(Of Avalonia.Controls.TextBlock)("LabSystemInfoArchitecture")
+            If LabSystemInfoArchitecture Is Nothing Then Throw New InvalidOperationException("找不到控件：LabSystemInfoArchitecture")
+            LabSystemInfoUptime = FindControl(Of Avalonia.Controls.TextBlock)("LabSystemInfoUptime")
+            If LabSystemInfoUptime Is Nothing Then Throw New InvalidOperationException("找不到控件：LabSystemInfoUptime")
+            LabSystemInfoDesktop = FindControl(Of Avalonia.Controls.TextBlock)("LabSystemInfoDesktop")
+            If LabSystemInfoDesktop Is Nothing Then Throw New InvalidOperationException("找不到控件：LabSystemInfoDesktop")
+            LabSystemInfoCpu = FindControl(Of Avalonia.Controls.TextBlock)("LabSystemInfoCpu")
+            If LabSystemInfoCpu Is Nothing Then Throw New InvalidOperationException("找不到控件：LabSystemInfoCpu")
+            LabSystemInfoGpu = FindControl(Of Avalonia.Controls.TextBlock)("LabSystemInfoGpu")
+            If LabSystemInfoGpu Is Nothing Then Throw New InvalidOperationException("找不到控件：LabSystemInfoGpu")
+            LabSystemInfoMemory = FindControl(Of Avalonia.Controls.TextBlock)("LabSystemInfoMemory")
+            If LabSystemInfoMemory Is Nothing Then Throw New InvalidOperationException("找不到控件：LabSystemInfoMemory")
+            LabSystemInfoLauncher = FindControl(Of Avalonia.Controls.TextBlock)("LabSystemInfoLauncher")
+            If LabSystemInfoLauncher Is Nothing Then Throw New InvalidOperationException("找不到控件：LabSystemInfoLauncher")
+            PathOsLogo = FindControl(Of Avalonia.Controls.Shapes.Path)("PathOsLogo")
+            If PathOsLogo Is Nothing Then Throw New InvalidOperationException("找不到控件：PathOsLogo")
             BtnDetectChinaUser = FindControl(Of PCL.MyButton)("BtnDetectChinaUser")
             If BtnDetectChinaUser Is Nothing Then Throw New InvalidOperationException("找不到控件：BtnDetectChinaUser")
         End Sub

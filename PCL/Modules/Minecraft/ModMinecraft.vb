@@ -596,7 +596,7 @@ Recheck:
             NameOrFullPath = PathUtils.RemoveExtendedPrefix(NameOrFullPath)
             '完整路径（跨平台判断，不能用是否含冒号的 Windows 习惯）
             PathVersion = PathUtils.AddSlashSuffix(If(IO.Path.IsPathRooted(NameOrFullPath), "", McFolderSelected & "versions\") & NameOrFullPath)
-            Config = New JsonConfigProvider(Path.Combine(PathVersion, "PCL\config.json"))
+            Config = JsonConfigProvider.GetShared(Path.Combine(PathVersion, "PCL\config.json"))
         End Sub
 
         ''' <summary>

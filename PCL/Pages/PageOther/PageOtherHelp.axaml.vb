@@ -3,6 +3,7 @@
 ''' </summary>
 Public Class PageOtherHelp
     Inherits MyPageRight
+    Implements IRefreshable
 
     Private Shadows IsLoaded As Boolean = False
 
@@ -13,6 +14,8 @@ Public Class PageOtherHelp
 
     Private Sub PageOtherHelp_Loaded(sender As Object, e As RoutedEventArgs) Handles Me.Loaded
         PanBack.ScrollToHome()
+        '帮助内容目前只有简体中文，非简体中文界面下提示用户（与原版翻译分支一致）
+        HintSCOnly.IsVisible = Localization.CurrentLanguage <> "zh-CN"
         If IsLoaded Then Return
         IsLoaded = True
     End Sub
@@ -45,7 +48,7 @@ Public Class PageOtherHelp
                     If Not IsVisibleEntry(Item) Then Continue For
                     If Item.Types.Contains(TypeName) Then TypeItems.Add(Item)
                 Next
-                Dim NewCard As New MyCard With {.Title = TypeName, .Margin = New Thickness(0, 0, 0, 15)}
+                Dim NewCard As New MyCard With {.Title = TypeName, .Margin = New Thickness(0, 0, 0, 15), .TitleOffset = 2}
                 Dim NewStack As New StackPanel With {
                     .Margin = New Thickness(20, MyCard.SwapedHeight, 18, 0),
                     .VerticalAlignment = VerticalAlignment.Top,
@@ -159,13 +162,13 @@ Public Class PageOtherHelp
             Dim SearchResult As List(Of SearchEntry(Of HelpEntry)) = Search(QueryList, SearchBox.Text, MaxBlurCount:=5, MinBlurSimilarity:=0.08)
             PanSearchList.Children.Clear()
             If Not SearchResult.Any() Then
-                PanSearch.Title = "无搜索结果"
+                PanSearch.Title = Localization.GetText("LangPageVersionModSearchNoResult")
                 PanSearchList.IsVisible = False
             Else
-                PanSearch.Title = "搜索结果"
+                PanSearch.Title = Localization.GetText("LangPageVersionModSearchResult")
                 For Each Result As SearchEntry(Of HelpEntry) In SearchResult
                     Dim Item = BuildListItem(Result.Item)
-                    If ModeDebug Then Item.Info = If(Result.AbsoluteRight, "完全匹配，", "") & "相似度：" & Math.Round(Result.Similarity, 3) & "，" & Item.Info
+                    If ModeDebug Then Item.Info = If(Result.AbsoluteRight, Localization.GetText("LangPageOtherHelpSearchExactMatch"), "") & Localization.GetText("LangPageOtherHelpSearchSimilarity") & Math.Round(Result.Similarity, 3) & "，" & Item.Info
                     PanSearchList.Children.Add(Item)
                 Next
                 PanSearchList.IsVisible = True
@@ -182,6 +185,14 @@ Public Class PageOtherHelp
                 AaOpacity(PanSearch, 1 - PanSearch.Opacity, 150, 30)
             }, "FrmOtherHelp Search Switch")
         End If
+    End Sub
+
+    ''' <summary>
+    ''' 刷新帮助页（原版 IRefreshable）：重新解压内置帮助、重载列表并清空搜索。
+    ''' 与 PageOtherLeft 上的刷新按钮走同一逻辑。
+    ''' </summary>
+    Public Sub Refresh() Implements IRefreshable.Refresh
+        PageOtherLeft.RefreshHelp()
     End Sub
 
 End Class

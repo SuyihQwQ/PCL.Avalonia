@@ -21,9 +21,15 @@ Public Class MyTextButton
     Private IsControlLoaded As Boolean = False
     Private ColorName As String
 
+    'Label 默认模板生成的 TextBlock 不会跟随 Foreground 变化，这里自己挂一个并绑定颜色，保证悬停变色可见
+    Private ReadOnly LabText As New TextBlock()
+
     Public Sub New()
         SetResourceReference(ForegroundProperty, "ColorBrush1")
         Background = Brushes.Transparent
+        LabText.Bind(TextBlock.ForegroundProperty, Me.GetObservable(ForegroundProperty))
+        LabText.Text = Text
+        Content = LabText
     End Sub
 
     Protected Overrides Sub OnAttachedToVisualTree(e As VisualTreeAttachmentEventArgs)
@@ -45,11 +51,11 @@ Public Class MyTextButton
             If IsControlLoaded Then
                 AniStart({
                     AaOpacity(Me, -Opacity, 50),
-                    AaCode(Sub() Content = Text, , True),
+                    AaCode(Sub() LabText.Text = Text, , True),
                     AaOpacity(Me, 1, 170)
                 }, "MyTextButton Text " & Uuid)
             Else
-                Content = Text
+                LabText.Text = Text
             End If
         ElseIf change.Property Is IsEnabledProperty Then
             RefreshColor()

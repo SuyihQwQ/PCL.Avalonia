@@ -896,6 +896,8 @@ NextStack:
                         Select Case FileName
                             Case "LatestLaunch.bat"
                                 FileName = "启动脚本.bat"
+                            Case "LatestLaunch.sh"
+                                FileName = "启动脚本.sh"
                             Case "Log1.txt"
                                 FileName = "PCL 启动器日志.txt"
                                 FileEncoding = Encoding.UTF8
@@ -1069,7 +1071,7 @@ NextStack:
                 Case CrashReason.Mod过多导致超出ID限制
                     Results.Add("你所安装的 Mod 过多，超出了游戏的 ID 限制，导致了游戏崩溃。\n请尝试安装 JEID 等修复 Mod，或删除部分大型 Mod。")
                 Case CrashReason.文件或内容校验失败
-                    Results.Add("部分文件或内容校验失败，导致游戏出现了问题。\n\n请尝试删除游戏（包括 Mod）并重新下载，或尝试在重新下载时使用 VPN。\h")
+                    Results.Add("部分文件或内容校验失败，导致游戏出现了问题。\n\n请尝试删除游戏（包括 Mod）并重新下载，或在 设置 → 其他 → 网络代理 中设置代理后重新下载。\h")
                 Case CrashReason.Forge安装不完整
                     Results.Add("由于安装的 Forge 文件丢失，导致游戏无法正常运行。\n请重新安装一次相同版本的 Forge，然后再启动游戏。\n在打包游戏时删除 libraries 文件夹可能导致此错误。\h")
                 Case CrashReason.Fabric报错

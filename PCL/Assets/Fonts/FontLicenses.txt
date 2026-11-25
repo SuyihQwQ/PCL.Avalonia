@@ -1,0 +1,15 @@
+本项目内置字体说明（PCL.Avalonia）
+
+1. PCLEnglish.ttf
+   来自原版 PCL（Plain Craft Launcher 2），用于启动器内拉丁字符显示。
+
+2. MiSans-Regular.ttf
+   MiSans 简体中文可变字重字体，版权归小米科技有限责任公司所有，
+   MiSans 允许个人及商业免费使用（详见小米 MiSans 字体许可）。
+   来源：https://hyperos.mi.com/font
+   镜像：https://github.com/chaitin/magicchat（assets/fonts/misans）
+
+3. Twemoji.Mozilla.ttf
+   Twemoji 表情字体（COLR/CPAL 彩色 OpenType 版本），
+   图形版权归 Twitter, Inc. 及贡献者所有，按 CC-BY 4.0 许可使用；
+   字体构建参见 https://github.com/mozilla/twemoji-colr

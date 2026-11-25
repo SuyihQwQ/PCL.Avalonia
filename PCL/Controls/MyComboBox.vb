@@ -25,6 +25,17 @@ Public Class MyComboBox
             SetValue(HintTextProperty, value)
         End Set
     End Property
+    '下拉弹层是否展开。与 IsDropDownOpen 分开，以便收起时先播完淡出动画再真正关闭弹层。
+    Public Shared ReadOnly PopupOpenProperty As StyledProperty(Of Boolean) =
+        AvaloniaProperty.Register(Of MyComboBox, Boolean)(NameOf(PopupOpen))
+    Public Property PopupOpen As Boolean
+        Get
+            Return GetValue(PopupOpenProperty)
+        End Get
+        Set(value As Boolean)
+            SetValue(PopupOpenProperty, value)
+        End Set
+    End Property
 
     Protected Overrides Sub PrepareContainerForItemOverride(container As Control, item As Object, index As Integer)
         MyBase.PrepareContainerForItemOverride(container, item, index)
@@ -37,6 +48,11 @@ Public Class MyComboBox
         Popup = e.NameScope.Find(Of Popup)("PART_Popup")
         ArrowPath = e.NameScope.Find(Of Avalonia.Controls.Shapes.Path)("PART_Arrow")
         _contentPresenter = e.NameScope.Find(Of ContentPresenter)("PART_Content")
+        If Popup IsNot Nothing Then
+            '点外部（轻触关闭）时弹层会自行关闭，需要同步回 IsDropDownOpen
+            RemoveHandler Popup.Closed, AddressOf Popup_Closed
+            AddHandler Popup.Closed, AddressOf Popup_Closed
+        End If
         If Not IsEditable Then Return
         Try
             TextBox = TryCast(e.NameScope.Find(Of Control)("PART_EditableTextBox"), MyTextBox)
@@ -74,10 +90,21 @@ Public Class MyComboBox
     '鼠标按下接口
 
     Private IsMouseDown As Boolean = False
+    '本次按下是否发生在这个下拉框上，用于关闭下拉菜单后恢复悬停高亮
+    Private CloseBySelfClick As Boolean = False
 
     Public Sub New()
-        MyBase.AddHandler(Me.PointerPressedEvent, Sub(sender, e) IsMouseDown = True, RoutingStrategies.Tunnel)
-        MyBase.AddHandler(Me.PointerReleasedEvent, Sub(sender, e) IsMouseDown = False)
+        MyBase.AddHandler(Me.PointerPressedEvent,
+            Sub(sender, e)
+                IsMouseDown = True
+                CloseBySelfClick = True
+            End Sub, RoutingStrategies.Tunnel)
+        MyBase.AddHandler(Me.PointerReleasedEvent,
+            Sub(sender, e)
+                IsMouseDown = False
+                RefreshColor(ForceHover:=CloseBySelfClick OrElse IsPointerOver)
+                CloseBySelfClick = False
+            End Sub)
         MyBase.AddHandler(Me.PointerEnteredEvent, Sub(sender, e) RefreshColor())
         MyBase.AddHandler(Me.PointerExitedEvent,
             Sub(sender, e)
@@ -89,7 +116,6 @@ Public Class MyComboBox
             Sub(sender, e)
                 OpenDropDowns.Remove(Me)
                 MyCard.SetCardHoverLock(Me, Me, False)
-                RefreshColor()
                 RefreshArrow()
             End Sub
         AddHandler Me.Unloaded, Sub() OpenDropDowns.Remove(Me)
@@ -109,7 +135,19 @@ Public Class MyComboBox
 
     Protected Overrides Sub OnPropertyChanged(change As AvaloniaPropertyChangedEventArgs)
         MyBase.OnPropertyChanged(change)
-        If change.Property Is IsEnabledProperty OrElse change.Property Is IsDropDownOpenProperty Then RefreshColor()
+        If change.Property Is IsEnabledProperty Then RefreshColor()
+        If change.Property Is IsDropDownOpenProperty Then
+            Dim OpenNow As Boolean = change.NewValue IsNot Nothing AndAlso CBool(change.NewValue)
+            '展开时直接打开弹层；收起时先淡出再真正关闭（对齐原版 PopupAnimation="Fade"）
+            SyncPopupOpen(OpenNow)
+            '箭头跟随逻辑上的开关立即转动（弹层淡出期间也保持正确方向）
+            RefreshArrow()
+            If OpenNow Then
+                RefreshColor()
+            Else
+                RefreshColor(ForceHover:=CloseBySelfClick OrElse IsPointerOver)
+            End If
+        End If
         If change.Property Is HintTextProperty AndAlso TextBox IsNot Nothing Then TextBox.HintText = HintText
     End Sub
 
@@ -131,7 +169,7 @@ Public Class MyComboBox
 
     '指向动画
 
-    Private Sub RefreshColor()
+    Private Sub RefreshColor(Optional ForceHover As Boolean = False)
         Try
             '判断当前颜色
             Dim ForeColorName As String
@@ -142,7 +180,7 @@ Public Class MyComboBox
                     ForeColorName = "ColorBrush3"
                     BackColorName = "ColorBrush7"
                     Time = 10
-                ElseIf IsPointerOver Then
+                ElseIf ForceHover OrElse IsPointerOver Then
                     ForeColorName = "ColorBrush4"
                     BackColorName = "ColorBrush7"
                     Time = 100
@@ -185,6 +223,55 @@ Public Class MyComboBox
     ''' </summary>
     Friend Shared ReadOnly OpenDropDowns As New HashSet(Of MyComboBox)()
 
+    Private Sub SyncPopupOpen(Open As Boolean)
+        Dim FadeName As String = "MyComboBox Popup FadeOut " & Uuid
+        If Open Then
+            AniStop(FadeName)
+            PopupOpen = True
+            If Popup IsNot Nothing AndAlso TypeOf Popup.Child Is Control Then
+                DirectCast(Popup.Child, Control).IsHitTestVisible = True
+            End If
+            Return
+        End If
+        '弹层没开着（例如轻触外部已自行关闭）时直接同步状态
+        If Popup Is Nothing OrElse Not Popup.IsOpen Then
+            AniStop(FadeName)
+            If PopupOpen Then PopupOpen = False
+            If Popup IsNot Nothing AndAlso TypeOf Popup.Child Is Control Then
+                DirectCast(Popup.Child, Control).IsHitTestVisible = True
+            End If
+            Return
+        End If
+        If AniControlEnabled <> 0 OrElse TypeOf Popup.Child IsNot Control Then
+            PopupOpen = False
+            Return
+        End If
+        Dim Child = DirectCast(Popup.Child, Control)
+        '淡出期间不再响应点击
+        Child.IsHitTestVisible = False
+        AniStop(FadeName)
+        AniStart({
+            AaOpacity(Child, -Child.Opacity, 150, , New AniEaseOutFluent),
+            AaCode(
+            Sub()
+                PopupOpen = False
+                Child.Opacity = 1
+                Child.IsHitTestVisible = True
+            End Sub, , True)
+        }, FadeName)
+    End Sub
+
+    Private Sub Popup_Closed(sender As Object, e As EventArgs)
+        AniStop("MyComboBox Popup FadeOut " & Uuid)
+        If PopupOpen Then PopupOpen = False
+        If IsDropDownOpen Then IsDropDownOpen = False
+        If Popup IsNot Nothing AndAlso TypeOf Popup.Child Is Control Then
+            Dim Child = DirectCast(Popup.Child, Control)
+            Child.Opacity = 1
+            Child.IsHitTestVisible = True
+        End If
+    End Sub
+
     Private Sub DropDownOpenedHandler()
         OpenDropDowns.Add(Me)
         '与原版一致：打开下拉菜单时关闭现有的悬停提示
@@ -193,12 +280,21 @@ Public Class MyComboBox
         RefreshColor()
         RefreshArrow()
         '将下拉菜单宽度与透明度与主窗口同步
+        '与原版 PCL 的 PopupAnimation="Fade" 一致：下拉菜单从透明淡入
         Try
             If Popup IsNot Nothing Then
                 Popup.MinWidth = Bounds.Width
-                Dim Window = TryCast(TopLevel.GetTopLevel(Me), Window)
-                If Window IsNot Nothing AndAlso TypeOf Popup.Child Is Control Then
-                    DirectCast(Popup.Child, Control).Opacity = Window.Opacity
+                If TypeOf Popup.Child Is Control Then
+                    Dim Child = DirectCast(Popup.Child, Control)
+                    Dim TargetOpacity As Double = 1
+                    Dim Window = TryCast(TopLevel.GetTopLevel(Me), Window)
+                    If Window IsNot Nothing Then TargetOpacity = Window.Opacity
+                    If AniControlEnabled = 0 Then
+                        Child.Opacity = 0
+                        AniStart(AaOpacity(Child, TargetOpacity, 150, , New AniEaseOutFluent), "MyComboBox Popup " & Uuid)
+                    Else
+                        Child.Opacity = TargetOpacity
+                    End If
                 End If
             End If
         Catch ex As Exception

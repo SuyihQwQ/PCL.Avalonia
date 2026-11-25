@@ -171,7 +171,7 @@ Public Class PageLaunchRight
             '校验版本
             Dim Version As String = ""
             Try
-                Version = NetRequestByClientRetry(VersionAddress)
+                Version = NetRequestByClientRetry(VersionAddress, Category:=NetRequestCategory.Homepage)
                 If Version.Length > 1000 Then Throw New Exception($"获取的主页版本过长（{Version.Length} 字符）")
                 Dim CurrentVersion As String = Settings.Get(Of String)("CacheSavedPageVersion")
                 If Version <> "" AndAlso CurrentVersion <> "" AndAlso Version = CurrentVersion Then
@@ -184,7 +184,7 @@ Public Class PageLaunchRight
                 Logger.Info($"无法检查联网主页版本，将直接下载，检查源：{VersionAddress}")
             End Try
             '实际下载
-            Dim FileContent As String = NetRequestByClientRetry(Address)
+            Dim FileContent As String = NetRequestByClientRetry(Address, Category:=NetRequestCategory.Homepage)
             If Task.IsCanceled Then Return
             Logger.Info($"已联网下载主页，内容长度：{FileContent.Length}，来源：{Address}")
             Settings.Set("CacheSavedPageUrl", Address)

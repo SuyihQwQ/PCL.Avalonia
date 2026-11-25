@@ -5,6 +5,7 @@ Imports Avalonia.LogicalTree
 ''' </summary>
 Public Class PageOtherHelpDetail
     Inherits MyPageRight
+    Implements IRefreshable
 
     Public Entry As HelpEntry
 
@@ -24,9 +25,10 @@ Public Class PageOtherHelpDetail
     ''' 根据特定帮助项初始化页面 UI，返回是否成功加载。
     ''' </summary>
     Public Function Init(Entry As HelpEntry) As Boolean
+        Dim Content As String = ""
         Try
             If Entry Is Nothing Then Throw New ArgumentNullException(NameOf(Entry))
-            Dim Content = If(Entry.XamlContent, "")
+            Content = If(Entry.XamlContent, "")
             If String.IsNullOrWhiteSpace(Content) Then Throw New Exception("帮助 xaml 文件为空")
             Me.Entry = Entry
             PanCustom.Children.Clear()
@@ -35,10 +37,24 @@ Public Class PageOtherHelpDetail
             PanCustom.Children.Add(NewContent)
             Return True
         Catch ex As Exception
+            '与原版一致：把原始内容写入日志，便于定位帮助文件自身的问题
+            If Not String.IsNullOrWhiteSpace(Content) Then Logger.Info($"自定义信息内容：{vbCrLf}{Content}")
             Logger.Error(ex, "加载帮助 XAML 文件失败", LogBehavior.Alert)
             Return False
         End Try
     End Function
+
+    ''' <summary>
+    ''' 刷新当前帮助内容（原版 IRefreshable）：从 RawPath 重新读取，以便自定义帮助或联网帮助更新后立即生效。
+    ''' </summary>
+    Public Sub Refresh() Implements IRefreshable.Refresh
+        If Entry Is Nothing OrElse String.IsNullOrWhiteSpace(Entry.RawPath) Then Return
+        Try
+            Init(New HelpEntry(Entry.RawPath))
+        Catch ex As Exception
+            Logger.Warn(ex, $"刷新帮助条目失败（{Entry.RawPath}）")
+        End Try
+    End Sub
 
     Private Shared Sub ApplyImageInterpolation(Element As Control)
         If Element Is Nothing Then Return
