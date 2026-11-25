@@ -1,0 +1,4 @@
+[submodule "MeloongCore.Avalonia"]
+	path = MeloongCore.Avalonia
+	url = https://github.com/SuyihQwQ/MeloongCore.Avalonia.git
+	branch = avalonia

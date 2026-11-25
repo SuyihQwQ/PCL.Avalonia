@@ -66,7 +66,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MeloongCore.Shared\MeloongCore.Shared.csproj" />
+    <ProjectReference Include="..\MeloongCore.Avalonia\Shared\MeloongCore.Shared.csproj" />
     <ProjectReference Include="..\PCL.Compat\PCL.Compat.csproj" />
     <ProjectReference Include="..\PCLCS\PCLCS.csproj" />
   </ItemGroup>

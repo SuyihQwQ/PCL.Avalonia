@@ -5,7 +5,7 @@ This repository contains both PCL-derived code and original code.
 
 License scope
 - PCL/ (including PCL/Generated/ and PCL/Assets/) and PCLCS/: PCL Limited Distribution License and reasonable-use guidelines. See LICENCE.
-- PCL.Compat/, MeloongCore.Shared/, PCL.Tests/ and tools/XamlGen/: Apache License 2.0. See LICENSE-APACHE. Source files in these directories carry SPDX-License-Identifier: Apache-2.0.
+- PCL.Compat/, MeloongCore.Avalonia/, PCL.Tests/ and tools/XamlGen/: Apache License 2.0. See LICENSE-APACHE. Source files in these directories carry SPDX-License-Identifier: Apache-2.0.
 - Files that do not carry an SPDX identifier or a directory-specific license are covered by LICENCE.
 
 Upstream attribution
@@ -29,5 +29,5 @@ Third-party libraries (via NuGet)
 - ThrottleDebounce: MIT License.
 - SoundFlow: see its package licence (used for background music playback).
 - xunit.v3, xunit.runner.visualstudio: Apache License 2.0.
-- MeloongCore (MeloongCore.Shared/): original part of this repository, Apache License 2.0.
+- MeloongCore.Avalonia/ (git submodule): project-specific fork of MeloongCore (https://github.com/Meloong-Git/MeloongCore), Apache License 2.0. It is trimmed/adapted for PCL.Avalonia; see the submodule's README.md / UPSTREAM.md for the fork details and upstream attribution.
 Full licence texts are available from the respective package sources; this project does not modify those libraries.

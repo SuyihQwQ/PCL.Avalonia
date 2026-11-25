@@ -33,7 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MeloongCore.Shared\MeloongCore.Shared.csproj" />
+    <ProjectReference Include="..\MeloongCore.Avalonia\Shared\MeloongCore.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -4,7 +4,7 @@
 
 ## 项目速览
 
-- PCL 2.14（VB.NET / WPF / .NET Framework 4.8）的跨平台移植：**Avalonia 12.1.4 + .NET 10**，主程序保持 **VB.NET**（`Option Strict Off`）。C# 仅用于 `PCL.Compat/`、`MeloongCore.Shared/`、`PCLCS/`、`PCL.Tests/`、`tools/XamlGen/`。
+- PCL 2.14（VB.NET / WPF / .NET Framework 4.8）的跨平台移植：**Avalonia 12.1.4 + .NET 10**，主程序保持 **VB.NET**（`Option Strict Off`）。C# 仅用于 `PCL.Compat/`、`MeloongCore.Avalonia/`(submodule)、`PCLCS/`、`PCL.Tests/`、`tools/XamlGen/`。
 - 当前公开版本：**Stable 14.1.2**（标签 `v14.1.2-Stable`）；`main` = stable，`dev` = snapshot。
 - 本仓库是**第三方非官方移植**，不是 Mojang / Microsoft 官方产品。
 
@@ -36,7 +36,7 @@ python3 tools/XamlGen/gen_fields.py [--check]     # 改 XAML x:Name 后重新生
 - `reference/` 是原版 PCL 源码，只读，用于对照移植，不要修改。
 - `PCL/Generated/*.g.vb` 由脚本生成，不要手改。
 - 不要做实时桌面截图/录屏，不要向用户桌面注入模拟输入（除非用户明确授权）。
-- 许可证是分范围的：`PCL/`、`PCLCS/` 归 `LICENCE`（PCL 有限分发许可）；`PCL.Compat/`、`MeloongCore.Shared/`、`PCL.Tests/`、`tools/XamlGen/` 归 Apache-2.0（文件头 SPDX），范围见 `NOTICE`。不要给 PCL 派生文件换许可证，也不要删掉原版署名与“非官方”声明。
+- 许可证是分范围的：`PCL/`、`PCLCS/` 归 `LICENCE`（PCL 有限分发许可）；`PCL.Compat/`、`MeloongCore.Avalonia/`(submodule)、`PCL.Tests/`、`tools/XamlGen/` 归 Apache-2.0（文件头 SPDX），范围见 `NOTICE`。不要给 PCL 派生文件换许可证，也不要删掉原版署名与“非官方”声明。
 
 ## 凭据与版本策略
 

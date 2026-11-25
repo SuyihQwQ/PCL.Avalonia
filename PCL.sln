@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MeloongCore.Shared", "MeloongCore.Shared\MeloongCore.Shared.csproj", "{6EA676FA-C2D6-4FDA-9D65-5F7200C93735}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MeloongCore.Shared", "MeloongCore.Avalonia\Shared\MeloongCore.Shared.csproj", "{6EA676FA-C2D6-4FDA-9D65-5F7200C93735}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PCLCS", "PCLCS\PCLCS.csproj", "{496C1A49-DCAC-44EC-AA4A-9A968FA0EC6B}"
 EndProject

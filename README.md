@@ -82,7 +82,7 @@ dotnet test PCL.Tests/PCL.Tests.csproj
 | `PCL.Tests/` | Headless UI and logic regression tests |
 | `PCLCS/` | Minecraft version JSON, launch arguments, and Java compatibility |
 | `PCL.Compat/` | Platform compatibility layer |
-| `MeloongCore.Shared/` | Logging, networking, loaders, and other shared infrastructure |
+| `MeloongCore.Avalonia/`(submodule) | Logging, networking, loaders, and other shared infrastructure |
 | `tools/XamlGen/` | Script that generates `PCL/Generated/*.g.vb` |
 | `reference/` | Original PCL sources for reference (local read-only, excluded by `.gitignore`) |
 
@@ -158,7 +158,7 @@ The public key is published alongside the release as `PCL.Avalonia-signing-key.a
 - Original PCL: Copyright © Chengdu Guapilong Technology Co., Ltd. (Software Copyright Registration No. 2020SR0875133), developed by LTCat.
 - PCL.Avalonia: Copyright © 2026 SuyihQwQ
 - PCL-derived code (`PCL/`, `PCLCS/`) follows the [LICENCE](LICENCE) (the PCL Limited Distribution License and its reasonable-use guidelines).
-- Original code (`PCL.Compat/`, `MeloongCore.Shared/`, `PCL.Tests/`, `tools/XamlGen/`) is licensed under the [Apache License 2.0](LICENSE-APACHE). Files in these directories carry an SPDX identifier; see [NOTICE](NOTICE) for the full scope.
+- Original code (`PCL.Compat/`, `MeloongCore.Avalonia/`(submodule), `PCL.Tests/`, `tools/XamlGen/`) is licensed under the [Apache License 2.0](LICENSE-APACHE). Files in these directories carry an SPDX identifier; see [NOTICE](NOTICE) for the full scope.
 - This project is a third-party port with source code available.
 
 ## Future plans
