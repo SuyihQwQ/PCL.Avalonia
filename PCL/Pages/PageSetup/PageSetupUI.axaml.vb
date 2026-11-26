@@ -39,7 +39,7 @@ Public Class PageSetupUI
         PanBack.ScrollToHome()
         ThemeCheckAll(True)
         'Windows 版本按《PCL 存储库合理使用指南》固定龙猫蓝，禁用主题选择并给出提示
-        If OperatingSystem.IsWindows() Then
+        If Not ModPlatform.CanCustomizeTheme Then
             HintThemeWindowsLimit.IsVisible = True
             For Each Radio In {RadioLauncherTheme1, RadioLauncherTheme2, RadioLauncherTheme3, RadioLauncherTheme4}
                 Radio.IsEnabled = False

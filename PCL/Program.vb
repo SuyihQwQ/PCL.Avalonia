@@ -91,13 +91,41 @@ Public Module Program
         Console.Error.WriteLine(Text)
         If OperatingSystem.IsWindows() Then
             MessageBoxW(IntPtr.Zero, Text, Title, &H10UI Or &H10000UI)
-        ElseIf OperatingSystem.IsLinux() Then
+        ElseIf OperatingSystem.IsMacOS() Then
+            ShowMacStartupMessage(Text, Title)
+        ElseIf OperatingSystem.IsLinux() OrElse ModPlatform.IsBSD Then
             ShowLinuxStartupMessage(Text, Title)
         End If
     End Sub
 
     ''' <summary>
-    ''' Linux 没有系统级消息框，优先尝试桌面环境自带的 zenity / kdialog。
+    ''' macOS 使用 osascript 弹出原生警告框；失败时只把错误输出到标准错误。
+    ''' </summary>
+    Private Sub ShowMacStartupMessage(Text As String, Title As String)
+        Try
+            Dim Script As String = "display alert " & QuoteAppleScript(Title) &
+                " message " & QuoteAppleScript(Text) & " as critical"
+            Dim Info As New ProcessStartInfo("/usr/bin/osascript") With {
+                .UseShellExecute = False,
+                .CreateNoWindow = True}
+            Info.ArgumentList.Add("-e")
+            Info.ArgumentList.Add(Script)
+            Using Proc = Process.Start(Info)
+                Proc?.WaitForExit(5000)
+            End Using
+        Catch ex As Exception
+            Console.Error.WriteLine($"显示启动错误提示失败：{ex.Message}")
+        End Try
+    End Sub
+
+    Private Function QuoteAppleScript(Text As String) As String
+        Dim Quote As String = Chr(34)
+        Dim Escaped As String = If(Text, "").Replace("\", "\\").Replace(Quote, "\" & Quote)
+        Return Quote & Escaped & Quote
+    End Function
+
+    ''' <summary>
+    ''' Linux / BSD 没有统一的系统级消息框，优先尝试桌面环境自带的 zenity / kdialog。
     ''' </summary>
     Private Sub ShowLinuxStartupMessage(Text As String, Title As String)
         For Each Tool As String In {"zenity", "kdialog"}
@@ -131,8 +159,13 @@ Public Module Program
     End Function
 
     Public Function BuildAvaloniaApp() As AppBuilder
-        Dim Builder = AppBuilder.Configure(Of App)() _
-            .UsePlatformDetect()
+        Dim Builder As AppBuilder
+        If ModPlatform.IsBSD Then
+            'Avalonia 的自动平台检测不包含 BSD，显式使用 X11 后端（需要系统提供 X11 与 Skia 依赖）
+            Builder = AppBuilder.Configure(Of App)().UseX11().UseSkia().UseHarfBuzz()
+        Else
+            Builder = AppBuilder.Configure(Of App)().UsePlatformDetect()
+        End If
         'Skia 在某些 Linux 系统上会把无法渲染的位图字体（如 8514fix）当作默认字体，
         '未显式指定字体的控件一旦提前排版就会抛出 glyphTypeface 异常，因此固定使用 PCL 字体
         Builder = Builder.With(FontConfig.Create())
@@ -206,7 +239,7 @@ Public Module Program
     ''' </summary>
     Private Sub SetProcessEnvironment(Name As String, Value As String)
         Environment.SetEnvironmentVariable(Name, Value)
-        If OperatingSystem.IsLinux() OrElse OperatingSystem.IsMacOS() Then
+        If Not OperatingSystem.IsWindows() Then
             NativeSetenv(Name, Value, 1)
         End If
     End Sub

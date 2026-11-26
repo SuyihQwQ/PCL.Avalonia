@@ -51,9 +51,9 @@ Public Class PageSetupLaunch
             RefreshAdvanceRunWait()
             RefreshJvmResetButton()
             UpdateJavaList()
-            CheckArgumentRam.IsEnabled = OperatingSystem.IsWindows()
+            CheckArgumentRam.IsEnabled = ModPlatform.SupportsRamOptimize
             RefreshJavaLaunchWrapperSetting()
-            CheckAdvanceGraphicCard.IsEnabled = OperatingSystem.IsWindows() OrElse OperatingSystem.IsLinux()
+            CheckAdvanceGraphicCard.IsEnabled = ModPlatform.SupportsGpuPreference
             RefreshRam(False)
         Catch ex As NullReferenceException
             Logger.Error(ex, "启动设置项存在异常，已被自动重置", LogBehavior.Alert)
@@ -64,9 +64,8 @@ Public Class PageSetupLaunch
     End Sub
 
     Private Sub RefreshJavaLaunchWrapperSetting()
-        Dim IsWindows As Boolean = OperatingSystem.IsWindows()
-        CheckAdvanceDisableJLW.IsEnabled = IsWindows
-        If IsWindows Then Return
+        CheckAdvanceDisableJLW.IsEnabled = ModPlatform.SupportsJavaLaunchWrapper
+        If ModPlatform.SupportsJavaLaunchWrapper Then Return
 
         AniControlEnabled += 1
         Try

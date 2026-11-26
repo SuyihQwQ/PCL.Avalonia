@@ -1596,7 +1596,8 @@ OnLoaded:
                             IsRightRule = OSVersion.RegexCheck(Rule("os")("version").ToString)
                         End If
                     ElseIf OsName = "linux" Then
-                        IsRightRule = IsRightRule AndAlso OperatingSystem.IsLinux()
+                        'BSD 没有独立的 Minecraft 规则，与 Linux 共用
+                        IsRightRule = IsRightRule AndAlso (OperatingSystem.IsLinux() OrElse ModPlatform.IsBSD)
                     ElseIf OsName = "osx" OrElse OsName = "macos" Then
                         IsRightRule = IsRightRule AndAlso OperatingSystem.IsMacOS()
                     Else

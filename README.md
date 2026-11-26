@@ -2,7 +2,7 @@
 
 English | [简体中文](README.zh-CN.md)
 
-A third-party cross-platform port of [Plain Craft Launcher 2](https://github.com/Meloong-Git/PCL) (based on PCL 2.14), built with **Avalonia 12.1.4 + .NET 10**. The UI and business logic are implemented in VB.NET, targeting Linux (Wayland / X11) and Windows.
+A third-party cross-platform port of [Plain Craft Launcher 2](https://github.com/Meloong-Git/PCL) (based on PCL 2.14), built with **Avalonia 12.1.4 + .NET 10**. The UI and business logic are implemented in VB.NET. Windows and Linux (Wayland / X11) are fully supported, macOS builds are experimental, and BSD is source-level experimental support.
 
 - Current release: **Stable 14.2.2** ([Releases](https://github.com/SuyihQwQ/PCL.Avalonia/releases))
 - This is an **independent third-party port**, not an official PCL release and not affiliated with Mojang or Microsoft.
@@ -31,7 +31,8 @@ dotnet build PCL.sln
 dotnet run --project PCL/PCL.vbproj
 ```
 
-- Requires the **.NET 10 SDK**; Linux needs a Wayland or X11 desktop
+- Requires the **.NET 10 SDK**; Linux needs a Wayland or X11 desktop, macOS uses the native backend
+- See "Platform notes" below for macOS / BSD build and runtime details
 - After changing an `x:Name` in `.axaml`, run `python3 tools/XamlGen/gen_fields.py` (Python 3 required)
 - Tests: `dotnet test PCL.Tests/PCL.Tests.csproj` (xunit.v3 + Avalonia.Headless, no display server needed)
 
@@ -48,6 +49,15 @@ dotnet publish PCL/PCL.vbproj -c Release -r win-x64 --self-contained true \
   -p:PublishSingleFile=true -p:EnableWindowsTargeting=true \
   -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true \
   -o dist/package/win-x64
+
+# macOS (Apple Silicon / Intel; can be cross-published; the output is a plain executable, no .app bundle yet)
+dotnet publish PCL/PCL.vbproj -c Release -r osx-arm64 --self-contained true \
+  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
+  -p:EnableCompressionInSingleFile=true -o dist/package/osx-arm64
+
+dotnet publish PCL/PCL.vbproj -c Release -r osx-x64 --self-contained true \
+  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
+  -p:EnableCompressionInSingleFile=true -o dist/package/osx-x64
 ```
 
 Release binaries are GPG-signed: `sha256sum -c SHA256SUMS && gpg --verify SHA256SUMS.asc SHA256SUMS`; public key: `PCL.Avalonia-signing-key.asc`.
@@ -88,16 +98,42 @@ The launcher is portable by default and stores data next to the executable (or n
 
 The UI language follows the system language by default; Simplified Chinese and English are available. Stable builds require a genuine Microsoft account login first; snapshot builds do not.
 
-## Linux notes
+## Platform notes
+
+### Windows
+
+- Uses the fixed Totoro Blue theme per the PCL Repository Reasonable Use Guide; theme customization is disabled
+- Windows-only features are enabled: memory optimization, Java Launch Wrapper and system GPU preference
+
+### Linux
 
 - Follows the GTK / KDE / GSettings system cursor theme
 - Client-side decorations on Wayland; instance folders watched through a separate window listener on X11
 - File drag-and-drop uses the `Copy` effect (Avalonia Wayland backend limitation)
 - Installs a generated `PCL.Avalonia.desktop` entry
+- System proxy is read from environment variables, KDE `kioslaverc` and GNOME `gsettings`
+- GPU preference is applied through PRIME environment variables
+
+### macOS (experimental)
+
+- Settings live in `~/Library/Application Support/PCL.Avalonia/` (other platforms use `<program folder>/PCL.Avalonia/` plus XDG config directories)
+- Uses the Avalonia native backend; startup errors are shown through `osascript`
+- Java search includes `/Library/Java/JavaVirtualMachines`, `~/Library/Java/JavaVirtualMachines` and Homebrew / MacPorts JDKs
+- Azul Zulu download is supported; system information is read via `sysctl` / `system_profiler`
+- No `.app`/dmg packaging yet; run the executable directly
+- Windows-only memory optimization, Java Launch Wrapper and GPU preference settings are disabled
+
+### BSD (experimental, source-level only)
+
+- FreeBSD / OpenBSD / NetBSD / DragonFly are recognized: XDG config directories and `sysctl`-based system information
+- Uses the Avalonia X11 backend explicitly (X11 and Skia dependencies required)
+- Java search includes `/usr/local/openjdk*`, `/usr/local/*jdk*`, `/usr/local/share/java`, `/usr/pkg/java`, etc.; Azul Zulu has no BSD builds, so automatic download is skipped
+- Minecraft rules reuse the `linux` branch
+- Windows-only features stay disabled; .NET and Avalonia do not ship BSD runtime packs on NuGet, so there are no official binaries — self-build on BSD with a community .NET runtime
 
 ## Future plans
 
-1. macOS support (builds, `.app`/dmg packaging and system integration)
+1. Complete macOS support (`.app`/dmg packaging and system integration)
 2. Rewrite the VB.NET part in C#
 3. ConnectX-powered multiplayer support ([ConnectX](https://github.com/Corona-Studio/ConnectX))
 

@@ -91,21 +91,18 @@ Public Module ModBase
         End Try
     End Function
     ''' <summary>
-    ''' Linux 下替代注册表的配置文件夹，位于用户配置目录。
+    ''' 非 Windows 下替代注册表的配置文件夹：macOS 为 ~/Library/Application Support，
+    ''' 其他类 Unix（Linux / BSD）为 XDG 配置目录。
     ''' </summary>
     Public ReadOnly Property PathConfigFolder As String
         Get
-            Dim Root As String = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
-            If String.IsNullOrWhiteSpace(Root) Then
-                Dim Home As String = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
-                If String.IsNullOrWhiteSpace(Home) Then Throw New DirectoryNotFoundException("无法获取用户配置文件夹！")
-                Root = Path.Combine(Home, ".config")
-            End If
+            Dim Root As String = ModPlatform.UserConfigHome
+            If String.IsNullOrWhiteSpace(Root) Then Throw New DirectoryNotFoundException("无法获取用户配置文件夹！")
             Return PathUtils.AddSlashSuffix(Path.Combine(Root, "PCL.Avalonia"))
         End Get
     End Property
     ''' <summary>
-    ''' Linux 下替代注册表的配置文件路径。
+    ''' 非 Windows 下替代注册表的配置文件路径。
     ''' </summary>
     Public ReadOnly Property PathRegistryIni As String
         Get

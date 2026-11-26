@@ -154,6 +154,19 @@ public static class JavaUtils {
     #region 搜索
 
     /// <summary>
+    /// 是否为 BSD 系列系统（.NET 仅内置 FreeBSD 判断，其余通过运行时描述识别）。
+    /// </summary>
+    private static bool IsBsdRuntime {
+        get {
+            if (OperatingSystem.IsWindows() || OperatingSystem.IsLinux() || OperatingSystem.IsMacOS()) return false;
+            if (OperatingSystem.IsFreeBSD()) return true;
+            var description = System.Runtime.InteropServices.RuntimeInformation.OSDescription;
+            return description.Contains("BSD", StringComparison.OrdinalIgnoreCase)
+                || description.Contains("DragonFly", StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    /// <summary>
     /// 存在完整 Java 的文件夹列表。
     /// </summary>
     internal static readonly Lazy<List<string>> CandidateFolders = new(() => {
@@ -197,6 +210,21 @@ public static class JavaUtils {
                 folders.Add("/Library/Java/JavaVirtualMachines");
                 folders.Add(Path.Combine(userProfile, "Library", "Java", "JavaVirtualMachines"));
                 folders.Add(Path.Combine(userProfile, "Library", "Application Support", "minecraft", "runtime"));
+                // Homebrew 与 MacPorts 安装的 JDK
+                folders.AddRange(DirectoryUtils.EnumerateDirectories("/opt/homebrew/opt", searchPattern: "openjdk*"));
+                folders.AddRange(DirectoryUtils.EnumerateDirectories("/usr/local/opt", searchPattern: "openjdk*"));
+                folders.Add("/opt/local/lib/java");
+            } else if (IsBsdRuntime) {
+                // FreeBSD / OpenBSD / NetBSD 的常见 JDK 安装位置
+                folders.AddRange(DirectoryUtils.EnumerateDirectories("/usr/local", searchPattern: "openjdk*"));
+                folders.AddRange(DirectoryUtils.EnumerateDirectories("/usr/local", searchPattern: "jdk*"));
+                folders.AddRange(DirectoryUtils.EnumerateDirectories("/usr/local", searchPattern: "jre*"));
+                folders.Add("/usr/local/share/java");
+                folders.Add("/usr/local/lib/jvm");
+                folders.Add("/usr/local/java");
+                folders.Add("/usr/local/boot");
+                folders.Add("/usr/pkg/java"); // NetBSD pkgsrc
+                folders.Add("/opt/local/lib/java"); // MacPorts 风格的默认位置
             }
         }
         // 环境变量

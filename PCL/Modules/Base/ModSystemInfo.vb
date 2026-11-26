@@ -408,12 +408,13 @@ Public Module ModSystemInfo
     End Function
 
     ''' <summary>
-    ''' 操作系统描述：Linux 为发行版名称 + 内核，macOS 为版本 + 代号 + Darwin，Windows 为版本 + 版本号 + Build。
+    ''' 操作系统描述：Linux 为发行版名称 + 内核，macOS 为版本 + 代号 + Darwin，Windows 为版本 + 版本号 + Build，BSD 为 uname / os-release。
     ''' </summary>
     Private Function ReadOperatingSystem() As String
         If OperatingSystem.IsWindows() Then Return ReadWindowsOperatingSystem()
         If OperatingSystem.IsMacOS() Then Return ReadMacOperatingSystem()
         If OperatingSystem.IsLinux() Then Return ReadLinuxOperatingSystem()
+        If ModPlatform.IsBSD Then Return ReadBsdOperatingSystem()
         Return ShortOsDescription()
     End Function
 
@@ -548,6 +549,23 @@ Public Module ModSystemInfo
     End Function
 
     ''' <summary>
+    ''' BSD 的系统描述：优先 /etc/os-release，其次 uname -sr，最后回退运行时描述。
+    ''' </summary>
+    Private Function ReadBsdOperatingSystem() As String
+        Dim OsRelease = ReadFileText("/etc/os-release")
+        Dim Pretty As String = GetOsReleaseValue(OsRelease, "PRETTY_NAME")
+        If String.IsNullOrWhiteSpace(Pretty) Then
+            Dim Name = GetOsReleaseValue(OsRelease, "NAME")
+            Dim Version = GetOsReleaseValue(OsRelease, "VERSION")
+            Pretty = (If(String.IsNullOrEmpty(Name), "", Name) & " " & If(String.IsNullOrEmpty(Version), "", Version)).Trim()
+        End If
+        If Not String.IsNullOrWhiteSpace(Pretty) Then Return Regex.Replace(Pretty, "\s+", " ").Trim()
+        Dim Uname = RunProcessWithTimeout(FindExecutable({"/usr/bin/uname", "/bin/uname"}), "-sr", 1500)
+        If Not String.IsNullOrWhiteSpace(Uname) Then Return Regex.Replace(Uname.Trim(), "\s+", " ")
+        Return ShortOsDescription()
+    End Function
+
+    ''' <summary>
     ''' 无法识别的系统（FreeBSD 等）使用系统自带的描述文本。
     ''' </summary>
     Private Function ShortOsDescription() As String
@@ -578,7 +596,7 @@ Public Module ModSystemInfo
                     Return FormatUptime(TimeSpan.FromSeconds(Seconds))
                 End If
             End If
-        ElseIf OperatingSystem.IsMacOS() Then
+        ElseIf OperatingSystem.IsMacOS() OrElse ModPlatform.IsBSD Then
             Dim BootTimeText = RunSysctlValue("kern.boottime")
             If Not String.IsNullOrEmpty(BootTimeText) Then
                 Dim Match = Regex.Match(BootTimeText, "sec\s*=\s*(\d+)")
@@ -600,7 +618,7 @@ Public Module ModSystemInfo
     Private Function ReadDesktopEnvironment() As String
         If OperatingSystem.IsWindows() Then Return "Windows Shell"
         If OperatingSystem.IsMacOS() Then Return "Aqua"
-        If Not OperatingSystem.IsLinux() Then Return Nothing
+        If Not (OperatingSystem.IsLinux() OrElse ModPlatform.IsBSD) Then Return Nothing
 
         Dim Desktop As String = FirstNonEmpty(
             Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP"),
@@ -642,6 +660,8 @@ Public Module ModSystemInfo
             Result = ReadLinuxCpu()
         ElseIf OperatingSystem.IsMacOS() Then
             Result = ReadMacCpu()
+        ElseIf ModPlatform.IsBSD Then
+            Result = ReadBsdCpu()
         End If
         If String.IsNullOrWhiteSpace(Result) Then Result = GetCpuFallback()
         Return Result
@@ -698,10 +718,25 @@ Public Module ModSystemInfo
         Return Nothing
     End Function
 
+    Private Function ReadBsdCpu() As String
+        For Each Key In {"machdep.cpu.brand_string", "hw.model", "machdep.cpu_brand", "hw.model_name"}
+            Dim Value = RunSysctlValue(Key)
+            If String.IsNullOrWhiteSpace(Value) Then Continue For
+            Value = Regex.Replace(Value.Trim(), "\s+", " ")
+            If Value.Length > 0 Then Return Value
+        Next
+        Dim Uname = RunProcessWithTimeout(FindExecutable({"/usr/bin/uname", "/bin/uname"}), "-p", 1500)
+        If Not String.IsNullOrWhiteSpace(Uname) AndAlso Not Uname.Trim().Equals("unknown", StringComparison.OrdinalIgnoreCase) Then
+            Return Uname.Trim()
+        End If
+        Return Nothing
+    End Function
+
     Private Function ReadGpu() As String
         If OperatingSystem.IsWindows() Then Return ReadWindowsGpu()
         If OperatingSystem.IsLinux() Then Return ReadLinuxGpu()
         If OperatingSystem.IsMacOS() Then Return ReadMacGpu()
+        If ModPlatform.IsBSD Then Return ReadBsdGpu()
         Return Nothing
     End Function
 
@@ -897,10 +932,33 @@ Public Module ModSystemInfo
         Return String.Join(" / ", Names.Take(2))
     End Function
 
+    ''' <summary>
+    ''' BSD 没有统一的显卡信息接口：优先尝试 pciutils 的 lspci，失败则返回未知。
+    ''' </summary>
+    Private Function ReadBsdGpu() As String
+        Dim LspciPath = FindExecutable({"/usr/local/sbin/lspci", "/usr/local/bin/lspci", "/usr/sbin/lspci", "/sbin/lspci", "/usr/bin/lspci"})
+        If LspciPath Is Nothing Then Return Nothing
+        Dim Output = RunProcessWithTimeout(LspciPath, "-mm", 2500)
+        If String.IsNullOrEmpty(Output) Then Return Nothing
+        Dim Names As New List(Of String)
+        Dim Quote As Char = """"c
+        For Each Line In Output.Split({vbCrLf, vbLf}, StringSplitOptions.RemoveEmptyEntries)
+            If Not (Line.Contains(Quote & "VGA" & Quote) OrElse Line.Contains(Quote & "3D" & Quote) OrElse Line.Contains(Quote & "Display" & Quote)) Then Continue For
+            'lspci -mm 的输出形如: 00:02.0 "VGA compatible controller" "Intel Corporation" "device" -r00
+            Dim Parts = Line.Split(Quote)
+            If Parts.Length < 3 Then Continue For
+            Dim Name = (Parts(1).Trim() & " " & Parts(2).Trim()).Trim()
+            If Name.Length > 0 AndAlso Not Names.Contains(Name) Then Names.Add(Name)
+        Next
+        If Names.Count = 0 Then Return Nothing
+        Return String.Join(" / ", Names.Take(2))
+    End Function
+
     Private Function ReadMemory() As String
         If OperatingSystem.IsWindows() Then Return ReadWindowsMemory()
         If OperatingSystem.IsLinux() Then Return ReadLinuxMemory()
         If OperatingSystem.IsMacOS() Then Return ReadMacMemory()
+        If ModPlatform.IsBSD Then Return ReadBsdMemory()
         Return Nothing
     End Function
 
@@ -989,6 +1047,32 @@ Public Module ModSystemInfo
         If UsedPages <= 0 Then Return FormatMemoryTotalOnly(TotalBytes)
         '保护：某些版本 vm_stat 的统计会超过物理内存
         Dim UsedBytes As Long = Math.Min(UsedPages * PageSize, TotalBytes)
+        Return FormatMemory(UsedBytes, TotalBytes)
+    End Function
+
+    ''' <summary>
+    ''' BSD 的物理内存：sysctl hw.physmem / hw.realmem，空闲页数取 vm.stats.vm.v_free_count。
+    ''' </summary>
+    Private Function ReadBsdMemory() As String
+        Dim TotalText = FirstNonEmpty(RunSysctlValue("hw.physmem"), RunSysctlValue("hw.realmem"), RunSysctlValue("hw.physmem64"))
+        Dim TotalBytes As Long
+        If String.IsNullOrWhiteSpace(TotalText) OrElse Not Long.TryParse(TotalText.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, TotalBytes) OrElse TotalBytes <= 0 Then
+            Return Nothing
+        End If
+        Dim PageSize As Long = 4096
+        Dim ParsedPageSize As Long
+        Dim PageSizeText = RunSysctlValue("hw.pagesize")
+        If Not String.IsNullOrWhiteSpace(PageSizeText) AndAlso Long.TryParse(PageSizeText.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, ParsedPageSize) AndAlso ParsedPageSize > 0 Then
+            PageSize = ParsedPageSize
+        End If
+        Dim FreePages As Long = -1
+        Dim FreeText = RunSysctlValue("vm.stats.vm.v_free_count")
+        Dim ParsedFree As Long
+        If Not String.IsNullOrWhiteSpace(FreeText) AndAlso Long.TryParse(FreeText.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, ParsedFree) Then
+            FreePages = ParsedFree
+        End If
+        If FreePages < 0 Then Return FormatMemoryTotalOnly(TotalBytes)
+        Dim UsedBytes = Math.Max(TotalBytes - Math.Min(FreePages * PageSize, TotalBytes), 0)
         Return FormatMemory(UsedBytes, TotalBytes)
     End Function
 

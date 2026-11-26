@@ -83,7 +83,7 @@ Public Class PageInstanceSetup
             End If
 
             SettingService.RefreshSettings(Me)
-            ComboRamOptimize.IsEnabled = OperatingSystem.IsWindows()
+            ComboRamOptimize.IsEnabled = ModPlatform.SupportsRamOptimize
             RefreshJavaLaunchWrapperSetting()
 
             '游戏内存
@@ -95,9 +95,8 @@ Public Class PageInstanceSetup
     End Sub
 
     Private Sub RefreshJavaLaunchWrapperSetting()
-        Dim IsWindows As Boolean = OperatingSystem.IsWindows()
-        CheckAdvanceDisableJLW.IsEnabled = IsWindows
-        If IsWindows Then Return
+        CheckAdvanceDisableJLW.IsEnabled = ModPlatform.SupportsJavaLaunchWrapper
+        If ModPlatform.SupportsJavaLaunchWrapper Then Return
 
         AniControlEnabled += 1
         Try

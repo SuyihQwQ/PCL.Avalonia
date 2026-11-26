@@ -2,7 +2,7 @@
 
 [English](README.md) | 简体中文
 
-[Plain Craft Launcher 2](https://github.com/Meloong-Git/PCL)（基于 PCL 2.14 源码）的第三方跨平台移植版本：**Avalonia 12.1.4 + .NET 10**，主体以 VB.NET 实现，主要面向 Linux（Wayland / X11），并支持 Windows。
+[Plain Craft Launcher 2](https://github.com/Meloong-Git/PCL)（基于 PCL 2.14 源码）的第三方跨平台移植版本：**Avalonia 12.1.4 + .NET 10**，主体以 VB.NET 实现。正式支持 Windows 与 Linux（Wayland / X11），macOS 可构建运行（实验性），BSD 提供源码级支持。
 
 - 当前版本：**Stable 14.2.2**（下载见 [Releases](https://github.com/SuyihQwQ/PCL.Avalonia/releases)）
 - 本作品是**第三方基于 PCL 独立进行的移植**，不是官方作品，也与 Mojang / Microsoft 无关。
@@ -31,7 +31,8 @@ dotnet build PCL.sln
 dotnet run --project PCL/PCL.vbproj
 ```
 
-- 需要 **.NET 10 SDK**；Linux 需要 Wayland 或 X11 桌面
+- 需要 **.NET 10 SDK**；Windows 无需额外依赖，Linux 需要 Wayland 或 X11 桌面，macOS 使用原生后端
+- macOS / BSD 的构建与运行说明见下文「平台说明」
 - 修改 `.axaml` 的 `x:Name` 后需运行 `python3 tools/XamlGen/gen_fields.py`（需要 Python 3）
 - 测试：`dotnet test PCL.Tests/PCL.Tests.csproj`（xunit.v3 + Avalonia.Headless，无需显示服务器）
 
@@ -48,6 +49,15 @@ dotnet publish PCL/PCL.vbproj -c Release -r win-x64 --self-contained true \
   -p:PublishSingleFile=true -p:EnableWindowsTargeting=true \
   -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true \
   -o dist/package/win-x64
+
+# macOS（Apple Silicon / Intel，可跨平台发布；产物是可执行文件，暂无 .app 打包）
+dotnet publish PCL/PCL.vbproj -c Release -r osx-arm64 --self-contained true \
+  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
+  -p:EnableCompressionInSingleFile=true -o dist/package/osx-arm64
+
+dotnet publish PCL/PCL.vbproj -c Release -r osx-x64 --self-contained true \
+  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true \
+  -p:EnableCompressionInSingleFile=true -o dist/package/osx-x64
 ```
 
 发布产物使用 GPG 签名：`sha256sum -c SHA256SUMS && gpg --verify SHA256SUMS.asc SHA256SUMS`，公钥见 `PCL.Avalonia-signing-key.asc`。
@@ -88,16 +98,42 @@ dotnet publish PCL/PCL.vbproj -c Release -r win-x64 --self-contained true \
 
 界面语言默认跟随系统，目前提供简体中文与英文。稳定版需先登录微软正版账号，快照版不强制。
 
-## Linux 说明
+## 平台说明
+
+### Windows
+
+- 按《PCL 存储库合理使用指南》固定龙猫蓝主题，禁用主题配色设置
+- 支持内存优化、Java Launch Wrapper、系统显卡首选项等 Windows 专属功能
+
+### Linux
 
 - 跟随 GTK / KDE / GSettings 的系统光标主题
 - Wayland 使用自绘标题栏；X11 通过独立窗口监听实例目录变化
 - 文件拖放统一使用 Copy 效果（Avalonia Wayland 后端限制）
 - 生成并安装 `PCL.Avalonia.desktop` 桌面项
+- 系统代理依次读取环境变量、KDE `kioslaverc`、GNOME `gsettings`
+- 显卡首选项通过 PRIME 环境变量实现
+
+### macOS（实验性）
+
+- 配置保存在 `~/Library/Application Support/PCL.Avalonia/`（其他平台为 `<程序目录>/PCL.Avalonia/` 与 XDG 配置目录）
+- 使用 Avalonia 原生后端；启动错误提示通过 `osascript` 弹出
+- Java 搜索包含 `/Library/Java/JavaVirtualMachines`、`~/Library/Java/JavaVirtualMachines` 以及 Homebrew / MacPorts 的 JDK
+- 支持 Azul Zulu 自动下载；系统信息读取使用 `sysctl` / `system_profiler`
+- 暂未提供 `.app`/dmg 打包，直接运行可执行文件即可
+- Windows 专属的内存优化、Java Launch Wrapper 与显卡首选项设置在此平台禁用
+
+### BSD（实验性，仅源码支持）
+
+- 支持 FreeBSD / OpenBSD / NetBSD / DragonFly：配置使用 XDG 目录，系统信息通过 `sysctl` 读取
+- 启动时显式使用 Avalonia X11 后端（需要系统提供 X11 与 Skia 依赖）
+- Java 搜索包含 `/usr/local/openjdk*`、`/usr/local/*jdk*`、`/usr/local/share/java`、`/usr/pkg/java` 等路径；Azul Zulu 不提供 BSD 构建，自动下载会跳过
+- Minecraft 规则复用 `linux` 分支
+- 与 Linux 相同，禁用 Windows 专属功能；当前 .NET 与 Avalonia 未在 NuGet 提供 BSD 运行时包，因此没有官方二进制，需在 BSD 上用社区 .NET 运行时自行构建
 
 ## 未来计划
 
-1. 支持 macOS（构建、打包 `.app`/dmg 与系统集成）
+1. 完善 macOS 支持（`.app`/dmg 打包、系统集成）
 2. 将 VB.NET 部分重写为 C#
 3. 添加由 [ConnectX](https://github.com/Corona-Studio/ConnectX) 提供的联机支持
 

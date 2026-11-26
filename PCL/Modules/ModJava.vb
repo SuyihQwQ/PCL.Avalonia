@@ -571,7 +571,14 @@ NoForcedJava:
     ''' 从 Azul Zulu 的 Metadata API 中查找满足版本范围的最新 JRE。
     ''' </summary>
     Private Function FindZuluPackage(Range As ValueRange(Of Version), c As CancellationToken, p As ProgressProvider) As JavaDownloadInfo
-        Dim OsName As String = If(OperatingSystem.IsWindows(), "windows", If(OperatingSystem.IsMacOS(), "macos", "linux"))
+        'Azul Zulu 没有 BSD 构建，避免白白请求 API
+        If ModPlatform.IsBSD Then
+            Logger.Warn("Azul Zulu 不提供 BSD 平台的 Java，跳过自动下载，请手动安装系统 Java")
+            p?.Skip()
+            Return Nothing
+        End If
+        Dim OsName As String = ModPlatform.MinecraftOsName
+        If OsName = "osx" Then OsName = "macos"
         Dim ArchName As String = GetZuluArchitecture()
         If ArchName Is Nothing Then
             Logger.Warn("无法识别当前 CPU 架构，无法从 Azul Zulu 自动下载 Java")

@@ -1454,7 +1454,7 @@ NextInstance:
         'JLW
         '非 GBK 编码下命令行参数乱码的问题（JDK-8272352）；其原生库只有 Windows DLL，其他平台不能启用
         Dim UseJLW As Boolean = ShouldUseJavaLaunchWrapper(
-            OperatingSystem.IsWindows(),
+            ModPlatform.SupportsJavaLaunchWrapper,
             IsGBKEncoding,
             Function() Settings.Get(Of Boolean)("LaunchAdvanceDisableJLW"),
             Function() Settings.Get(Of Boolean)("VersionAdvanceDisableJLW", McInstanceSelected))

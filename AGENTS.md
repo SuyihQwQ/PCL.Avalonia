@@ -8,6 +8,14 @@
 - 当前公开版本：**Stable 14.2.2**（标签 `v14.2.2-Stable`）；`main` = stable，`dev` = snapshot。
 - 本仓库是**第三方非官方移植**，不是 Mojang / Microsoft 官方产品。
 
+## 平台支持
+
+- **正式支持**：Windows、Linux（Wayland / X11）。**实验性支持**：macOS（可构建运行）、BSD（仅源码级，无官方 .NET/Avalonia 运行时包）。
+- 平台识别与能力开关集中在 `PCL/Modules/Base/ModPlatform.vb`：`IsWindows` / `IsLinux` / `IsMacOS` / `IsBSD`、`PlatformName`、`MinecraftOsName`（BSD 复用 `linux`）、`UserConfigHome`，以及 `SupportsRamOptimize` / `SupportsJavaLaunchWrapper` / `SupportsGpuPreference` / `CanCustomizeTheme`。新增平台相关功能时优先用这些属性，不要在页面里散写 `OperatingSystem.IsXxx`。
+- 配置目录：Windows 注册表；Linux/BSD 为 XDG 配置目录下的 `PCL.Avalonia/Registry.ini`；macOS 为 `~/Library/Application Support/PCL.Avalonia/`。
+- BSD：`Program.BuildAvaloniaApp` 显式使用 Avalonia X11 后端；Azul Zulu 自动下载禁用；Java 搜索 `/usr/local/openjdk*`、`/usr/local/*jdk*`、`/usr/pkg/java` 等；系统信息走 `sysctl`（CPU/内存/运行时间/桌面环境）。macOS：Avalonia 原生后端、`osascript` 错误提示、Java 搜索 `/Library/Java/...` 与 Homebrew/MacPorts、`sysctl`/`system_profiler` 系统信息。
+- 测试总数 **293**（新增 `PlatformSupportTests` 与 About 页副文本换行断言）。
+
 ## 功能区速览（2026-11 新增）
 
 - **字体**：`PCL/Assets/Fonts/` 内嵌 `PCLEnglish.ttf`、`MiSans-Regular.ttf`、`Twemoji.Mozilla.ttf`（许可说明见同目录 `FontLicenses.txt`）；`PCL/FontConfig.vb` 统一管理内嵌字体链、emoji 回退（Twemoji）与“完全使用系统字体”（设置项 `UiSystemFont`，运行时通过改写 `PCLFont` 动态资源生效，emoji 回退在重启后完全生效）。改字体时同时改 `FontConfig.EmbeddedFamily` 与 `App.axaml` 的 `PCLFont`。
@@ -52,7 +60,7 @@ python3 tools/XamlGen/gen_fields.py [--check]     # 改 XAML x:Name 后重新生
 - 资源 URI 形如 `avares://PCL.Avalonia/...`，依赖程序集名 `PCL.Avalonia`；改名需全量替换。
 - 非单文件构建用 `UseAppHost=false`；Linux 发布后 apphost 由 `RenameLinuxExecutable` 改名为 `pcl-avalonia`。配置目录固定为 `<程序目录>/PCL.Avalonia/`，**没有回退目录**。
 - `MyCard`/`MyComboBox`/`MyTextBox`/`MySlider`/`MyScrollViewer`/`MyLoading` 承担悬停、阴影、下拉、焦点联动，改动后跑对应 headless 测试；指针捕获会让 `MouseLeave` 误触发，卡片内有 `SetHoverLock` 与延迟补偿。
-- 固定用 `dotnet`（.NET 10）。测试总数 **289**，headless 并行清理偶发失败，重跑一般即过。
+- 固定用 `dotnet`（.NET 10）。测试总数 **293**，headless 并行清理偶发失败，重跑一般即过。
 - `PCL/Pages/PageSetup/Settings.vb` 的 `New List(Of Setting) From {...}` 集合初始化器内**不能出现独占一行的注释**（VB 会 BC30201 并级联一堆 BC30035），注释请挂在条目行尾。
 - 内嵌字体使程序集变大，`dotnet publish` 单文件压缩会明显变慢（首次几分钟），属正常。
 - 改 `.axaml` 的 `x:Name` 后必须 `python3 tools/XamlGen/gen_fields.py`，否则运行期 `FindControl` 抛“找不到控件”。
