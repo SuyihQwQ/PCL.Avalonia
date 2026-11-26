@@ -4,7 +4,7 @@ English | [简体中文](README.zh-CN.md)
 
 A third-party cross-platform port of [Plain Craft Launcher 2](https://github.com/Meloong-Git/PCL) (based on PCL 2.14), built with **Avalonia 12.1.4 + .NET 10**. The UI and business logic are implemented in VB.NET. Windows and Linux (Wayland / X11) are fully supported, macOS builds are experimental, and BSD is source-level experimental support.
 
-- Current release: **Stable 14.2.2** ([Releases](https://github.com/SuyihQwQ/PCL.Avalonia/releases))
+- Current version: this branch (`dev`) is **Snapshot 14.2.3**; latest stable is **14.2.2** ([Releases](https://github.com/SuyihQwQ/PCL.Avalonia/releases))
 - This is an **independent third-party port**, not an official PCL release and not affiliated with Mojang or Microsoft.
 
 ## Features

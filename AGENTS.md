@@ -5,7 +5,7 @@
 ## 项目速览
 
 - PCL 2.14（VB.NET / WPF / .NET Framework 4.8）的跨平台移植：**Avalonia 12.1.4 + .NET 10**，主程序保持 **VB.NET**（`Option Strict Off`）。C# 仅用于 `PCL.Compat/`、`MeloongCore.Avalonia/`(submodule)、`PCLCS/`、`PCL.Tests/`、`tools/XamlGen/`。
-- 当前公开版本：**Stable 14.2.2**（标签 `v14.2.2-Stable`）；`main` = stable，`dev` = snapshot。
+- 稳定版：**14.2.2**（标签 `v14.2.2-Stable`，`main` 分支）；快照版：**14.2.3**（`dev` 分支，`PCL.vbproj` 不定义 `STABLE`）。
 - 本仓库是**第三方非官方移植**，不是 Mojang / Microsoft 官方产品。
 
 ## 平台支持
