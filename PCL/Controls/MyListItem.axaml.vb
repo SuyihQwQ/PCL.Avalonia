@@ -191,9 +191,34 @@ Public Class MyListItem
             Return GetValue(InfoProperty)
         End Get
         Set(value As String)
-            SetValue(InfoProperty, If(value, "").ReplaceLineEndings(""))
+            SetValue(InfoProperty, If(value, "").ReplaceLineEndings(" "))
         End Set
     End Property
+
+    '是否允许副文本换行完整显示（默认单行省略）
+    Private _WrapInfo As Boolean = False
+    Public Property WrapInfo As Boolean
+        Get
+            Return _WrapInfo
+        End Get
+        Set(value As Boolean)
+            _WrapInfo = value
+            RefreshInfoWrap()
+        End Set
+    End Property
+
+    Private Sub RefreshInfoWrap()
+        If LabInfo Is Nothing Then Return
+        If _WrapInfo Then
+            LabInfo.TextWrapping = TextWrapping.Wrap
+            LabInfo.TextTrimming = TextTrimming.None
+            MinHeight = 42
+            Height = Double.NaN
+        Else
+            LabInfo.TextWrapping = TextWrapping.NoWrap
+            LabInfo.TextTrimming = TextTrimming.CharacterEllipsis
+        End If
+    End Sub
 
     '图片
     Private _Logo As String = ""
@@ -512,7 +537,7 @@ Public Class MyListItem
                 DirectCast(PathLogo, Path).Fill = Foreground
             End If
         ElseIf change.Property Is InfoProperty AndAlso LabInfo IsNot Nothing Then
-            Dim InfoText As String = If(Info, "").ReplaceLineEndings("")
+            Dim InfoText As String = If(Info, "").ReplaceLineEndings(" ")
             If InfoText <> Info Then SetCurrentValue(InfoProperty, InfoText)
             LabInfo.Text = InfoText
             LabInfo.IsVisible = InfoText <> ""

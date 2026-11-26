@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Xunit;
@@ -24,6 +25,12 @@ public class AboutPageTests {
 
             Assert.Contains(global::PCL.ModBase.VersionBaseName, page.ItemAboutPcl.Info);
             Assert.Contains("PCL.Avalonia 是原版 PCL 的跨平台移植版本。", page.ItemAboutPcl.Info);
+            // 副文本必须完整换行显示，不能再用省略号截断；卡片右侧也不再预留按钮列
+            Assert.True(page.ItemAboutPcl.WrapInfo);
+            Assert.Equal(TextTrimming.None, page.ItemAboutPcl.LabInfo.TextTrimming);
+            Assert.Equal(TextWrapping.Wrap, page.ItemAboutPcl.LabInfo.TextWrapping);
+            Assert.DoesNotContain("…", page.ItemAboutPcl.Info);
+            Assert.True(page.ItemAboutPcl.Bounds.Width > 400);
             var items = page.PanMain.GetVisualDescendants().OfType<global::PCL.MyListItem>().ToList();
             Assert.Contains(items, i => i.Title == "SuyihQwQ" && i.Info == "PCL.Avalonia 的开发者");
             var texts = page.PanMain.GetVisualDescendants().OfType<TextBlock>().Where(t => t.Text is not null).Select(t => t.Text!).ToList();

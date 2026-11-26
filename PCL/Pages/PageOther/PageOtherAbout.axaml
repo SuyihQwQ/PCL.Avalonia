@@ -37,15 +37,14 @@
                 <Grid Margin="21,40,21,16">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="45" />
-                        <RowDefinition Height="45" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="40" />
                         <ColumnDefinition />
-                        <ColumnDefinition Width="150" />
                     </Grid.ColumnDefinitions>
-                    <local:MyListItem IsHitTestVisible="False" Title="SuyihQwQ" Margin="-5,0,15,0" Info="{DynamicResource LangAvalonia0012}" Grid.Row="0" Grid.Column="1" />
-                    <local:MyListItem IsHitTestVisible="False" Title="PCL.Avalonia" Margin="-5,0,15,0" Info="{DynamicResource LangAvalonia0010}" Grid.Row="1" Grid.Column="1" x:Name="ItemAboutPcl" />
+                    <local:MyListItem IsHitTestVisible="False" Title="SuyihQwQ" Margin="-5,0,10,0" Info="{DynamicResource LangAvalonia0012}" Grid.Row="0" Grid.Column="1" />
+                    <local:MyListItem IsHitTestVisible="False" Title="PCL.Avalonia" Margin="-5,0,10,0" Info="{DynamicResource LangAvalonia0010}" Grid.Row="1" Grid.Column="1" x:Name="ItemAboutPcl" WrapInfo="True" />
                     <Image Source="avares://PCL.Avalonia/Assets/Images/Heads/SuyihQwQ.png" Grid.Row="0" Margin="3">
                         <Image.Clip>
                             <EllipseGeometry Center="17,17" RadiusX="17" RadiusY="17" />
